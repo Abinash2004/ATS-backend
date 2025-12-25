@@ -1,6 +1,6 @@
 import {httpsServer} from "./config/server.ts";
 import dotenv from "dotenv";
-import {startInitialServers} from "./handlers/startup.ts";
+import {startInitialServers} from "./handler/startup.ts";
 
 const port = process.env.PORT || 3000;
 dotenv.config({quiet: true});

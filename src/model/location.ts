@@ -1,6 +1,7 @@
 import {Schema,model} from "mongoose";
+import {ILocation} from "../interface/location.ts";
 
-const locationSchema = new Schema({
+const locationSchema = new Schema<ILocation>({
     street: {
         type: String
     },
@@ -14,5 +15,5 @@ const locationSchema = new Schema({
     }
 });
 
-const Location = model("Location", locationSchema);
+const Location = model<ILocation>("Location", locationSchema);
 export default Location;

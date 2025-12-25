@@ -1,17 +1,22 @@
 import {Schema,model} from "mongoose";
+import {ITimesheet} from "../interface/timesheet.ts";
 
-const timesheetSchema = new Schema({
-    clock_in: {
-        type: Date
+const timesheetSchema = new Schema<ITimesheet>({
+    time: {
+        type: Date,
+        required: true
     },
-    clock_out: {
-        type: Date
+    status: {
+        type: String,
+        enum: ["in","out"],
+        required: true
     },
     employeeId: {
         type: Schema.Types.ObjectId,
+        ref: "Employee",
         required: true
     }
 });
 
-const Timesheet = model("Timesheet", timesheetSchema);
+const Timesheet = model<ITimesheet>("Timesheet", timesheetSchema);
 export default Timesheet;
