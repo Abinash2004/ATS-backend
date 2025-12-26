@@ -19,4 +19,13 @@ async function addNewEmployee(employee: Partial<IEmployee>): Promise<void> {
     }
 }
 
-export {isEmployeeExists,addNewEmployee};
+async function getEmployeeData(email: string) {
+    try {
+        const emp =  await Employee.findOne({email});
+        return emp as IEmployee;
+    } catch(error) {
+        console.log(error);
+    }
+}
+
+export {isEmployeeExists,addNewEmployee,getEmployeeData};
