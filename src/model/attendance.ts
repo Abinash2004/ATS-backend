@@ -1,5 +1,5 @@
 import {Schema,model} from "mongoose";
-import {IBreak,IAttendance} from "../interface/attendance.ts";
+import type {IBreak,IAttendance} from "../interface/attendance.ts";
 
 const breakSchema = new Schema<IBreak>(
     {

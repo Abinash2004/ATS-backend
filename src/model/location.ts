@@ -1,5 +1,5 @@
 import {Schema,model} from "mongoose";
-import {ILocation} from "../interface/location.ts";
+import type {ILocation} from "../interface/location.ts";
 
 const locationSchema = new Schema<ILocation>({
     street: {

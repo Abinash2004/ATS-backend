@@ -1,5 +1,5 @@
 import {Schema,model} from "mongoose";
-import {IShift} from "../interface/shift.ts";
+import type {IShift} from "../interface/shift.ts";
 
 const shiftSchema = new Schema<IShift>({
     initial_time: {

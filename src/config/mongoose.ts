@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config({quiet: true});
-const URI:string = process.env.URI || "mongodb://localhost:27017";
+const URI:string = process.env.MONGODB_URI || "mongodb://localhost:27017";
 
 async function connectToMongoDB(): Promise<void> {
     try {

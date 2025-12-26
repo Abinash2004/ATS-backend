@@ -4,6 +4,6 @@ import express from "express";
 
 const app = express();
 const httpsServer = createServer(app);
-const io = new Server(httpsServer);
+const io = new Server(httpsServer, {cors: {origin: "*"}});
 
 export {httpsServer,io};
