@@ -18,8 +18,14 @@ function helperMessageEmission(socket: Socket, status: string, message: string) 
     socket.emit("server_response",{status,message});
 }
 
+function helperCalculateMinutes(start: Date, end: Date): number {
+    if (end < start) return 0;
+    return Math.floor((end.getTime() - start.getTime()) / 60000);
+}
+
 export {
     helperStringToDate,
     helperErrorEmission,
-    helperMessageEmission
+    helperMessageEmission,
+    helperCalculateMinutes
 };

@@ -1,5 +1,5 @@
 import {getShift} from "./shift.ts";
-import {helperStringToDate} from "../helper.ts";
+import {helperCalculateMinutes, helperStringToDate} from "../helper.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
 import type {IShift} from "../../interface/shift.ts";
@@ -70,9 +70,41 @@ async function updateOngoingBreak(employeeId: string, attendanceId: string): Pro
     }
 }
 
+async function isShiftTimeCompleted(employeeId: string, shiftId: string, attendance: IAttendance): Promise<boolean> {
+    try {
+        const currentTime = new Date();
+        const shift = await getShift(shiftId.toString());
+        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
+
+        const shiftStartTime = helperStringToDate(shift.initial_time);
+        const shiftEndTime = helperStringToDate(shift.exit_time);
+        const shiftMinutes = helperCalculateMinutes(shiftStartTime,shiftEndTime);
+        const clientMinutes = helperCalculateMinutes(attendance.clock_in, currentTime);
+        return clientMinutes >= shiftMinutes;
+    } catch(error: unknown) {
+        console.error(error);
+        return false;
+    }
+}
+
+async function updateClockOutTime(employeeId: string, attendanceId: string): Promise<void> {
+    try {
+        const currentTime = new Date();
+        await Attendance.updateOne({_id: attendanceId}, {$set: {
+            clock_out: currentTime,
+            status: "out"
+        }});
+        await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
+    } catch(error: unknown) {
+        console.error(error);
+    }
+}
+
 export {
     getTodayAttendance,
     addNewAttendance,
     addNewBreak,
-    updateOngoingBreak
+    updateOngoingBreak,
+    updateClockOutTime,
+    isShiftTimeCompleted
 }
