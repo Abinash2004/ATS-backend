@@ -1,8 +1,8 @@
 import type {Socket} from "socket.io";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IAttendance} from "../interface/attendance.ts";
-import {addNewAttendance, getTodayAttendance} from "./mongoose/attendance.ts";
 import {helperErrorEmission, helperMessageEmission} from "./helper.ts";
+import {addNewAttendance, addNewBreak, getTodayAttendance} from "./mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
@@ -26,9 +26,17 @@ async function clockOutHandler(socket: Socket,employee: IEmployee) {
     }
 }
 
-async function breakHandler(socket: Socket,employee: IEmployee) {
+async function breakHandler(reason: string, socket: Socket,employee: IEmployee) {
     try {
-
+        const attendance: IAttendance | null = await getTodayAttendance(employee._id);
+        if(!attendance || attendance.status === "break" || attendance.status === "out") {
+            helperMessageEmission(socket, "failed","not clocked in yet.");
+        } else if (!reason) {
+            helperMessageEmission(socket, "failed","give reason for the break.");
+        } else {
+            await addNewBreak(employee._id.toString(),attendance._id, reason);
+            helperMessageEmission(socket, "success","break time started successfully.");
+        }
     } catch (error) {
         helperErrorEmission(socket,error);
     }

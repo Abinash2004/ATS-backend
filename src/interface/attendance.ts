@@ -7,6 +7,7 @@ export interface IBreak {
 }
 
 export interface IAttendance {
+    _id: string;
     clock_in: Date;
     clock_out?: Date;
     breaks: IBreak[];

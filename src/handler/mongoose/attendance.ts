@@ -3,7 +3,7 @@ import {helperStringToDate} from "../helper.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
 import type {IShift} from "../../interface/shift.ts";
-import type {IAttendance} from "../../interface/attendance.ts";
+import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 
 async function getTodayAttendance(employeeId: string) : Promise<IAttendance | null> {
     try {
@@ -24,10 +24,7 @@ async function getTodayAttendance(employeeId: string) : Promise<IAttendance | nu
 async function addNewAttendance(employeeId: string, shiftId: string): Promise<void> {
     try {
         const shift : IShift | null = await getShift(shiftId.toString());
-        if (!shift) {
-            new Error(`${shiftId} not found for employee ${employeeId}`);
-            return;
-        }
+        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
 
         const now = new Date();
         let clockInTime: Date = helperStringToDate(shift.initial_time);
@@ -41,7 +38,22 @@ async function addNewAttendance(employeeId: string, shiftId: string): Promise<vo
     }
 }
 
+async function addNewBreak(employeeId: string, attendanceId: string, reason: string): Promise<void> {
+    try {
+        const currentTime = new Date();
+        const breakObject: IBreak = {break_in: currentTime,reason: reason};
+        await Attendance.updateOne({_id: attendanceId},{
+            $push: {breaks: breakObject},
+            status: "break"
+        });
+        await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
+    } catch(error: unknown) {
+        console.error(error);
+    }
+}
+
 export {
     getTodayAttendance,
-    addNewAttendance
+    addNewAttendance,
+    addNewBreak
 }
