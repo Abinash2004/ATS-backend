@@ -52,8 +52,27 @@ async function addNewBreak(employeeId: string, attendanceId: string, reason: str
     }
 }
 
+async function updateOngoingBreak(employeeId: string, attendanceId: string): Promise<void> {
+    try {
+        const dateStart = new Date(Date.now());
+        dateStart.setHours(0, 0, 0, 0);
+        const dateEnd = new Date(dateStart);
+        dateEnd.setDate(dateEnd.getDate() + 1);
+        const currentTime = new Date();
+
+        await Attendance.updateOne({_id: attendanceId,breaks: {$elemMatch: {
+            break_in: {$gte: dateStart, $lt: dateEnd},
+            break_out: {$exists: false},
+        }}},{$set:{status: "in","breaks.$.break_out": currentTime}});
+        await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
+    }catch(error: unknown) {
+        console.error(error);
+    }
+}
+
 export {
     getTodayAttendance,
     addNewAttendance,
-    addNewBreak
+    addNewBreak,
+    updateOngoingBreak
 }

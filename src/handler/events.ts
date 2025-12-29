@@ -2,7 +2,7 @@ import type {Socket} from "socket.io";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IAttendance} from "../interface/attendance.ts";
 import {helperErrorEmission, helperMessageEmission} from "./helper.ts";
-import {addNewAttendance, addNewBreak, getTodayAttendance} from "./mongoose/attendance.ts";
+import {addNewAttendance, addNewBreak, getTodayAttendance, updateOngoingBreak} from "./mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
@@ -10,8 +10,11 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
         if(!attendance) {
             await addNewAttendance(employee._id, employee.shiftId.toString());
             helperMessageEmission(socket, "success","clocked in successfully");
+        } else if (attendance.status === "in" || attendance.status === "out") {
+            helperMessageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
         } else {
-            helperMessageEmission(socket, "success","already clocked in successfully");
+            await updateOngoingBreak(employee._id.toString(), attendance._id.toString());
+            helperMessageEmission(socket, "success","clocked in successfully");
         }
     } catch(error) {
         helperErrorEmission(socket,error);
