@@ -1,5 +1,5 @@
-import Employee from "../model/employee.ts";
-import type {IEmployee} from "../interface/employee.ts";
+import Employee from "../../model/employee.ts";
+import type {IEmployee} from "../../interface/employee.ts";
 
 async function isEmployeeExists(email: string): Promise<boolean> {
     try {
@@ -28,4 +28,8 @@ async function getEmployeeData(email: string) {
     }
 }
 
-export {isEmployeeExists,addNewEmployee,getEmployeeData};
+export {
+    isEmployeeExists,
+    addNewEmployee,
+    getEmployeeData
+};

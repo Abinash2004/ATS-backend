@@ -1,8 +1,8 @@
 import type {Socket} from "socket.io";
-import {signToken} from "../config/jwt.ts";
 import type {IEmployee} from "../interface/employee.ts";
+import {signToken} from "../config/jwt.ts";
 import {validateAuthCredentials} from "../utils/validations.ts";
-import {addNewEmployee, isEmployeeExists} from "./mongoose.ts";
+import {addNewEmployee, isEmployeeExists} from "./mongoose/employee.ts";
 
 async function authSignUp(socket: Socket, employee: Partial<IEmployee>) {
     const message = validateAuthCredentials(employee, true);

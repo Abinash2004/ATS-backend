@@ -4,7 +4,7 @@ import {authSignIn, authSignUp} from "./auth.ts";
 import type {IEmployee} from "../interface/employee.ts";
 import {breakHandler, clockInHandler, clockOutHandler} from "./events.ts";
 import {verifyToken} from "../config/jwt.ts";
-import {getEmployeeData} from "./mongoose.ts";
+import {getEmployeeData} from "./mongoose/employee.ts";
 
 function startSocketServer() {
     io.use(async (socket: Socket, next) => {
@@ -23,11 +23,11 @@ function startSocketServer() {
     });
 
     io.on('connection', (socket: Socket) => {
-        const employee = socket.data.employee;
+        const employee: IEmployee  = socket.data.employee;
         console.log(`${socket.id} connected to server.`);
-        socket.on("clock_in", () => clockInHandler);
-        socket.on("break", () => breakHandler);
-        socket.on("clock_out", () => clockOutHandler);
+        socket.on("clock_in", () => clockInHandler(socket,employee));
+        socket.on("break", () => breakHandler(socket,employee));
+        socket.on("clock_out", () => clockOutHandler(socket,employee));
     });
 }
 
