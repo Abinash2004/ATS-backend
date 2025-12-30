@@ -6,16 +6,57 @@ import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 
-async function getTodayAttendance(employeeId: string) : Promise<IAttendance | null> {
+async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
-        const dateStart = new Date(Date.now());
-        dateStart.setHours(0, 0, 0, 0);
-        const dateEnd = new Date(dateStart);
-        dateEnd.setDate(dateEnd.getDate() + 1);
-        return await Attendance.findOne({
-            employeeId: employeeId,
-            clock_in: {$gte: dateStart, $lt: dateEnd}
-        });
+        const shift : IShift | null = await getShift(shiftId.toString());
+        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
+
+        let shiftInitialTime: Date = helperStringToDate(shift.initial_time);
+        let shiftExitTime: Date = helperStringToDate(shift.exit_time);
+
+        //regular shift
+        if (shiftInitialTime < shiftExitTime) {
+            const dateStart = new Date(Date.now());
+            dateStart.setHours(0, 0, 0, 0);
+            const dateEnd = new Date(dateStart);
+            dateEnd.setDate(dateEnd.getDate() + 1);
+            return await Attendance.findOne({
+                employeeId: employeeId,
+                clock_in: {$gte: dateStart, $lt: dateEnd}
+            });
+        }
+
+        //midnight shift
+        else {
+            const midNightStart = new Date(Date.now());
+            midNightStart.setHours(0, 0, 0, 0);
+            const midNightEnd = new Date(Date.now());
+            midNightEnd.setDate(midNightStart.getDate() + 1);
+            let currentTime = new Date(Date.now());
+
+            if (currentTime >= midNightStart && currentTime <= shiftExitTime ) {
+                const startDate = new Date(shiftInitialTime);
+                startDate.setDate(startDate.getDate() - 1);
+                return await Attendance.findOne({
+                    employeeId: employeeId,
+                    clock_in: {
+                        $gte: startDate,
+                        $lte: currentTime
+                    }
+                });
+            } else if (currentTime > shiftExitTime && currentTime < shiftInitialTime) {
+                return null;
+            } else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
+                return await Attendance.findOne({
+                    employeeId: employeeId,
+                    clock_in: {
+                        $gte: shiftInitialTime,
+                        $lt: currentTime
+                    }
+                });
+            }
+        }
+        return null;
     } catch(error: unknown) {
         console.error(error);
         return null;
@@ -27,18 +68,42 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
 
-        let clockInTime = new Date();
         let shiftInitialTime: Date = helperStringToDate(shift.initial_time);
         let shiftExitTime: Date = helperStringToDate(shift.exit_time);
-        if (clockInTime < shiftInitialTime) clockInTime = shiftInitialTime;
-        if (clockInTime >= shiftExitTime) {
-            helperMessageEmission(socket, "failed",`your shift is completed on ${helperTOIST(shiftExitTime)}`);
-            return;
+
+        //regular shift
+        if (shiftInitialTime < shiftExitTime) {
+            let clockInTime = new Date();
+            if (clockInTime < shiftInitialTime) clockInTime = shiftInitialTime;
+            if (clockInTime >= shiftExitTime) {
+                helperMessageEmission(socket, "failed",`your shift is completed on ${helperTOIST(shiftExitTime)}`);
+                return;
+            }
+
+            await Attendance.create({clock_in: clockInTime,employeeId: employeeId,status: "in"});
+            await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
+            helperMessageEmission(socket, "success",`clocked in on ${helperTOIST(clockInTime)}`);
         }
 
-        await Attendance.create({clock_in: clockInTime,employeeId: employeeId,status: "in"});
-        await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
-        helperMessageEmission(socket, "success",`clocked in on ${helperTOIST(clockInTime)}`);
+        //midnight shift
+        else {
+            const midNightStart = new Date(Date.now());
+            midNightStart.setHours(0, 0, 0, 0);
+            const midNightEnd = new Date(Date.now());
+            midNightEnd.setDate(midNightStart.getDate() + 1);
+            let currentTime = new Date(Date.now());
+
+            if (currentTime >= midNightStart && currentTime <= shiftExitTime ) {
+                helperMessageEmission(socket, "success",`clocked in on ${helperTOIST(currentTime)}`);
+            } else if (currentTime > shiftExitTime && currentTime < shiftInitialTime) {
+                currentTime = shiftExitTime;
+                helperMessageEmission(socket, "success",`you are clock in early timer will start on ${helperTOIST(shiftExitTime)}`);
+            } else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
+                helperMessageEmission(socket, "success",`clocked in on ${helperTOIST(currentTime)}`);
+            }
+            await Attendance.create({clock_in: currentTime,employeeId: employeeId,status: "in"});
+            await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
+        }
     } catch(error) {
         console.error(error);
     }

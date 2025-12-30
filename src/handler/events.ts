@@ -7,7 +7,7 @@ import {addNewAttendance,addNewBreak,getTodayAttendance, isShiftTimeCompleted,
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id);
+        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance) {
             await addNewAttendance(socket, employee._id, employee.shiftId.toString());
         } else if (attendance.status === "in" || attendance.status === "out") {
@@ -22,7 +22,7 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
 
 async function clockOutHandler(socket: Socket,employee: IEmployee, reason: string) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id);
+        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance) {
             helperMessageEmission(socket, "failed","not clocked in yet.");
         } else if (attendance.status === "break" || attendance.status === "out") {
@@ -39,7 +39,7 @@ async function clockOutHandler(socket: Socket,employee: IEmployee, reason: strin
 
 async function breakHandler(reason: string, socket: Socket,employee: IEmployee) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id);
+        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance || attendance.status === "break" || attendance.status === "out") {
             helperMessageEmission(socket, "failed","not clocked in yet.");
         } else if (!reason) {
