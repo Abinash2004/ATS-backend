@@ -1,7 +1,8 @@
 import {getShift} from "./shift.ts";
-import {helperCalculateMinutes, helperStringToDate} from "../helper.ts";
+import {helperCalculateMinutes, helperMessageEmission, helperStringToDate, helperTOIST} from "../helper.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
+import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 
@@ -21,45 +22,57 @@ async function getTodayAttendance(employeeId: string) : Promise<IAttendance | nu
     }
 }
 
-async function addNewAttendance(employeeId: string, shiftId: string): Promise<boolean> {
+async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string): Promise<void> {
     try {
-        let isEarlyClockIn = false;
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
 
-        const now = new Date();
-        let clockInTime: Date = helperStringToDate(shift.initial_time);
-        if (now >= clockInTime) clockInTime = now;
-        else isEarlyClockIn = true;
+        let clockInTime = new Date();
+        let shiftInitialTime: Date = helperStringToDate(shift.initial_time);
+        let shiftExitTime: Date = helperStringToDate(shift.exit_time);
+        if (clockInTime < shiftInitialTime) clockInTime = shiftInitialTime;
+        if (clockInTime >= shiftExitTime) {
+            helperMessageEmission(socket, "failed",`your shift is completed on ${helperTOIST(shiftExitTime)}`);
+            return;
+        }
 
         await Attendance.create({clock_in: clockInTime,employeeId: employeeId,status: "in"});
         await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
-        console.log(`${employeeId} successfully clocked in.`);
-        return isEarlyClockIn;
+        helperMessageEmission(socket, "success",`clocked in on ${helperTOIST(clockInTime)}`);
     } catch(error) {
         console.error(error);
-        return false;
     }
 }
 
-async function addNewBreak(employeeId: string, attendanceId: string, reason: string): Promise<void> {
+async function addNewBreak(socket: Socket, employeeId: string, attendanceId: string, shiftId: string, reason: string): Promise<void> {
     try {
+        const shift : IShift | null = await getShift(shiftId.toString());
+        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
+
         const currentTime = new Date();
+        const shiftInitialTime: Date = helperStringToDate(shift.initial_time);
+        if (currentTime < shiftInitialTime) {
+            helperMessageEmission(socket, "failed", `break is not allowed before ${helperTOIST(shiftInitialTime)}.`);
+            return;
+        }
         const breakObject: IBreak = {break_in: currentTime,reason: reason};
         await Attendance.updateOne({_id: attendanceId},{
             $push: {breaks: breakObject},
             status: "break"
         });
         await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
+        helperMessageEmission(socket, "success",`break time started on ${helperTOIST(currentTime)}.`);
     } catch(error: unknown) {
         console.error(error);
     }
 }
 
-async function updateOngoingBreak(employeeId: string, attendanceId: string): Promise<void> {
+async function updateOngoingBreak(socket: Socket, employeeId: string, attendanceId: string, shiftId: string): Promise<void> {
     try {
-        const dateStart = new Date(Date.now());
-        dateStart.setHours(0, 0, 0, 0);
+        const shift : IShift | null = await getShift(shiftId.toString());
+        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
+
+        const dateStart = helperStringToDate(shift.initial_time);
         const dateEnd = new Date(dateStart);
         dateEnd.setDate(dateEnd.getDate() + 1);
         const currentTime = new Date();
@@ -69,6 +82,7 @@ async function updateOngoingBreak(employeeId: string, attendanceId: string): Pro
             break_out: {$exists: false},
         }}},{$set:{status: "in","breaks.$.break_out": currentTime}});
         await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
+        helperMessageEmission(socket, "success",`break ended, clocked in on ${helperTOIST(currentTime)}.`);
     }catch(error: unknown) {
         console.error(error);
     }
@@ -91,7 +105,7 @@ async function isShiftTimeCompleted(employeeId: string, shiftId: string, attenda
     }
 }
 
-async function updateClockOutTime(employeeId: string, attendanceId: string, reason: string): Promise<void> {
+async function updateClockOutTime(socket:Socket, employeeId: string, attendanceId: string, reason: string): Promise<void> {
     try {
         const currentTime = new Date();
         if (reason) {
@@ -107,6 +121,7 @@ async function updateClockOutTime(employeeId: string, attendanceId: string, reas
             }});
         }
         await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
+        helperMessageEmission(socket, "success",`clocked out on ${helperTOIST(currentTime)}.`);
     } catch(error: unknown) {
         console.error(error);
     }

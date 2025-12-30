@@ -3,8 +3,12 @@ import type {Socket} from "socket.io";
 function helperStringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
     let shiftTime = new Date();
-    shiftTime.setHours(hh, mm, 0, 0);
+    shiftTime.setUTCHours(hh-5, mm-30, 0, 0);
     return shiftTime;
+}
+
+function helperTOIST(date: Date): string {
+    return date.toLocaleString("en-IN", {timeZone: "Asia/Kolkata"});
 }
 
 function helperErrorEmission(socket: Socket, error: unknown) :void {
@@ -25,6 +29,7 @@ function helperCalculateMinutes(start: Date, end: Date): number {
 
 export {
     helperStringToDate,
+    helperTOIST,
     helperErrorEmission,
     helperMessageEmission,
     helperCalculateMinutes
