@@ -21,20 +21,24 @@ async function getTodayAttendance(employeeId: string) : Promise<IAttendance | nu
     }
 }
 
-async function addNewAttendance(employeeId: string, shiftId: string): Promise<void> {
+async function addNewAttendance(employeeId: string, shiftId: string): Promise<boolean> {
     try {
+        let isEarlyClockIn = false;
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
 
         const now = new Date();
         let clockInTime: Date = helperStringToDate(shift.initial_time);
-        if (now > clockInTime) clockInTime = now;
+        if (now >= clockInTime) clockInTime = now;
+        else isEarlyClockIn = true;
 
         await Attendance.create({clock_in: clockInTime,employeeId: employeeId,status: "in"});
         await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
         console.log(`${employeeId} successfully clocked in.`);
+        return isEarlyClockIn;
     } catch(error) {
         console.error(error);
+        return false;
     }
 }
 

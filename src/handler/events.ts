@@ -9,7 +9,9 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
         const attendance: IAttendance | null = await getTodayAttendance(employee._id);
         if(!attendance) {
-            await addNewAttendance(employee._id, employee.shiftId.toString());
+            const isEarly = await addNewAttendance(employee._id, employee.shiftId.toString());
+            (isEarly) ?
+            helperMessageEmission(socket, "success","early clocked in, timer will start at your shift time.") :
             helperMessageEmission(socket, "success","clocked in successfully");
         } else if (attendance.status === "in" || attendance.status === "out") {
             helperMessageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
