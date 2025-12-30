@@ -10,6 +10,7 @@ export interface IAttendance {
     _id: string;
     clock_in: Date;
     clock_out?: Date;
+    early_clock_out_reason?: string;
     breaks: IBreak[];
     status: "in" | "out" | "break";
     employeeId: Types.ObjectId;

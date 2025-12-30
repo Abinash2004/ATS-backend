@@ -24,17 +24,17 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
     }
 }
 
-async function clockOutHandler(socket: Socket,employee: IEmployee) {
+async function clockOutHandler(socket: Socket,employee: IEmployee, reason: string) {
     try {
         const attendance: IAttendance | null = await getTodayAttendance(employee._id);
         if(!attendance) {
             helperMessageEmission(socket, "failed","not clocked in yet.");
         } else if (attendance.status === "break" || attendance.status === "out") {
             helperMessageEmission(socket, "failed","can't clock out if already clocked out or in break.");
-        } else if (!await isShiftTimeCompleted(employee._id.toString(), employee.shiftId.toString(), attendance)) {
-            helperMessageEmission(socket, "failed","can't clock out as shift hours are still pending.");
+        } else if (!await isShiftTimeCompleted(employee._id.toString(), employee.shiftId.toString(), attendance) && !reason) {
+            helperMessageEmission(socket, "failed","shift hours are pending, provide reason for early clock out.");
         } else {
-            await updateClockOutTime(employee._id.toString(), attendance._id.toString());
+            await updateClockOutTime(employee._id.toString(), attendance._id.toString(), reason);
             helperMessageEmission(socket, "success","clocked out successfully");
         }
     } catch (error) {

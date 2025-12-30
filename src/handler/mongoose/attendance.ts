@@ -91,13 +91,21 @@ async function isShiftTimeCompleted(employeeId: string, shiftId: string, attenda
     }
 }
 
-async function updateClockOutTime(employeeId: string, attendanceId: string): Promise<void> {
+async function updateClockOutTime(employeeId: string, attendanceId: string, reason: string): Promise<void> {
     try {
         const currentTime = new Date();
-        await Attendance.updateOne({_id: attendanceId}, {$set: {
-            clock_out: currentTime,
-            status: "out"
-        }});
+        if (reason) {
+            await Attendance.updateOne({_id: attendanceId},{$set:{
+                clock_out: currentTime,
+                early_clock_out_reason: reason,
+                status: "out"
+            }});
+        } else {
+            await Attendance.updateOne({_id: attendanceId}, {$set: {
+                clock_out: currentTime,
+                status: "out"
+            }});
+        }
         await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
     } catch(error: unknown) {
         console.error(error);

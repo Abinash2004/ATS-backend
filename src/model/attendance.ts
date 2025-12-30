@@ -25,6 +25,9 @@ const attendanceSchema = new Schema<IAttendance>({
     clock_out: {
         type: Date
     },
+    early_clock_out_reason: {
+        type: String,
+    },
     breaks: {
         type: [breakSchema],
         default: []

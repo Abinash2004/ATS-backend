@@ -27,7 +27,7 @@ function startSocketServer() {
         console.log(`${socket.id} connected to server.`);
         socket.on("clock_in", () => clockInHandler(socket,employee));
         socket.on("break", (reason: string) => breakHandler(reason,socket,employee));
-        socket.on("clock_out", () => clockOutHandler(socket,employee));
+        socket.on("clock_out", (reason: string) => clockOutHandler(socket,employee,reason));
     });
 }
 
