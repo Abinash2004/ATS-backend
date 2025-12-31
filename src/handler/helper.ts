@@ -27,10 +27,17 @@ function helperCalculateMinutes(start: Date, end: Date): number {
     return Math.floor((end.getTime() - start.getTime()) / 60000);
 }
 
+function formatHoursMinutes(totalMinutes: number): string {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
+}
+
 export {
     helperStringToDate,
     helperTOIST,
     helperErrorEmission,
     helperMessageEmission,
-    helperCalculateMinutes
+    helperCalculateMinutes,
+    formatHoursMinutes
 };
