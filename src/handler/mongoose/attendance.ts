@@ -1,10 +1,11 @@
 import {getShift} from "./shift.ts";
-import {helperCalculateMinutes,helperMessageEmission,helperStringToDate,helperTOIST} from "../helper.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
 import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
+import {getShiftCalculation,helperMessageEmission,
+    helperStringToDate,helperTOIST} from "../helper.ts";
 
 async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
@@ -156,24 +157,10 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
     }
 }
 
-async function isShiftTimeCompleted(employeeId: string, shiftId: string, attendance: IAttendance): Promise<boolean> {
+async function isShiftTimeCompleted(shiftId: string, attendance: IAttendance): Promise<boolean> {
     try {
         const currentTime = new Date();
-        const shift = await getShift(shiftId.toString());
-        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-
-        const shiftStartTime = helperStringToDate(shift.initial_time);
-        const shiftEndTime = helperStringToDate(shift.exit_time);
-        if (shiftStartTime > shiftEndTime) {
-            shiftEndTime.setDate(shiftEndTime.getDate() + 1);
-        }
-        const shiftMinutes = helperCalculateMinutes(shiftStartTime,shiftEndTime);
-        const clientMinutes = helperCalculateMinutes(attendance.clock_in, currentTime);
-        let breakMinutes = 0;
-        attendance.breaks.map((single: IBreak) => {
-            breakMinutes += helperCalculateMinutes(single.break_in, single.break_out || currentTime);
-        });
-        const workedMinutes = clientMinutes - breakMinutes;
+        const {shiftMinutes,workedMinutes} = await getShiftCalculation(attendance, shiftId, currentTime);
         return workedMinutes >= shiftMinutes;
     } catch(error: unknown) {
         console.error(error);

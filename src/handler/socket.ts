@@ -2,7 +2,7 @@ import type {Socket} from 'socket.io';
 import {io} from '../config/server.ts';
 import {authSignIn, authSignUp} from "./auth.ts";
 import type {IEmployee} from "../interface/employee.ts";
-import {breakHandler, clockInHandler, clockOutHandler} from "./events.ts";
+import {breakHandler, clockInHandler, clockOutHandler, statusHandler} from "./events.ts";
 import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeData} from "./mongoose/employee.ts";
 
@@ -28,6 +28,7 @@ function startSocketServer() {
         socket.on("clock_in", () => clockInHandler(socket,employee));
         socket.on("break", (reason: string) => breakHandler(reason,socket,employee));
         socket.on("clock_out", (reason: string) => clockOutHandler(socket,employee,reason));
+        socket.on("status",() => statusHandler(socket, employee));
     });
 }
 
