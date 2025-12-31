@@ -2,10 +2,10 @@ import type {Socket} from "socket.io";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IAttendance} from "../interface/attendance.ts";
 import {
-    formatHoursMinutes, getShiftCalculation,
-    helperErrorEmission,
-    helperMessageEmission,
-    helperTOIST
+    formatHoursMinutes, getShiftData,
+    errorEmission,
+    messageEmission,
+    dateToIST
 } from "./helper.ts";
 import {
     addNewAttendance,
@@ -21,12 +21,12 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
         if(!attendance) {
             await addNewAttendance(socket, employee._id, employee.shiftId.toString());
         } else if (attendance.status === "in" || attendance.status === "out") {
-            helperMessageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
+            messageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
         } else {
             await updateOngoingBreak(socket, employee._id.toString(), attendance._id.toString(), employee.shiftId.toString());
         }
     } catch(error) {
-        helperErrorEmission(socket,error);
+        errorEmission(socket,error);
     }
 }
 
@@ -34,16 +34,16 @@ async function clockOutHandler(socket: Socket,employee: IEmployee, reason: strin
     try {
         const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance) {
-            helperMessageEmission(socket, "failed","not clocked in yet.");
+            messageEmission(socket, "failed","not clocked in yet.");
         } else if (attendance.status === "break" || attendance.status === "out") {
-            helperMessageEmission(socket, "failed","can't clock out if already clocked out or in break.");
-        } else if (!await isShiftTimeCompleted(employee.shiftId.toString(), attendance) && !reason) {
-            helperMessageEmission(socket, "failed","shift hours are pending, provide reason for early clock out.");
+            messageEmission(socket, "failed","can't clock out if already clocked out or in break.");
+        } else if (!await isShiftTimeCompleted(attendance) && !reason) {
+            messageEmission(socket, "failed","shift hours are pending, provide reason for early clock out.");
         } else {
             await updateClockOutTime(socket, employee._id.toString(), attendance._id.toString(), reason);
         }
     } catch (error) {
-        helperErrorEmission(socket,error);
+        errorEmission(socket,error);
     }
 }
 
@@ -51,14 +51,14 @@ async function breakHandler(reason: string, socket: Socket,employee: IEmployee) 
     try {
         const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance || attendance.status === "break" || attendance.status === "out") {
-            helperMessageEmission(socket, "failed","not clocked in yet.");
+            messageEmission(socket, "failed","not clocked in yet.");
         } else if (!reason) {
-            helperMessageEmission(socket, "failed","give reason for the break.");
+            messageEmission(socket, "failed","give reason for the break.");
         } else {
             await addNewBreak(socket, employee._id.toString(),attendance._id, employee.shiftId.toString(), reason);
         }
     } catch (error) {
-        helperErrorEmission(socket,error);
+        errorEmission(socket,error);
     }
 }
 
@@ -66,23 +66,23 @@ async function statusHandler(socket:Socket, employee: IEmployee) {
     try {
         const attendance = await getTodayAttendance(employee._id, employee.shiftId.toString());
         if(!attendance) {
-            helperMessageEmission(socket, "failed","not clocked in yet.");
+            messageEmission(socket, "failed","not clocked in yet.");
             return;
         }
         const currentTime = attendance.clock_out || new Date();
         const {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes} =
-            await getShiftCalculation(attendance,employee.shiftId.toString(),currentTime);
+            await getShiftData(attendance,attendance.shiftId.toString(),currentTime);
 
-        helperMessageEmission(socket, "success",{
+        messageEmission(socket, "success",{
             status: attendance.status,
-            "clocked in": helperTOIST(attendance.clock_in),
+            "clocked in": dateToIST(attendance.clock_in),
             "break time": formatHoursMinutes(breakMinutes),
             "working time": formatHoursMinutes( workedMinutes),
             "pending time": formatHoursMinutes(shiftMinutes-workedMinutes),
-            "shift": {from: helperTOIST(shiftStartTime),to: helperTOIST(shiftEndTime)},
+            "shift": {from: dateToIST(shiftStartTime),to: dateToIST(shiftEndTime)},
         });
     } catch(error) {
-        helperErrorEmission(socket,error);
+        errorEmission(socket,error);
     }
 }
 

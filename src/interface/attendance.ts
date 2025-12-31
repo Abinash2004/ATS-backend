@@ -14,4 +14,5 @@ export interface IAttendance {
     breaks: IBreak[];
     status: "in" | "out" | "break";
     employeeId: Types.ObjectId;
+    shiftId: Types.ObjectId;
 }
