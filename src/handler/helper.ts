@@ -1,6 +1,7 @@
 import type {Socket} from "socket.io";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import {getShift} from "./mongoose/shift.ts";
+import {Holiday} from "../model/holiday.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -59,6 +60,32 @@ async function getShiftData(attendance: IAttendance,shiftId: string,currentTime:
     return {shiftStartTime,shiftEndTime,shiftMinutes,totalSpentMinutes,breakMinutes,workedMinutes};
 }
 
+function startOfDay(date: Date): Date {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function isFirstSaturday(date: Date): boolean {
+    return date.getDay() === 6 && date.getDate() <= 7;
+}
+
+function isWeekend(date: Date): boolean {
+    const day = date.getDay();
+    if (day === 0) return true;
+    return day === 6 && !isFirstSaturday(date);
+}
+
+async function isHoliday(date: Date): Promise<boolean> {
+    const today = startOfDay(date);
+    return !!(await Holiday.exists({ date: today }));
+}
+
+async function validateWorkingDay(date: Date): Promise<boolean> {
+    if (isWeekend(date)) return false;
+    return !await isHoliday(date);
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -66,5 +93,6 @@ export {
     messageEmission,
     calculateMinutes,
     formatHoursMinutes,
-    getShiftData
+    getShiftData,
+    validateWorkingDay
 };

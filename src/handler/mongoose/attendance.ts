@@ -4,8 +4,7 @@ import Attendance from "../../model/attendance.ts";
 import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
-import {getShiftData,messageEmission,
-    stringToDate,dateToIST} from "../helper.ts";
+import {getShiftData, messageEmission,stringToDate, dateToIST, validateWorkingDay} from "../helper.ts";
 
 async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
@@ -60,6 +59,10 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
 
 async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string): Promise<void> {
     try {
+        if (!await validateWorkingDay(new Date(Date.now()))) {
+            messageEmission(socket, "failed","today is holiday, no clock in allowed");
+            return;
+        }
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
         let shiftInitialTime: Date = stringToDate(shift.initial_time);
