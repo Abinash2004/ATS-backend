@@ -1,4 +1,5 @@
 import type {Socket} from "socket.io";
+import type {IHoliday} from "../interface/holiday.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {Holiday} from "../model/holiday.ts";
@@ -62,7 +63,7 @@ async function getShiftData(attendance: IAttendance,shiftId: string,currentTime:
 
 function startOfDay(date: Date): Date {
     const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
+    d.setUTCHours(0, 0, 0, 0);
     return d;
 }
 
@@ -70,20 +71,31 @@ function isFirstSaturday(date: Date): boolean {
     return date.getDay() === 6 && date.getDate() <= 7;
 }
 
-function isWeekend(date: Date): boolean {
+function isWeekend(socket:Socket,date: Date): boolean {
     const day = date.getDay();
-    if (day === 0) return true;
-    return day === 6 && !isFirstSaturday(date);
+    if (day === 0) {
+        messageEmission(socket, "failed","sunday is not a working day, no clock in allowed");
+        return true;
+    } else if (day === 6 && !isFirstSaturday(date)) {
+        messageEmission(socket, "failed","saturday is not a working day, no clock in allowed");
+        return true;
+    }
+    return false;
 }
 
-async function isHoliday(date: Date): Promise<boolean> {
+async function isHoliday(socket:Socket,date: Date): Promise<boolean> {
     const today = startOfDay(date);
-    return !!(await Holiday.exists({ date: today }));
+    const holiday: IHoliday | null = await Holiday.findOne({date: today});
+    if (holiday) {
+        messageEmission(socket, "failed",`happy ${holiday.name}, no clock in allowed`);
+        return true
+    }
+    return false;
 }
 
-async function validateWorkingDay(date: Date): Promise<boolean> {
-    if (isWeekend(date)) return false;
-    return !await isHoliday(date);
+async function validateWorkingDay(socket:Socket,date: Date): Promise<boolean> {
+    if (isWeekend(socket,date)) return false;
+    return !await isHoliday(socket,date);
 }
 
 export {

@@ -9,11 +9,12 @@ import {
 } from "./helper.ts";
 import {
     addNewAttendance,
-    addNewBreak,
+    addNewBreak, getAttendanceRecord,
     getTodayAttendance,
     isShiftTimeCompleted,
     updateClockOutTime,
-    updateOngoingBreak} from "./mongoose/attendance.ts";
+    updateOngoingBreak
+} from "./mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
@@ -64,22 +65,26 @@ async function breakHandler(reason: string, socket: Socket,employee: IEmployee) 
 
 async function statusHandler(socket:Socket, employee: IEmployee) {
     try {
+        let status;
         const attendance = await getTodayAttendance(employee._id, employee.shiftId.toString());
-        if(!attendance) {
-            messageEmission(socket, "failed","not clocked in yet.");
-            return;
+        const attendanceRecord = await getAttendanceRecord(employee._id);
+        if(!attendance) status = "not clocked in yet.";
+        else {
+            const currentTime = attendance.clock_out || new Date();
+            const {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes} =
+                await getShiftData(attendance,attendance.shiftId.toString(),currentTime);
+            status = {
+                status: attendance.status,
+                "clocked in": dateToIST(attendance.clock_in),
+                "break time": formatHoursMinutes(breakMinutes),
+                "working time": formatHoursMinutes( workedMinutes),
+                "pending time": formatHoursMinutes(shiftMinutes-workedMinutes),
+                "shift": {from: dateToIST(shiftStartTime),to: dateToIST(shiftEndTime)},
+            };
         }
-        const currentTime = attendance.clock_out || new Date();
-        const {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes} =
-            await getShiftData(attendance,attendance.shiftId.toString(),currentTime);
-
         messageEmission(socket, "success",{
-            status: attendance.status,
-            "clocked in": dateToIST(attendance.clock_in),
-            "break time": formatHoursMinutes(breakMinutes),
-            "working time": formatHoursMinutes( workedMinutes),
-            "pending time": formatHoursMinutes(shiftMinutes-workedMinutes),
-            "shift": {from: dateToIST(shiftStartTime),to: dateToIST(shiftEndTime)},
+            "current status": status,
+            "attendance record": attendanceRecord
         });
     } catch(error) {
         errorEmission(socket,error);

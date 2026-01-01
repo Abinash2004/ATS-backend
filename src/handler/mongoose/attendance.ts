@@ -59,10 +59,7 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
 
 async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string): Promise<void> {
     try {
-        if (!await validateWorkingDay(new Date(Date.now()))) {
-            messageEmission(socket, "failed","today is holiday, no clock in allowed");
-            return;
-        }
+        if (!await validateWorkingDay(socket, new Date(Date.now()))) return;
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
         let shiftInitialTime: Date = stringToDate(shift.initial_time);
@@ -194,11 +191,25 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendanceI
     }
 }
 
+async function getAttendanceRecord(employeeId: string): Promise<any> {
+    try {
+        const attendance = await Attendance.find({employeeId});
+        let attendanceRecord: any = [];
+        attendance.map(att => {
+            attendanceRecord.push(dateToIST(att.clock_in));
+        })
+        return attendanceRecord;
+    } catch(error: unknown) {
+        console.error(error);
+    }
+}
+
 export {
     getTodayAttendance,
     addNewAttendance,
     addNewBreak,
     updateOngoingBreak,
     updateClockOutTime,
-    isShiftTimeCompleted
+    isShiftTimeCompleted,
+    getAttendanceRecord
 }
