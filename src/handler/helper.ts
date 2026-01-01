@@ -106,5 +106,6 @@ export {
     calculateMinutes,
     formatHoursMinutes,
     getShiftData,
-    validateWorkingDay
+    validateWorkingDay,
+    startOfDay
 };

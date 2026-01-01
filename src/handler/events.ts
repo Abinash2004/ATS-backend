@@ -9,9 +9,9 @@ import {
 } from "./helper.ts";
 import {
     addNewAttendance,
-    addNewBreak, getAttendanceRecord,
+    addNewBreak, getAttendance, getAttendanceRecord,
     getTodayAttendance,
-    isShiftTimeCompleted,
+    isShiftTimeCompleted, resolveAttendance,
     updateClockOutTime,
     updateOngoingBreak
 } from "./mongoose/attendance.ts";
@@ -91,4 +91,17 @@ async function statusHandler(socket:Socket, employee: IEmployee) {
     }
 }
 
-export {clockInHandler,breakHandler,clockOutHandler,statusHandler};
+async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: string, clockOutTime: string) {
+    try {
+        const attendance: IAttendance | null = await getAttendance(attendanceId);
+        if(!attendance) {
+            messageEmission(socket, "failed",`${attendanceId} is an invalid attendance id.`);
+            return;
+        }
+        await resolveAttendance(socket,attendance, clockOutTime);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
+export {clockInHandler,breakHandler,clockOutHandler,statusHandler,resolvePendingAttendanceHandler};

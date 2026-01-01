@@ -4,7 +4,7 @@ import Attendance from "../../model/attendance.ts";
 import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
-import {getShiftData, messageEmission,stringToDate, dateToIST, validateWorkingDay} from "../helper.ts";
+import {getShiftData, messageEmission, stringToDate, dateToIST, validateWorkingDay, startOfDay} from "../helper.ts";
 
 async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
@@ -59,6 +59,11 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
 
 async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string): Promise<void> {
     try {
+        const pendingClockOutAttendance: IAttendance | null = await Attendance.findOne({employeeId,clock_out:{$exists: false}});
+        if (pendingClockOutAttendance) {
+            messageEmission(socket, "failed", `pending clock-out for attendance [${pendingClockOutAttendance._id}] - ${dateToIST(pendingClockOutAttendance.clock_in)}`);
+            return;
+        }
         if (!await validateWorkingDay(socket, new Date(Date.now()))) return;
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
@@ -204,6 +209,30 @@ async function getAttendanceRecord(employeeId: string): Promise<any> {
     }
 }
 
+async function getAttendance(attendanceId: string): Promise<IAttendance | null> {
+    try {
+        return await Attendance.findOne({_id: attendanceId});
+    } catch(error: unknown) {
+        console.error(error);
+        return null;
+    }
+}
+
+async function resolveAttendance(socket: Socket, attendance: IAttendance, clockOutTime: string): Promise<void> {
+    try {
+        const clock_out = stringToDate(clockOutTime);
+        clock_out.setFullYear(
+            attendance.clock_in.getFullYear(),
+            attendance.clock_in.getMonth(),
+            attendance.clock_in.getDate()
+        );
+        await Attendance.updateOne({_id: attendance._id},{$set:{clock_out: clock_out}});
+        messageEmission(socket,"success",`attendance resolved, clocked out at ${dateToIST(clock_out)}`);
+    } catch(error: unknown) {
+        console.error(error);
+    }
+}
+
 export {
     getTodayAttendance,
     addNewAttendance,
@@ -211,5 +240,7 @@ export {
     updateOngoingBreak,
     updateClockOutTime,
     isShiftTimeCompleted,
-    getAttendanceRecord
+    getAttendanceRecord,
+    getAttendance,
+    resolveAttendance
 }
