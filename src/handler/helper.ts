@@ -1,5 +1,6 @@
 import type {Day} from "../type/day.ts";
 import type {Socket} from "socket.io";
+import type {ISingleShift} from "../interface/shift.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
 
 function stringToDate(inputTime: string): Date {
@@ -48,26 +49,41 @@ async function getShiftData(attendance: IAttendance,currentTime: Date) {
     }
 
     // Night shift handling
-    if (shiftStartTime > shiftEndTime) {
-        shiftEndTime.setDate(shiftEndTime.getDate() + 1);
-    }
-
-    const shiftMinutes = calculateMinutes(shiftStartTime, shiftEndTime);
-    const totalSpentMinutes = calculateMinutes(attendance.clock_in, currentTime);
+    if (shiftStartTime > shiftEndTime) shiftEndTime.setDate(shiftEndTime.getDate() + 1);
 
     let breakMinutes = 0;
+    const shiftMinutes = calculateMinutes(shiftStartTime, shiftEndTime);
+    const totalSpentMinutes = calculateMinutes(attendance.clock_in, currentTime);
     attendance.breaks.forEach((single: IBreak) => {
         breakMinutes += calculateMinutes(single.break_in,single.break_out || currentTime);
     });
 
     const workedMinutes = totalSpentMinutes - breakMinutes;
-
     return {shiftStartTime,shiftEndTime,shiftMinutes,totalSpentMinutes,breakMinutes,workedMinutes};
 }
 
 function getDayName(date: Date): Day {
     const days: Day[] = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"] as const;
     return days[date.getDay()];
+}
+
+async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
+    try {
+        let shiftInitialTime: Date = stringToDate(shift.start_time);
+        let shiftExitTime: Date = stringToDate(shift.end_time);
+
+        if (shift.day_status === "first_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
+        } else if (shift.day_status === "second_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        }
+        return [shiftInitialTime, shiftExitTime];
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
 }
 
 export {
@@ -78,5 +94,6 @@ export {
     calculateMinutes,
     formatHoursMinutes,
     getShiftData,
-    getDayName
+    getDayName,
+    getShiftTimings
 };

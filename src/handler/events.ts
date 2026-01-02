@@ -12,7 +12,7 @@ import {
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
+        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
         if(!attendance) {
             await addNewAttendance(socket, employee._id, employee.shiftId.toString());
         } else if (attendance.status === "in" || attendance.status === "out") {
@@ -27,7 +27,7 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
 
 async function clockOutHandler(socket: Socket,employee: IEmployee, reason: string) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
+        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
         if(!attendance) {
             messageEmission(socket, "failed","not clocked in yet.");
         } else if (attendance.status === "break" || attendance.status === "out") {
@@ -44,7 +44,7 @@ async function clockOutHandler(socket: Socket,employee: IEmployee, reason: strin
 
 async function breakHandler(reason: string, socket: Socket,employee: IEmployee) {
     try {
-        const attendance: IAttendance | null = await getTodayAttendance(employee._id, employee.shiftId.toString());
+        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
         if(!attendance || attendance.status === "break" || attendance.status === "out") {
             messageEmission(socket, "failed","not clocked in yet.");
         } else if (!reason) {
@@ -60,7 +60,7 @@ async function breakHandler(reason: string, socket: Socket,employee: IEmployee) 
 async function statusHandler(socket:Socket, employee: IEmployee) {
     try {
         let status;
-        const attendance = await getTodayAttendance(employee._id, employee.shiftId.toString());
+        const attendance = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
         const attendanceRecord = await getAttendanceRecord(employee._id);
         if(!attendance) status = "not clocked in yet.";
         else {

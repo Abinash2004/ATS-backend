@@ -5,26 +5,21 @@ import type {Socket} from "socket.io";
 import type {Day} from "../../type/day.ts";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
-import {getShiftData, messageEmission, stringToDate, dateToIST, getDayName, calculateMinutes} from "../helper.ts";
+import {getShiftData,messageEmission,stringToDate,dateToIST,getDayName,
+    calculateMinutes,getShiftTimings} from "../helper.ts";
 
-async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
+async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
         let currentTime = new Date(Date.now());
         const currentDay: Day = getDayName(currentTime);
         const shift : IShift | null = await getShift(shiftId.toString());
-        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-        if(shift[currentDay].day_status === "holiday") return null;
-
-        let shiftInitialTime: Date = stringToDate(shift[currentDay].start_time);
-        let shiftExitTime: Date = stringToDate(shift[currentDay].end_time);
-
-        if (shift[currentDay].day_status === "first_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
-        } else if (shift[currentDay].day_status === "second_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        if (!shift) {
+            messageEmission(socket,"failed",`${shiftId} not found for employee ${employeeId}`);
+            return null;
         }
+
+        if(shift[currentDay].day_status === "holiday") return null;
+        const [shiftInitialTime, shiftExitTime] = await getShiftTimings(shift[currentDay]);
 
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
@@ -32,10 +27,7 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
             dateStart.setHours(0, 0, 0, 0);
             const dateEnd = new Date(dateStart);
             dateEnd.setDate(dateEnd.getDate() + 1);
-            return await Attendance.findOne({
-                employeeId: employeeId,
-                clock_in: {$gte: dateStart, $lt: dateEnd}
-            });
+            return await Attendance.findOne({employeeId: employeeId,clock_in: {$gte: dateStart, $lt: dateEnd}});
         }
         //midnight shift
         else {
@@ -49,10 +41,7 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
                 startDate.setDate(startDate.getDate() - 1);
                 return await Attendance.findOne({
                     employeeId: employeeId,
-                    clock_in: {
-                        $gte: startDate,
-                        $lte: currentTime
-                    }
+                    clock_in: {$gte: startDate,$lte: currentTime}
                 });
             } else if (currentTime > shiftExitTime && currentTime < shiftInitialTime) {
                 return null;
@@ -89,16 +78,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             return;
         }
 
-        let shiftInitialTime: Date = stringToDate(shift[currentDay].start_time);
-        let shiftExitTime: Date = stringToDate(shift[currentDay].end_time);
-
-        if (shift[currentDay].day_status === "first_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
-        } else if (shift[currentDay].day_status === "second_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
-        }
+        const [shiftInitialTime, shiftExitTime] = await getShiftTimings(shift[currentDay]);
 
         let late_in:number = 0;
         if (currentTime > shiftInitialTime) late_in = calculateMinutes(shiftInitialTime,currentTime);
@@ -142,17 +122,7 @@ async function addNewBreak(socket: Socket, employeeId: string, attendance: IAtte
     try {
 
         const currentTime = new Date();
-        let shiftInitialTime: Date = stringToDate(attendance.shift.start_time);
-        let shiftExitTime: Date = stringToDate(attendance.shift.end_time);
-
-        if (attendance.shift.day_status === "first_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
-        } else if (attendance.shift.day_status === "second_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
-        }
-
+        const [shiftInitialTime, shiftExitTime] = await getShiftTimings(attendance.shift);
         if ((shiftInitialTime < shiftExitTime && currentTime < shiftInitialTime) ||
             (shiftInitialTime > shiftExitTime && currentTime > shiftExitTime && currentTime < shiftInitialTime)) {
             messageEmission(socket, "failed", `break is not allowed before ${dateToIST(shiftInitialTime)}.`);
@@ -173,18 +143,9 @@ async function addNewBreak(socket: Socket, employeeId: string, attendance: IAtte
 
 async function updateOngoingBreak(socket: Socket, employeeId: string, attendance: IAttendance): Promise<void> {
     try {
-        let shiftInitialTime: Date = stringToDate(attendance.shift.start_time);
-        let shiftExitTime: Date = stringToDate(attendance.shift.end_time);
+        const [shiftInitialTime, shiftExitTime] = await getShiftTimings(attendance.shift);
         let dateStart: Date = shiftInitialTime;
         const currentTime = new Date();
-
-        if (attendance.shift.day_status === "first_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
-        } else if (attendance.shift.day_status === "second_half") {
-            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
-            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
-        }
 
         //midnight shift
         if (shiftInitialTime > shiftExitTime) {
