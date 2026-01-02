@@ -1,19 +1,13 @@
 import type {Socket} from "socket.io";
+import type {IShift} from "../interface/shift.ts";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IAttendance} from "../interface/attendance.ts";
+import {addNewShift} from "./mongoose/shift.ts";
+import {addShiftToEmployee} from "./mongoose/employee.ts";
+import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "./helper.ts";
 import {
-    formatHoursMinutes, getShiftData,
-    errorEmission,
-    messageEmission,
-    dateToIST
-} from "./helper.ts";
-import {
-    addNewAttendance,
-    addNewBreak, getAttendance, getAttendanceRecord,
-    getTodayAttendance,
-    isShiftTimeCompleted, resolveAttendance,
-    updateClockOutTime,
-    updateOngoingBreak
+    addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
+    isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak
 } from "./mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee) {
@@ -24,7 +18,7 @@ async function clockInHandler(socket: Socket,employee: IEmployee) {
         } else if (attendance.status === "in" || attendance.status === "out") {
             messageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
         } else {
-            await updateOngoingBreak(socket, employee._id.toString(), attendance._id.toString(), employee.shiftId.toString());
+            await updateOngoingBreak(socket, employee._id.toString(), attendance);
         }
     } catch(error) {
         errorEmission(socket,error);
@@ -56,7 +50,7 @@ async function breakHandler(reason: string, socket: Socket,employee: IEmployee) 
         } else if (!reason) {
             messageEmission(socket, "failed","give reason for the break.");
         } else {
-            await addNewBreak(socket, employee._id.toString(),attendance._id, employee.shiftId.toString(), reason);
+            await addNewBreak(socket, employee._id.toString(),attendance, reason);
         }
     } catch (error) {
         errorEmission(socket,error);
@@ -72,7 +66,7 @@ async function statusHandler(socket:Socket, employee: IEmployee) {
         else {
             const currentTime = attendance.clock_out || new Date();
             const {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes} =
-                await getShiftData(attendance,attendance.shiftId.toString(),currentTime);
+                await getShiftData(attendance,currentTime);
             status = {
                 status: attendance.status,
                 "clocked in": dateToIST(attendance.clock_in),
@@ -104,4 +98,25 @@ async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: str
     }
 }
 
-export {clockInHandler,breakHandler,clockOutHandler,statusHandler,resolvePendingAttendanceHandler};
+async function addShiftHandler(socket: Socket, employeeId: string, shift: IShift) {
+    try {
+        if (!employeeId || !shift) messageEmission(socket, "failed",`employee id & shift data is required.`);
+        const shiftId: string|null|undefined = await addNewShift(shift);
+        if(!shiftId) {
+            messageEmission(socket, "failed",`invalid shift data.`);
+            return;
+        }
+        await addShiftToEmployee(socket,employeeId,shiftId);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
+export {
+    clockInHandler,
+    breakHandler,
+    clockOutHandler,
+    statusHandler,
+    resolvePendingAttendanceHandler,
+    addShiftHandler
+};

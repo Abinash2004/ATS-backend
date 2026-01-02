@@ -1,8 +1,6 @@
+import type {Day} from "../type/day.ts";
 import type {Socket} from "socket.io";
-import type {IHoliday} from "../interface/holiday.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
-import {getShift} from "./mongoose/shift.ts";
-import {Holiday} from "../model/holiday.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -37,11 +35,17 @@ function formatHoursMinutes(totalMinutes: number): string {
     return `${hours}h ${minutes}m`;
 }
 
-async function getShiftData(attendance: IAttendance,shiftId: string,currentTime: Date) {
-    const shift = await getShift(shiftId);
-    if (!shift) throw new Error("Invalid shift");
-    const shiftStartTime = stringToDate(shift.initial_time);
-    const shiftEndTime = stringToDate(shift.exit_time);
+async function getShiftData(attendance: IAttendance,currentTime: Date) {
+    let shiftStartTime = stringToDate(attendance.shift.start_time);
+    let shiftEndTime = stringToDate(attendance.shift.end_time);
+
+    if (attendance.shift.day_status === "first_half") {
+        const timeRange = calculateMinutes(shiftStartTime,shiftEndTime);
+        shiftEndTime.setMinutes(shiftEndTime.getMinutes() - timeRange/2);
+    } else if (attendance.shift.day_status === "second_half") {
+        const timeRange = calculateMinutes(shiftStartTime,shiftEndTime);
+        shiftStartTime.setMinutes(shiftStartTime.getMinutes() + timeRange/2);
+    }
 
     // Night shift handling
     if (shiftStartTime > shiftEndTime) {
@@ -61,41 +65,9 @@ async function getShiftData(attendance: IAttendance,shiftId: string,currentTime:
     return {shiftStartTime,shiftEndTime,shiftMinutes,totalSpentMinutes,breakMinutes,workedMinutes};
 }
 
-function startOfDay(date: Date): Date {
-    const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
-}
-
-function isFirstSaturday(date: Date): boolean {
-    return date.getDay() === 6 && date.getDate() <= 7;
-}
-
-function isWeekend(socket:Socket,date: Date): boolean {
-    const day = date.getDay();
-    if (day === 0) {
-        messageEmission(socket, "failed","sunday is not a working day, no clock in allowed");
-        return true;
-    } else if (day === 6 && !isFirstSaturday(date)) {
-        messageEmission(socket, "failed","saturday is not a working day, no clock in allowed");
-        return true;
-    }
-    return false;
-}
-
-async function isHoliday(socket:Socket,date: Date): Promise<boolean> {
-    const today = startOfDay(date);
-    const holiday: IHoliday | null = await Holiday.findOne({date: today});
-    if (holiday) {
-        messageEmission(socket, "failed",`happy ${holiday.name}, no clock in allowed`);
-        return true
-    }
-    return false;
-}
-
-async function validateWorkingDay(socket:Socket,date: Date): Promise<boolean> {
-    if (isWeekend(socket,date)) return false;
-    return !await isHoliday(socket,date);
+function getDayName(date: Date): Day {
+    const days: Day[] = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"] as const;
+    return days[date.getDay()];
 }
 
 export {
@@ -106,6 +78,5 @@ export {
     calculateMinutes,
     formatHoursMinutes,
     getShiftData,
-    validateWorkingDay,
-    startOfDay
+    getDayName
 };

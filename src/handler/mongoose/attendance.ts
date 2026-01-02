@@ -2,16 +2,29 @@ import {getShift} from "./shift.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
 import type {Socket} from "socket.io";
+import type {Day} from "../../type/day.ts";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
-import {getShiftData, messageEmission, stringToDate, dateToIST, validateWorkingDay, startOfDay} from "../helper.ts";
+import {getShiftData, messageEmission, stringToDate, dateToIST, getDayName, calculateMinutes} from "../helper.ts";
 
 async function getTodayAttendance(employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {
+        let currentTime = new Date(Date.now());
+        const currentDay: Day = getDayName(currentTime);
         const shift : IShift | null = await getShift(shiftId.toString());
         if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-        let shiftInitialTime: Date = stringToDate(shift.initial_time);
-        let shiftExitTime: Date = stringToDate(shift.exit_time);
+        if(shift[currentDay].day_status === "holiday") return null;
+
+        let shiftInitialTime: Date = stringToDate(shift[currentDay].start_time);
+        let shiftExitTime: Date = stringToDate(shift[currentDay].end_time);
+
+        if (shift[currentDay].day_status === "first_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
+        } else if (shift[currentDay].day_status === "second_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        }
 
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
@@ -30,7 +43,6 @@ async function getTodayAttendance(employeeId: string, shiftId: string) : Promise
             midNightStart.setHours(0, 0, 0, 0);
             const midNightEnd = new Date(Date.now());
             midNightEnd.setDate(midNightStart.getDate() + 1);
-            let currentTime = new Date(Date.now());
 
             if (currentTime >= midNightStart && currentTime <= shiftExitTime ) {
                 const startDate = new Date(shiftInitialTime);
@@ -64,11 +76,29 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             messageEmission(socket, "failed", `pending clock-out for attendance [${pendingClockOutAttendance._id}] - ${dateToIST(pendingClockOutAttendance.clock_in)}`);
             return;
         }
-        if (!await validateWorkingDay(socket, new Date(Date.now()))) return;
+
+        let currentTime = new Date(Date.now());
+        const currentDay: Day = getDayName(currentTime);
         const shift : IShift | null = await getShift(shiftId.toString());
-        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-        let shiftInitialTime: Date = stringToDate(shift.initial_time);
-        let shiftExitTime: Date = stringToDate(shift.exit_time);
+        if (!shift) {
+            messageEmission(socket, "failed",`shift not found.`);
+            return;
+        }
+        if(shift[currentDay].day_status === "holiday") {
+            messageEmission(socket, "failed",`you don't have shift for today (holiday).`);
+            return;
+        }
+
+        let shiftInitialTime: Date = stringToDate(shift[currentDay].start_time);
+        let shiftExitTime: Date = stringToDate(shift[currentDay].end_time);
+
+        if (shift[currentDay].day_status === "first_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
+        } else if (shift[currentDay].day_status === "second_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        }
 
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
@@ -78,7 +108,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                 messageEmission(socket, "failed",`your shift is completed on ${dateToIST(shiftExitTime)}`);
                 return;
             }
-            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shiftId: shiftId,status: "in"});
+            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in"});
             await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
             messageEmission(socket, "success",`clocked in on ${dateToIST(clockInTime)}`);
         }
@@ -88,7 +118,6 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             midNightStart.setHours(0, 0, 0, 0);
             const midNightEnd = new Date(Date.now());
             midNightEnd.setDate(midNightStart.getDate() + 1);
-            let currentTime = new Date(Date.now());
 
             if (currentTime >= midNightStart && currentTime <= shiftExitTime ) {
                 messageEmission(socket, "success",`clocked in on ${dateToIST(currentTime)}`);
@@ -98,7 +127,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             } else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
                 messageEmission(socket, "success",`clocked in on ${dateToIST(currentTime)}`);
             }
-            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shiftId: shiftId,status: "in"});
+            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay],status: "in"});
             await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
         }
     } catch(error) {
@@ -106,13 +135,20 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
     }
 }
 
-async function addNewBreak(socket: Socket, employeeId: string, attendanceId: string, shiftId: string, reason: string): Promise<void> {
+async function addNewBreak(socket: Socket, employeeId: string, attendance: IAttendance, reason: string): Promise<void> {
     try {
-        const shift : IShift | null = await getShift(shiftId.toString());
-        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-        let shiftInitialTime: Date = stringToDate(shift.initial_time);
-        let shiftExitTime: Date = stringToDate(shift.exit_time);
+
         const currentTime = new Date();
+        let shiftInitialTime: Date = stringToDate(attendance.shift.start_time);
+        let shiftExitTime: Date = stringToDate(attendance.shift.end_time);
+
+        if (attendance.shift.day_status === "first_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
+        } else if (attendance.shift.day_status === "second_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        }
 
         if ((shiftInitialTime < shiftExitTime && currentTime < shiftInitialTime) ||
             (shiftInitialTime > shiftExitTime && currentTime > shiftExitTime && currentTime < shiftInitialTime)) {
@@ -121,7 +157,7 @@ async function addNewBreak(socket: Socket, employeeId: string, attendanceId: str
         }
 
         const breakObject: IBreak = {break_in: currentTime,reason: reason};
-        await Attendance.updateOne({_id: attendanceId},{
+        await Attendance.updateOne({_id: attendance._id},{
             $push: {breaks: breakObject},
             status: "break"
         });
@@ -132,15 +168,20 @@ async function addNewBreak(socket: Socket, employeeId: string, attendanceId: str
     }
 }
 
-async function updateOngoingBreak(socket: Socket, employeeId: string, attendanceId: string, shiftId: string): Promise<void> {
+async function updateOngoingBreak(socket: Socket, employeeId: string, attendance: IAttendance): Promise<void> {
     try {
-        const shift : IShift | null = await getShift(shiftId.toString());
-        if (!shift) throw new Error(`${shiftId} not found for employee ${employeeId}`);
-
-        let shiftInitialTime: Date = stringToDate(shift.initial_time);
-        let shiftExitTime: Date = stringToDate(shift.exit_time);
-        let dateStart: Date = stringToDate(shift.initial_time);
+        let shiftInitialTime: Date = stringToDate(attendance.shift.start_time);
+        let shiftExitTime: Date = stringToDate(attendance.shift.end_time);
+        let dateStart: Date = shiftInitialTime;
         const currentTime = new Date();
+
+        if (attendance.shift.day_status === "first_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftExitTime.setMinutes(shiftExitTime.getMinutes() - timeRange/2);
+        } else if (attendance.shift.day_status === "second_half") {
+            const timeRange = calculateMinutes(shiftInitialTime,shiftExitTime);
+            shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
+        }
 
         //midnight shift
         if (shiftInitialTime > shiftExitTime) {
@@ -151,7 +192,7 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
             }
         }
 
-        await Attendance.updateOne({_id: attendanceId,breaks: {$elemMatch: {
+        await Attendance.updateOne({_id: attendance._id,breaks: {$elemMatch: {
             break_in: {$gte: dateStart, $lt: currentTime},
             break_out: {$exists: false}
         }}},{$set:{status: "in","breaks.$.break_out": currentTime}});
@@ -165,7 +206,7 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
 async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
     try {
         const currentTime = new Date();
-        const {shiftMinutes,workedMinutes} = await getShiftData(attendance, attendance.shiftId.toString(), currentTime);
+        const {shiftMinutes,workedMinutes} = await getShiftData(attendance, currentTime);
         return workedMinutes >= shiftMinutes;
     } catch(error: unknown) {
         console.error(error);

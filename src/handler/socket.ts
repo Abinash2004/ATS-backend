@@ -1,16 +1,18 @@
 import type {Socket} from 'socket.io';
 import {io} from '../config/server.ts';
-import {authSignIn, authSignUp} from "./auth.ts";
+import type {IShift} from "../interface/shift.ts";
 import type {IEmployee} from "../interface/employee.ts";
+import {verifyToken} from "../config/jwt.ts";
+import {getEmployeeData} from "./mongoose/employee.ts";
+import {authSignIn, authSignUp} from "./auth.ts";
 import {
+    addShiftHandler,
     breakHandler,
     clockInHandler,
     clockOutHandler,
     resolvePendingAttendanceHandler,
     statusHandler
 } from "./events.ts";
-import {verifyToken} from "../config/jwt.ts";
-import {getEmployeeData} from "./mongoose/employee.ts";
 
 function startSocketServer() {
     io.use(async (socket: Socket, next) => {
@@ -37,6 +39,8 @@ function startSocketServer() {
         socket.on("status",() => statusHandler(socket, employee));
         socket.on("resolve",(attendanceId: string, clockOutTime: string) =>
             resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
+        socket.on("add_shift",(employeeId:string, shift: IShift) =>
+            addShiftHandler(socket,employeeId, shift));
     });
 }
 

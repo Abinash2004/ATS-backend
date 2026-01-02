@@ -1,5 +1,7 @@
 import Employee from "../../model/employee.ts";
 import type {IEmployee} from "../../interface/employee.ts";
+import type {Socket} from "socket.io";
+import {messageEmission} from "../helper.ts";
 
 async function isEmployeeExists(email: string): Promise<boolean> {
     try {
@@ -28,8 +30,22 @@ async function getEmployeeData(email: string) {
     }
 }
 
+async function addShiftToEmployee(socket: Socket, employeeId: string, shiftId: string): Promise<void> {
+    try {
+        if (!await Employee.exists({_id:employeeId})) {
+            messageEmission(socket, "failed",`invalid employee id.`);
+            return;
+        }
+        await Employee.updateOne({_id: employeeId}, {$set: {shiftId: shiftId}});
+        messageEmission(socket, "success",`shift added to ${employeeId} successfully.`);
+    } catch(error) {
+        console.log(error);
+    }
+}
+
 export {
     isEmployeeExists,
     addNewEmployee,
-    getEmployeeData
+    getEmployeeData,
+    addShiftToEmployee
 };

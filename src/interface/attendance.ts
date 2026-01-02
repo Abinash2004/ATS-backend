@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import type {ISingleShift} from "./shift.ts";
 
 export interface IBreak {
     break_in: Date;
@@ -14,5 +15,5 @@ export interface IAttendance {
     breaks: IBreak[];
     status: "in" | "out" | "break";
     employeeId: Types.ObjectId;
-    shiftId: Types.ObjectId;
+    shift: ISingleShift;
 }
