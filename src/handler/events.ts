@@ -41,7 +41,7 @@ async function clockOutHandler(socket: Socket,employee: IEmployee, reason: strin
         } else if (!await isShiftTimeCompleted(attendance) && !reason) {
             messageEmission(socket, "failed","shift hours are pending, provide reason for early clock out.");
         } else {
-            await updateClockOutTime(socket, employee._id.toString(), attendance._id.toString(), reason);
+            await updateClockOutTime(socket, employee._id.toString(), attendance, reason);
         }
     } catch (error) {
         errorEmission(socket,error);

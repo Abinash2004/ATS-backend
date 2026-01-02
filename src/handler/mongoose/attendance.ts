@@ -173,18 +173,23 @@ async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
     }
 }
 
-async function updateClockOutTime(socket:Socket, employeeId: string, attendanceId: string, reason: string): Promise<void> {
+async function updateClockOutTime(socket:Socket, employeeId: string, attendance: IAttendance, reason: string): Promise<void> {
     try {
         const currentTime = new Date();
+        if (currentTime < attendance.clock_in) {
+            await Attendance.deleteOne({_id:attendance._id});
+            messageEmission(socket, "success", "you clocked out before shift clock in time so no attendance will be marked.");
+            return;
+        }
         if (reason) {
-            await Attendance.updateOne({_id: attendanceId},{$set:{
+            await Attendance.updateOne({_id: attendance._id},{$set:{
                 clock_out: currentTime,
                 early_clock_out_reason: reason,
                 status: "out"
             }});
             messageEmission(socket, "success",`early clocked out for reason (${reason}) on ${dateToIST(currentTime)}.`);
         } else {
-            await Attendance.updateOne({_id: attendanceId}, {$set: {
+            await Attendance.updateOne({_id: attendance._id}, {$set: {
                 clock_out: currentTime,
                 status: "out"
             }});
