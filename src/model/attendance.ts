@@ -26,6 +26,12 @@ const attendanceSchema = new Schema<IAttendance>({
     clock_out: {
         type: Date
     },
+    late_in: {
+        type: Number
+    },
+    early_out: {
+        type: Number
+    },
     early_clock_out_reason: {
         type: String,
     },

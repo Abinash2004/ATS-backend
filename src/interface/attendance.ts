@@ -11,6 +11,8 @@ export interface IAttendance {
     _id: string;
     clock_in: Date;
     clock_out?: Date;
+    late_in: number;
+    early_out: number;
     early_clock_out_reason?: string;
     breaks: IBreak[];
     status: "in" | "out" | "break";

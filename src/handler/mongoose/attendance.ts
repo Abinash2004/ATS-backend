@@ -100,6 +100,9 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             shiftInitialTime.setMinutes(shiftInitialTime.getMinutes() + timeRange/2);
         }
 
+        let late_in:number = 0;
+        if (currentTime > shiftInitialTime) late_in = calculateMinutes(shiftInitialTime,currentTime);
+
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
             let clockInTime = new Date();
@@ -108,7 +111,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                 messageEmission(socket, "failed",`your shift is completed on ${dateToIST(shiftExitTime)}`);
                 return;
             }
-            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in"});
+            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in});
             await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
             messageEmission(socket, "success",`clocked in on ${dateToIST(clockInTime)}`);
         }
@@ -127,7 +130,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             } else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
                 messageEmission(socket, "success",`clocked in on ${dateToIST(currentTime)}`);
             }
-            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay],status: "in"});
+            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], late_in: late_in});
             await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
         }
     } catch(error) {
@@ -217,6 +220,9 @@ async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
 async function updateClockOutTime(socket:Socket, employeeId: string, attendance: IAttendance, reason: string): Promise<void> {
     try {
         const currentTime = new Date();
+        let early_out:number = 0;
+        const {shiftMinutes,workedMinutes} = await getShiftData(attendance,currentTime);
+        if (shiftMinutes - workedMinutes > 0) early_out = calculateMinutes(currentTime,stringToDate(attendance.shift.end_time));
         if (currentTime < attendance.clock_in) {
             await Attendance.deleteOne({_id:attendance._id});
             messageEmission(socket, "success", "you clocked out before shift clock in time so no attendance will be marked.");
@@ -226,13 +232,15 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
             await Attendance.updateOne({_id: attendance._id},{$set:{
                 clock_out: currentTime,
                 early_clock_out_reason: reason,
-                status: "out"
+                status: "out",
+                early_out: early_out
             }});
             messageEmission(socket, "success",`early clocked out for reason (${reason}) on ${dateToIST(currentTime)}.`);
         } else {
             await Attendance.updateOne({_id: attendance._id}, {$set: {
                 clock_out: currentTime,
-                status: "out"
+                status: "out",
+                early_out: early_out
             }});
             messageEmission(socket, "success",`clocked out on ${dateToIST(currentTime)}.`);
         }
