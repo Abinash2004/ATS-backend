@@ -33,7 +33,7 @@ function startSocketServer() {
     io.on('connection', (socket: Socket) => {
         const employee: IEmployee  = socket.data.employee;
         console.log(`${socket.id} connected to server.`);
-        socket.on("clock_in", () => clockInHandler(socket,employee));
+        socket.on("clock_in", (reason: string) => clockInHandler(socket,employee,reason));
         socket.on("break", (reason: string) => breakHandler(reason,socket,employee));
         socket.on("clock_out", (reason: string) => clockOutHandler(socket,employee,reason));
         socket.on("status",() => statusHandler(socket, employee));

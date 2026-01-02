@@ -58,7 +58,7 @@ async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: st
     }
 }
 
-async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string): Promise<void> {
+async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string, reason: string): Promise<void> {
     try {
         const pendingClockOutAttendance: IAttendance | null = await Attendance.findOne({employeeId,clock_out:{$exists: false}});
         if (pendingClockOutAttendance) {
@@ -66,6 +66,7 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             return;
         }
 
+        let late_in:number = 0;
         let currentTime = new Date(Date.now());
         const currentDay: Day = getDayName(currentTime);
         const shift : IShift | null = await getShift(shiftId.toString());
@@ -80,9 +81,6 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
 
         const [shiftInitialTime, shiftExitTime] = await getShiftTimings(shift[currentDay]);
 
-        let late_in:number = 0;
-        if (currentTime > shiftInitialTime) late_in = calculateMinutes(shiftInitialTime,currentTime);
-
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
             let clockInTime = new Date();
@@ -90,6 +88,17 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
             if (clockInTime >= shiftExitTime) {
                 messageEmission(socket, "failed",`your shift is completed on ${dateToIST(shiftExitTime)}`);
                 return;
+            }
+            if (currentTime > shiftInitialTime) {
+                if (!reason) {
+                    messageEmission(socket,"failed","clocking in late, provide reason");
+                    return;
+                } else {
+                    late_in = calculateMinutes(shiftInitialTime,currentTime);
+                    await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    messageEmission(socket, "success",`late clocked in on ${dateToIST(clockInTime)}`);
+                    return;
+                }
             }
             await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in});
             await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
@@ -109,6 +118,16 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                 messageEmission(socket, "success",`you are clocking in early, timer will start on ${dateToIST(shiftInitialTime)}`);
             } else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
                 messageEmission(socket, "success",`clocked in on ${dateToIST(currentTime)}`);
+            }
+            if (currentTime > shiftInitialTime) {
+                if (!reason) {
+                    messageEmission(socket,"failed","clocking in late, provide reason");
+                    return;
+                } else {
+                    late_in = calculateMinutes(shiftInitialTime,currentTime);
+                    await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    return;
+                }
             }
             await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], late_in: late_in});
             await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});

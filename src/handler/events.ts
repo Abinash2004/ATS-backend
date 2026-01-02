@@ -10,11 +10,11 @@ import {
     isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak
 } from "./mongoose/attendance.ts";
 
-async function clockInHandler(socket: Socket,employee: IEmployee) {
+async function clockInHandler(socket: Socket,employee: IEmployee, reason: string): Promise<void> {
     try {
         const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
         if(!attendance) {
-            await addNewAttendance(socket, employee._id, employee.shiftId.toString());
+            await addNewAttendance(socket, employee._id, employee.shiftId.toString(), reason);
         } else if (attendance.status === "in" || attendance.status === "out") {
             messageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
         } else {
