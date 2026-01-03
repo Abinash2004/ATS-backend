@@ -3,6 +3,7 @@ import type {Socket} from 'socket.io';
 import type {IShift} from "../interface/shift.ts";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IDepartment} from "../interface/department.ts";
+import type {ILocation} from "../interface/location.ts";
 import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
@@ -11,10 +12,10 @@ import {
     resolvePendingAttendanceHandler,statusHandler
 } from "./events/employee.ts";
 import {
-    createDepartmentHandler,
-    createEmployeeHandler, createShiftHandler,
-    deleteDepartmentHandler, deleteEmployeeHandler, deleteShiftHandler, readDepartmentHandler,
-    readEmployeeHandler, readShiftHandler, updateDepartmentHandler, updateEmployeeHandler, updateShiftHandler
+    createDepartmentHandler, createEmployeeHandler, createLocationHandler, createShiftHandler,
+    deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
+    readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
+    updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -85,6 +86,11 @@ function startAdminSocketServer() {
         socket.on("read_department",(departmentId: string)=>readDepartmentHandler(socket,departmentId));
         socket.on("update_department",(departmentId: string, department:IDepartment)=>updateDepartmentHandler(socket,departmentId,department));
         socket.on("delete_department",(departmentId: string)=>deleteDepartmentHandler(socket, departmentId));
+
+        socket.on("create_location",(location:ILocation)=>createLocationHandler(socket,location));
+        socket.on("read_location",(locationId: string)=>readLocationHandler(socket,locationId));
+        socket.on("update_location",(locationId: string, location:ILocation)=>updateLocationHandler(socket,locationId,location));
+        socket.on("delete_location",(locationId: string)=>deleteLocationHandler(socket, locationId));
     });
 }
 
