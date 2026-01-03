@@ -11,7 +11,7 @@ async function isEmployeeExists(email: string): Promise<boolean> {
     }
 }
 
-async function addNewEmployee(employee: Partial<IEmployee>): Promise<void> {
+async function addNewEmployee(employee: IEmployee): Promise<void> {
     try {
         await Employee.create(employee);
     } catch (error) {
@@ -19,7 +19,7 @@ async function addNewEmployee(employee: Partial<IEmployee>): Promise<void> {
     }
 }
 
-async function getEmployeeData(email: string) {
+async function getEmployeeDataByEmail(email: string) {
     try {
         const emp =  await Employee.findOne({email});
         return emp as IEmployee;
@@ -28,8 +28,46 @@ async function getEmployeeData(email: string) {
     }
 }
 
+async function getEmployeeById(id: string): Promise<IEmployee | null> {
+    try {
+        return await Employee.findOne({_id: id});
+    } catch(error) {
+        console.log(error);
+        return null
+    }
+}
+
+async function updateEmployee(employeeId: string,employee: IEmployee): Promise<void> {
+    try {
+        await Employee.updateOne({_id:employeeId},{
+            $set: {
+                name:employee.name,
+                email:employee.email,
+                password:employee.password,
+                salary:employee.salary,
+                locationId:employee.locationId,
+                departmentId:employee.departmentId,
+                shiftId:employee.shiftId
+            }
+        })
+    } catch(error) {
+        console.log(error);
+    }
+}
+
+async function deleteEmployee(employeeId: string): Promise<void> {
+    try {
+        await Employee.deleteOne({_id:employeeId});
+    } catch(error) {
+        console.log(error);
+    }
+}
+
 export {
     isEmployeeExists,
     addNewEmployee,
-    getEmployeeData
+    getEmployeeDataByEmail,
+    getEmployeeById,
+    updateEmployee,
+    deleteEmployee
 };

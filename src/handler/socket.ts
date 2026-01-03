@@ -2,19 +2,23 @@ import type {Socket} from 'socket.io';
 import {io} from '../config/server.ts';
 import type {IEmployee} from "../interface/employee.ts";
 import {verifyToken} from "../config/jwt.ts";
-import {getEmployeeData} from "./mongoose/employee.ts";
+import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
     breakHandler,clockInHandler,clockOutHandler,
     resolvePendingAttendanceHandler,statusHandler
 } from "./events/employee.ts";
+import {
+    createEmployeeHandler,deleteEmployeeHandler,
+    readEmployeeHandler,updateEmployeeHandler
+} from "./events/admin.ts";
 
 function startAuthSocketServer() {
     const authNamespace = io.of("/auth");
     authNamespace.on('connection', (socket) => {
         console.log(`${socket.id} connected to auth server.`);
-        socket.on("sign_up", (employee: Partial<IEmployee>) => authSignUp(socket,employee));
-        socket.on("sign_in", (employee: Partial<IEmployee>) => authSignIn(socket,employee));
+        socket.on("sign_up", (employee: IEmployee) => authSignUp(socket,employee));
+        socket.on("sign_in", (employee: IEmployee) => authSignIn(socket,employee));
     });
 }
 
@@ -26,7 +30,7 @@ function startEmployeeSocketServer() {
             if (!authHeader?.startsWith("Bearer ")) return next(new Error("Authentication token missing."));
             const token = authHeader?.split(" ")[1];
             const email = verifyToken(token);
-            socket.data.employee = await getEmployeeData(email);
+            socket.data.employee = await getEmployeeDataByEmail(email);
             next();
         } catch (err: unknown) {
             return next(new Error("invalid or expired token"));
@@ -55,7 +59,7 @@ function startAdminSocketServer() {
             const email = verifyToken(token);
             if (!adminPassword) return next(new Error("adminPassword is missing."));
             if (adminPassword !== "me nahi bataunga") return next(new Error("invalid adminPassword."));
-            socket.data.employee = await getEmployeeData(email);
+            socket.data.employee = await getEmployeeDataByEmail(email);
             next();
         } catch (err: unknown) {
             return next(new Error("invalid or expired token"));
@@ -63,6 +67,10 @@ function startAdminSocketServer() {
     });
     adminNamespace.on('connection', (socket) => {
         console.log(`${socket.id} connected to admin server.`);
+        socket.on("create_employee",(employee:IEmployee)=>createEmployeeHandler(socket,employee));
+        socket.on("read_employee",(employeeId: string)=>readEmployeeHandler(socket,employeeId));
+        socket.on("update_employee",(employeeId: string, employee:IEmployee)=>updateEmployeeHandler(socket,employeeId,employee));
+        socket.on("delete_employee",(employeeId: string)=>deleteEmployeeHandler(socket, employeeId));
     });
 }
 
