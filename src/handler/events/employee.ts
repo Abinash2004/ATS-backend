@@ -1,14 +1,11 @@
 import type {Socket} from "socket.io";
-import type {IShift} from "../interface/shift.ts";
-import type {IEmployee} from "../interface/employee.ts";
-import type {IAttendance} from "../interface/attendance.ts";
-import {addNewShift} from "./mongoose/shift.ts";
-import {addShiftToEmployee} from "./mongoose/employee.ts";
-import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "./helper.ts";
+import type {IEmployee} from "../../interface/employee.ts";
+import type {IAttendance} from "../../interface/attendance.ts";
+import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "../helper.ts";
 import {
     addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
     isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak
-} from "./mongoose/attendance.ts";
+} from "../mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee, reason: string): Promise<void> {
     try {
@@ -99,25 +96,10 @@ async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: str
     }
 }
 
-async function addShiftHandler(socket: Socket, employeeId: string, shift: IShift) {
-    try {
-        if (!employeeId || !shift) messageEmission(socket, "failed",`employee id & shift data is required.`);
-        const shiftId: string|null|undefined = await addNewShift(shift);
-        if(!shiftId) {
-            messageEmission(socket, "failed",`invalid shift data.`);
-            return;
-        }
-        await addShiftToEmployee(socket,employeeId,shiftId);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-
 export {
     clockInHandler,
     breakHandler,
     clockOutHandler,
     statusHandler,
-    resolvePendingAttendanceHandler,
-    addShiftHandler
+    resolvePendingAttendanceHandler
 };

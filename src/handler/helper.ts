@@ -61,7 +61,7 @@ async function getShiftData(attendance: IAttendance,currentTime: Date) {
     const workedMinutes = totalSpentMinutes - breakMinutes;
     const pendingTimeMinutes = (shiftMinutes - workedMinutes > 0) ? shiftMinutes - workedMinutes : 0;
     const overTimeMinutes = (workedMinutes - shiftMinutes > 0) ? workedMinutes - shiftMinutes : 0;
-    return {shiftStartTime,shiftEndTime,breakMinutes,workedMinutes,pendingTimeMinutes,overTimeMinutes};
+    return {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes,pendingTimeMinutes,overTimeMinutes};
 }
 
 function getDayName(date: Date): Day {

@@ -10,15 +10,4 @@ async function getShift(shiftId: string): Promise<IShift | null> {
     }
 }
 
-async function addNewShift(shift: IShift): Promise<string|null|undefined> {
-    try {
-        const returnShift: IShift = await Shift.create(shift);
-        if (!returnShift) return null;
-        return returnShift._id?.toString();
-    } catch(error) {
-        console.error(error);
-        return null;
-    }
-}
-
-export {getShift, addNewShift};
+export {getShift};
