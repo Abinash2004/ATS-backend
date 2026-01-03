@@ -1,8 +1,10 @@
 import type {Socket} from "socket.io";
 import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
+import type {IDepartment} from "../../interface/department.ts";
 import {errorEmission, messageEmission} from "../helper.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
+import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {
     addNewEmployee,
     deleteEmployee,
@@ -130,6 +132,63 @@ async function deleteShiftHandler(socket:Socket, shiftId: string) {
     }
 }
 
+async function createDepartmentHandler(socket:Socket, department:IDepartment) {
+    try {
+        if (!department) {
+            messageEmission(socket,"failed","department ID is missing.");
+            return;
+        }
+        await createDepartment(department);
+        messageEmission(socket,"success","department created successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function readDepartmentHandler(socket:Socket, departmentId: string) {
+    try {
+        if (!departmentId) {
+            messageEmission(socket,"failed","department ID is missing.");
+            return;
+        }
+        const department:IDepartment|null = await getDepartment(departmentId);
+        if (!department) {
+            messageEmission(socket,"failed","department not found.");
+            return;
+        }
+        messageEmission(socket,"success",{department});
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function updateDepartmentHandler(socket:Socket, departmentId: string, department:IDepartment) {
+    try {
+        if (!departmentId) {
+            messageEmission(socket,"failed","department ID is missing.");
+            return;
+        }
+        if (!department) {
+            messageEmission(socket,"failed","department data are needed");
+            return
+        }
+        await updateDepartment(departmentId,department);
+        messageEmission(socket,"success","department data updated successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function deleteDepartmentHandler(socket:Socket, departmentId: string) {
+    try {
+        if (!departmentId) {
+            messageEmission(socket,"failed","department ID is missing.");
+            return;
+        }
+        await deleteDepartment(departmentId);
+        messageEmission(socket,"success","department deleted successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     createEmployeeHandler,
     readEmployeeHandler,
@@ -138,5 +197,9 @@ export {
     createShiftHandler,
     readShiftHandler,
     updateShiftHandler,
-    deleteShiftHandler
+    deleteShiftHandler,
+    createDepartmentHandler,
+    readDepartmentHandler,
+    updateDepartmentHandler,
+    deleteDepartmentHandler
 }
