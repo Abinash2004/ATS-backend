@@ -1,6 +1,8 @@
 import type {Socket} from "socket.io";
+import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import {errorEmission, messageEmission} from "../helper.ts";
+import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {
     addNewEmployee,
     deleteEmployee,
@@ -71,9 +73,70 @@ async function deleteEmployeeHandler(socket:Socket, employeeId: string) {
     }
 }
 
+async function createShiftHandler(socket:Socket, shift:IShift) {
+    try {
+        if (!shift) {
+            messageEmission(socket,"failed","shift ID is missing.");
+            return;
+        }
+        await createShift(shift);
+        messageEmission(socket,"success","shift created successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function readShiftHandler(socket:Socket, shiftId: string) {
+    try {
+        if (!shiftId) {
+            messageEmission(socket,"failed","shift ID is missing.");
+            return;
+        }
+        const shift:IShift|null = await getShift(shiftId);
+        if (!shift) {
+            messageEmission(socket,"failed","shift not found.");
+            return;
+        }
+        messageEmission(socket,"success",{shift});
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function updateShiftHandler(socket:Socket, shiftId: string, shift:IShift) {
+    try {
+        if (!shiftId) {
+            messageEmission(socket,"failed","shift ID is missing.");
+            return;
+        }
+        if (!shift) {
+            messageEmission(socket,"failed","shift data are needed");
+            return
+        }
+        await updateShift(shiftId,shift);
+        messageEmission(socket,"success","shift data updated successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function deleteShiftHandler(socket:Socket, shiftId: string) {
+    try {
+        if (!shiftId) {
+            messageEmission(socket,"failed","shift ID is missing.");
+            return;
+        }
+        await deleteShift(shiftId);
+        messageEmission(socket,"success","shift deleted successfully.");
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     createEmployeeHandler,
     readEmployeeHandler,
     updateEmployeeHandler,
-    deleteEmployeeHandler
+    deleteEmployeeHandler,
+    createShiftHandler,
+    readShiftHandler,
+    updateShiftHandler,
+    deleteShiftHandler
 }

@@ -1,6 +1,7 @@
-import type {Socket} from 'socket.io';
 import {io} from '../config/server.ts';
+import type {Socket} from 'socket.io';
 import type {IEmployee} from "../interface/employee.ts";
+import type {IShift} from "../interface/shift.ts";
 import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
@@ -9,8 +10,8 @@ import {
     resolvePendingAttendanceHandler,statusHandler
 } from "./events/employee.ts";
 import {
-    createEmployeeHandler,deleteEmployeeHandler,
-    readEmployeeHandler,updateEmployeeHandler
+    createEmployeeHandler, createShiftHandler, deleteEmployeeHandler, deleteShiftHandler,
+    readEmployeeHandler, readShiftHandler, updateEmployeeHandler, updateShiftHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -71,6 +72,11 @@ function startAdminSocketServer() {
         socket.on("read_employee",(employeeId: string)=>readEmployeeHandler(socket,employeeId));
         socket.on("update_employee",(employeeId: string, employee:IEmployee)=>updateEmployeeHandler(socket,employeeId,employee));
         socket.on("delete_employee",(employeeId: string)=>deleteEmployeeHandler(socket, employeeId));
+
+        socket.on("create_shift",(shift:IShift)=>createShiftHandler(socket,shift));
+        socket.on("read_shift",(shiftId: string)=>readShiftHandler(socket,shiftId));
+        socket.on("update_shift",(shiftId: string, shift:IShift)=>updateShiftHandler(socket,shiftId,shift));
+        socket.on("delete_shift",(shiftId: string)=>deleteShiftHandler(socket, shiftId));
     });
 }
 
