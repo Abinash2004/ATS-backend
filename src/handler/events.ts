@@ -65,14 +65,15 @@ async function statusHandler(socket:Socket, employee: IEmployee) {
         if(!attendance) status = "not clocked in yet.";
         else {
             const currentTime = attendance.clock_out || new Date();
-            const {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes} =
+            const {shiftStartTime,shiftEndTime,breakMinutes,workedMinutes,pendingTimeMinutes,overTimeMinutes} =
                 await getShiftData(attendance,currentTime);
             status = {
                 status: attendance.status,
                 "clocked in": dateToIST(attendance.clock_in),
                 "break time": formatHoursMinutes(breakMinutes),
                 "working time": formatHoursMinutes( workedMinutes),
-                "pending time": formatHoursMinutes(shiftMinutes-workedMinutes),
+                "pending time": formatHoursMinutes(pendingTimeMinutes),
+                "over time": formatHoursMinutes(overTimeMinutes),
                 "shift": {from: dateToIST(shiftStartTime),to: dateToIST(shiftEndTime)},
             };
         }
