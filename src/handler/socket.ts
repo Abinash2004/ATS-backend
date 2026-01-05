@@ -14,6 +14,7 @@ import {
     resolvePendingAttendanceHandler, statusHandler
 } from "./events/employee.ts";
 import {
+    createAttendanceRecordHandler,
     createDepartmentHandler, createEmployeeHandler, createLocationHandler, createShiftHandler,
     deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
     readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
@@ -96,6 +97,8 @@ function startAdminSocketServer() {
         socket.on("read_location",(locationId: string)=>readLocationHandler(socket,locationId));
         socket.on("update_location",(locationId: string, location:ILocation)=>updateLocationHandler(socket,locationId,location));
         socket.on("delete_location",(locationId: string)=>deleteLocationHandler(socket, locationId));
+
+        socket.on("generate_attendance_record", () => createAttendanceRecordHandler(socket));
     });
 }
 

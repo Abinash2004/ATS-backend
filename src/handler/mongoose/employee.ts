@@ -63,11 +63,21 @@ async function deleteEmployee(employeeId: string): Promise<void> {
     }
 }
 
+async function getAllEmployeesList(): Promise<IEmployee[]> {
+    try {
+        return await Employee.find();
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
+
 export {
     isEmployeeExists,
     addNewEmployee,
     getEmployeeDataByEmail,
     getEmployeeById,
     updateEmployee,
-    deleteEmployee
+    deleteEmployee,
+    getAllEmployeesList
 };

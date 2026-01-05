@@ -8,10 +8,12 @@ const leaveSchema = new Schema<ILeave>({
     },
     day_status: {
         type: String,
+        enum: ["full_day","first_half","second_half"],
         default: "full_day"
     },
     leave_status: {
         type: String,
+        enum: ["pending","approved","rejected"],
         default: "pending"
     },
     reason: {

@@ -3,17 +3,21 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
-import {errorEmission, messageEmission} from "../helper.ts";
+import {errorEmission, getDayName, messageEmission} from "../helper.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {
     addNewEmployee,
     deleteEmployee,
+    getAllEmployeesList,
     getEmployeeById,
     isEmployeeExists,
     updateEmployee
 } from "../mongoose/employee.ts";
+import {getAttendanceRecord} from "../mongoose/attendance.ts";
+import {getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
+import {start} from "node:repl";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -248,6 +252,38 @@ async function deleteLocationHandler(socket:Socket, locationId: string) {
     }
 }
 
+async function createAttendanceRecordHandler(socket: Socket) {
+    try {
+        let startDate:Date | null = await getRecentAttendanceRecordDate();
+        if (!startDate) {
+            messageEmission(socket, "failed","there is no attendance record");
+            return;
+        }
+        let endDate: Date = new Date(Date.now()-1);
+        const employees: IEmployee[] = await getAllEmployeesList();
+
+        for (let iterDate = new Date(startDate);iterDate <= endDate;iterDate.setDate(iterDate.getDate() + 1)) {
+            const day = getDayName(iterDate);
+            for (let emp of employees) {
+                const shift = await getShift(emp.shiftId.toString());
+                if (!shift) continue;
+                const day_status = shift[day].day_status;
+                if (day_status === "holiday") {
+                    // logic pending
+                } else if (day_status === "full_day") {
+                    // logic pending
+                } else if (day_status === "first_half") {
+                    // logic pending
+                }else if (day_status === "second_half") {
+                    // logic pending
+                }
+            }
+        }
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     createEmployeeHandler,
     readEmployeeHandler,
@@ -264,5 +300,6 @@ export {
     createLocationHandler,
     readLocationHandler,
     updateLocationHandler,
-    deleteLocationHandler
+    deleteLocationHandler,
+    createAttendanceRecordHandler
 }
