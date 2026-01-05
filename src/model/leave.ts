@@ -14,6 +14,10 @@ const leaveSchema = new Schema<ILeave>({
         type: String,
         default: "pending"
     },
+    reason: {
+      type: String,
+      required: true
+    },
     employeeId: {
         type: Schema.Types.ObjectId,
         ref: "Employee",

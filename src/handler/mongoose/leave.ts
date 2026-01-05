@@ -2,6 +2,7 @@ import Leave from "../../model/leave.ts";
 import {messageEmission, parseDateDMY} from "../helper.ts";
 import type {Socket} from "socket.io";
 import type {DayStatus} from "../../type/day_status.ts";
+import type {leave_response} from "../../type/leave_response.ts";
 
 async function createLeave(socket: Socket ,leave_date: string, day_status: DayStatus, reason: string, employeeId: string): Promise<void> {
     try {
@@ -18,4 +19,18 @@ async function createLeave(socket: Socket ,leave_date: string, day_status: DaySt
         console.log(error);
     }
 }
-export {createLeave};
+
+async function updateLeave(socket: Socket, leaveId: string, response: leave_response): Promise<void> {
+    try {
+        const leave = await Leave.findOne({_id:leaveId});
+        if (!leave) {
+            messageEmission(socket, "failed", "leave request not found.");
+            return;
+        }
+        await Leave.updateOne({_id:leaveId}, {$set: {leave_status: response}});
+        messageEmission(socket, "success", `leave request set ${response} successfully`);
+    } catch(error) {
+        console.log(error);
+    }
+}
+export {createLeave,updateLeave};

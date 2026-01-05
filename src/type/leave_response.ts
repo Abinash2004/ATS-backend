@@ -1,0 +1,1 @@
+export type leave_response = "pending" | "approved" | "rejected";

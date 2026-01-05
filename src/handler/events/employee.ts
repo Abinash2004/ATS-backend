@@ -1,8 +1,11 @@
 import type {Socket} from "socket.io";
 import type {DayStatus} from "../../type/day_status.ts";
 import type {IEmployee} from "../../interface/employee.ts";
+import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
-import {createLeave} from "../mongoose/leave.ts";
+import type {leave_response} from "../../type/leave_response.ts";
+import {getDepartment} from "../mongoose/department.ts";
+import {createLeave, updateLeave} from "../mongoose/leave.ts";
 import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "../helper.ts";
 import {
     addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
@@ -110,11 +113,33 @@ async function leaveRequestHandler(socket: Socket, employeeId: string, leave_dat
     }
 }
 
+async function leaveResponseHandler(socket: Socket, leaveId: string, response: leave_response, departmentId: string) {
+    try {
+        if (!leaveId || !response) {
+            messageEmission(socket, "failed","incomplete / invalid credentials.");
+            return;
+        }
+        if (response !== "pending" && response !== "approved" && response !== "rejected") {
+            messageEmission(socket,"success","response can only be approved, pending or rejected.");
+            return;
+        }
+        const department: IDepartment | null = await getDepartment(departmentId);
+        if (department && department.name !== "Human Resources") {
+            messageEmission(socket, "failed","current user is not in HR department.");
+            return;
+        }
+        await updateLeave(socket, leaveId, response);
+    } catch (error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
     clockOutHandler,
     statusHandler,
     resolvePendingAttendanceHandler,
-    leaveRequestHandler
+    leaveRequestHandler,
+    leaveResponseHandler
 };
