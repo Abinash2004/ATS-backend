@@ -88,6 +88,16 @@ async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
     }
 }
 
+function parseDateDMY(input: string): Date {
+    const [dd, mm, yyyy] = input.split("/").map(Number);
+
+    if (!dd || !mm || !yyyy) {
+        throw new Error("Invalid date format");
+    }
+
+    return new Date(Date.UTC(yyyy, mm - 1, dd));
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -97,5 +107,6 @@ export {
     formatHoursMinutes,
     getShiftData,
     getDayName,
-    getShiftTimings
+    getShiftTimings,
+    parseDateDMY
 };

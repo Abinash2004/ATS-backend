@@ -1,6 +1,7 @@
 import {io} from '../config/server.ts';
 import type {Socket} from 'socket.io';
 import type {IShift} from "../interface/shift.ts";
+import type {DayStatus} from "../type/day_status.ts";
 import type {IEmployee} from "../interface/employee.ts";
 import type {IDepartment} from "../interface/department.ts";
 import type {ILocation} from "../interface/location.ts";
@@ -8,8 +9,8 @@ import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
-    breakHandler,clockInHandler,clockOutHandler,
-    resolvePendingAttendanceHandler,statusHandler
+    breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler,
+    resolvePendingAttendanceHandler, statusHandler
 } from "./events/employee.ts";
 import {
     createDepartmentHandler, createEmployeeHandler, createLocationHandler, createShiftHandler,
@@ -50,6 +51,8 @@ function startEmployeeSocketServer() {
         socket.on("status",() => statusHandler(socket, employee));
         socket.on("resolve",(attendanceId: string, clockOutTime: string) =>
             resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
+        socket.on("leave_request", (leave_date: string, day_status: DayStatus, reason: string) =>
+            leaveRequestHandler(socket,employee._id.toString(),leave_date,day_status,reason));
     });
 }
 

@@ -1,6 +1,8 @@
 import type {Socket} from "socket.io";
+import type {DayStatus} from "../../type/day_status.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
+import {createLeave} from "../mongoose/leave.ts";
 import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "../helper.ts";
 import {
     addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
@@ -96,10 +98,23 @@ async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: str
     }
 }
 
+async function leaveRequestHandler(socket: Socket, employeeId: string, leave_date: string, day_status: DayStatus, reason: string) {
+    try {
+        if (!leave_date || !day_status || !reason) {
+            messageEmission(socket, "failed","incomplete / invalid credentials.");
+            return;
+        }
+        await createLeave(socket, leave_date, day_status, reason, employeeId);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
     clockOutHandler,
     statusHandler,
-    resolvePendingAttendanceHandler
+    resolvePendingAttendanceHandler,
+    leaveRequestHandler
 };
