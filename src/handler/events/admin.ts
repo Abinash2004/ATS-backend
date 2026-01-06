@@ -8,16 +8,10 @@ import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {
-    addNewEmployee,
-    deleteEmployee,
-    getAllEmployeesList,
-    getEmployeeById,
-    isEmployeeExists,
-    updateEmployee
+    addNewEmployee,deleteEmployee,getAllEmployeesList,
+    getEmployeeById,isEmployeeExists,updateEmployee
 } from "../mongoose/employee.ts";
-import {getAttendanceRecord} from "../mongoose/attendance.ts";
 import {getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {start} from "node:repl";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -274,7 +268,7 @@ async function createAttendanceRecordHandler(socket: Socket) {
                     // logic pending
                 } else if (day_status === "first_half") {
                     // logic pending
-                }else if (day_status === "second_half") {
+                } else if (day_status === "second_half") {
                     // logic pending
                 }
             }

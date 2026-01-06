@@ -81,6 +81,12 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
 
         const [shiftInitialTime, shiftExitTime] = await getShiftTimings(shift[currentDay]);
 
+        if (shift[currentDay].day_status === "second_half") {
+            const halfMinutes = calculateMinutes(shiftInitialTime, shiftExitTime) / 2;
+            const secondHalfStart = new Date(shiftInitialTime.getTime() + halfMinutes * 60 * 1000);
+            late_in = calculateMinutes(secondHalfStart, currentTime);
+        } else late_in = calculateMinutes(shiftInitialTime,currentTime);
+
         //regular shift
         if (shiftInitialTime < shiftExitTime) {
             let clockInTime = new Date();
@@ -94,8 +100,8 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
-                    late_in = calculateMinutes(shiftInitialTime,currentTime);
                     await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
                     messageEmission(socket, "success",`late clocked in on ${dateToIST(clockInTime)}`);
                     return;
                 }
@@ -124,8 +130,8 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
-                    late_in = calculateMinutes(shiftInitialTime,currentTime);
                     await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
                     return;
                 }
             }
