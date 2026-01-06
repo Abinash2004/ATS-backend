@@ -1,6 +1,7 @@
 import Attendance from "../../model/attendance.ts";
 import AttendanceRecord from "../../model/attendance_record.ts";
 import type {AttendanceStatus} from "../../type/attendance.ts";
+import type {IAttendanceRecord} from "../../interface/attendance_record.ts";
 
 async function getRecentAttendanceRecordDate(): Promise<Date|null> {
     try {
@@ -28,4 +29,13 @@ async function setAttendanceRecord(attendance_date: Date, first_half: Attendance
         console.log(error);
     }
 }
-export {getRecentAttendanceRecordDate,setAttendanceRecord};
+async function getAttendanceRecord(): Promise<IAttendanceRecord[]> {
+    try {
+        return await AttendanceRecord.find({}, { _id: 0, __v: 0 });
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
+
+export {getRecentAttendanceRecordDate,setAttendanceRecord,getAttendanceRecord};

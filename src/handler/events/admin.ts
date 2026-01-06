@@ -3,6 +3,7 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
+import {getAttendanceRecord, getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 import {errorEmission, getDayName, messageEmission} from "../helper.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
@@ -11,7 +12,6 @@ import {
     addNewEmployee,deleteEmployee,getAllEmployeesList,
     getEmployeeById,isEmployeeExists,updateEmployee
 } from "../mongoose/employee.ts";
-import {getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 import {
     attendanceFirstHalfHandler,attendanceFullDayHandler,
     attendanceHolidayHandler,attendanceSecondHalfHandler
@@ -282,6 +282,14 @@ async function createAttendanceRecordHandler(socket: Socket) {
         errorEmission(socket,error);
     }
 }
+async function viewAttendanceRecordHandler(socket:Socket) {
+    try {
+        const attendanceRecord = await getAttendanceRecord();
+        messageEmission(socket,"success",attendanceRecord);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
 
 export {
     createEmployeeHandler,
@@ -300,5 +308,6 @@ export {
     readLocationHandler,
     updateLocationHandler,
     deleteLocationHandler,
-    createAttendanceRecordHandler
+    createAttendanceRecordHandler,
+    viewAttendanceRecordHandler
 }

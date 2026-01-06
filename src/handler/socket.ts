@@ -18,7 +18,8 @@ import {
     createDepartmentHandler, createEmployeeHandler, createLocationHandler, createShiftHandler,
     deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
     readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
-    updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler
+    updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler,
+    viewAttendanceRecordHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -99,6 +100,7 @@ function startAdminSocketServer() {
         socket.on("delete_location",(locationId: string)=>deleteLocationHandler(socket, locationId));
 
         socket.on("generate_attendance_record", () => createAttendanceRecordHandler(socket));
+        socket.on("view_attendance_record",() => viewAttendanceRecordHandler(socket));
     });
 }
 
