@@ -3,7 +3,7 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
-import {getAttendanceRecord, getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
+import {getAllAttendanceRecord, getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 import {errorEmission, getDayName, messageEmission} from "../helper.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
@@ -282,9 +282,9 @@ async function createAttendanceRecordHandler(socket: Socket) {
         errorEmission(socket,error);
     }
 }
-async function viewAttendanceRecordHandler(socket:Socket) {
+async function viewAllAttendanceRecordHandler(socket:Socket) {
     try {
-        const attendanceRecord = await getAttendanceRecord();
+        const attendanceRecord = await getAllAttendanceRecord();
         messageEmission(socket,"success",attendanceRecord);
     } catch(error) {
         errorEmission(socket,error);
@@ -309,5 +309,5 @@ export {
     updateLocationHandler,
     deleteLocationHandler,
     createAttendanceRecordHandler,
-    viewAttendanceRecordHandler
+    viewAllAttendanceRecordHandler
 }

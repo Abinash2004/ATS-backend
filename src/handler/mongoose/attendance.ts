@@ -5,8 +5,10 @@ import type {Socket} from "socket.io";
 import type {Day} from "../../type/day.ts";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
-import {getShiftData,messageEmission,stringToDate,dateToIST,getDayName,
-    calculateMinutes,getShiftTimings} from "../helper.ts";
+import {
+    getShiftData,messageEmission,stringToDate,
+    dateToIST,getDayName,calculateMinutes,getShiftTimings
+} from "../helper.ts";
 
 async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: string) : Promise<IAttendance | null> {
     try {

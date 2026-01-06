@@ -29,7 +29,7 @@ async function setAttendanceRecord(attendance_date: Date, first_half: Attendance
         console.log(error);
     }
 }
-async function getAttendanceRecord(): Promise<IAttendanceRecord[]> {
+async function getAllAttendanceRecord(): Promise<IAttendanceRecord[]> {
     try {
         return await AttendanceRecord.find({}, { _id: 0, __v: 0 });
     } catch(error) {
@@ -37,5 +37,18 @@ async function getAttendanceRecord(): Promise<IAttendanceRecord[]> {
         return [];
     }
 }
+async function getEmployeeAttendanceRecord(employeeId: string): Promise<IAttendanceRecord[]> {
+    try {
+        return await AttendanceRecord.find({employeeId}, {_id: 0,__v: 0,employeeId:0});
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
 
-export {getRecentAttendanceRecordDate,setAttendanceRecord,getAttendanceRecord};
+export {
+    getRecentAttendanceRecordDate,
+    setAttendanceRecord,
+    getAllAttendanceRecord,
+    getEmployeeAttendanceRecord
+};

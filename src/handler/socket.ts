@@ -11,15 +11,14 @@ import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
     breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler,
-    resolvePendingAttendanceHandler, statusHandler
+    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler
 } from "./events/employee.ts";
 import {
-    createAttendanceRecordHandler,
-    createDepartmentHandler, createEmployeeHandler, createLocationHandler, createShiftHandler,
+    createAttendanceRecordHandler,createDepartmentHandler, createEmployeeHandler,
     deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
     readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
     updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler,
-    viewAttendanceRecordHandler
+    viewAllAttendanceRecordHandler,createLocationHandler, createShiftHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -56,7 +55,9 @@ function startEmployeeSocketServer() {
             resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
         socket.on("leave_request", (leave_date: string, day_status: DayStatus, reason: string) =>
             leaveRequestHandler(socket,employee._id.toString(),leave_date,day_status,reason));
-        socket.on("leave_response", (leaveId: string, response: leave_response) => leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
+        socket.on("leave_response", (leaveId: string, response: leave_response) =>
+            leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
+        socket.on("view_employee_attendance_record",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
     });
 }
 
@@ -100,7 +101,7 @@ function startAdminSocketServer() {
         socket.on("delete_location",(locationId: string)=>deleteLocationHandler(socket, locationId));
 
         socket.on("generate_attendance_record", () => createAttendanceRecordHandler(socket));
-        socket.on("view_attendance_record",() => viewAttendanceRecordHandler(socket));
+        socket.on("view_attendance_record",() => viewAllAttendanceRecordHandler(socket));
     });
 }
 

@@ -6,6 +6,7 @@ import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
 import {getDepartment} from "../mongoose/department.ts";
 import {createLeave, updateLeave} from "../mongoose/leave.ts";
+import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
 import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "../helper.ts";
 import {
     addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
@@ -134,6 +135,15 @@ async function leaveResponseHandler(socket: Socket, leaveId: string, response: l
     }
 }
 
+async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string) {
+    try {
+        const attendanceRecord = await getEmployeeAttendanceRecord(employeeId);
+        messageEmission(socket, "success",attendanceRecord);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
@@ -141,5 +151,6 @@ export {
     statusHandler,
     resolvePendingAttendanceHandler,
     leaveRequestHandler,
-    leaveResponseHandler
+    leaveResponseHandler,
+    viewEmployeeAttendanceHandler
 };
