@@ -12,6 +12,10 @@ import {
     getEmployeeById,isEmployeeExists,updateEmployee
 } from "../mongoose/employee.ts";
 import {getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
+import {
+    attendanceFirstHalfHandler,attendanceFullDayHandler,
+    attendanceHolidayHandler,attendanceSecondHalfHandler
+} from "../attendance.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -262,15 +266,10 @@ async function createAttendanceRecordHandler(socket: Socket) {
                 const shift = await getShift(emp.shiftId.toString());
                 if (!shift) continue;
                 const day_status = shift[day].day_status;
-                if (day_status === "holiday") {
-                    // logic pending
-                } else if (day_status === "full_day") {
-                    // logic pending
-                } else if (day_status === "first_half") {
-                    // logic pending
-                } else if (day_status === "second_half") {
-                    // logic pending
-                }
+                if (day_status === "holiday") await attendanceHolidayHandler(socket, iterDate, emp._id.toString());
+                else if (day_status === "first_half") await attendanceFirstHalfHandler(socket);
+                else if (day_status === "second_half") await attendanceSecondHalfHandler(socket);
+                else if (day_status === "full_day") await attendanceFullDayHandler(socket);
             }
         }
     } catch(error) {

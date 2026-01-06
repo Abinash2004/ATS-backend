@@ -1,0 +1,1 @@
+export type AttendanceStatus = "no_shift" | "present" | "absent" | "paid_leave";
