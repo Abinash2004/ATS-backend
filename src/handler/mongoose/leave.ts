@@ -1,6 +1,7 @@
 import Leave from "../../model/leave.ts";
 import {messageEmission, parseDateDMY} from "../helper.ts";
 import type {Socket} from "socket.io";
+import type {ILeave} from "../../interface/leave.ts";
 import type {DayStatus} from "../../type/day_status.ts";
 import type {leave_response} from "../../type/leave_response.ts";
 
@@ -33,4 +34,14 @@ async function updateLeave(socket: Socket, leaveId: string, response: leave_resp
         console.log(error);
     }
 }
-export {createLeave,updateLeave};
+
+async function getApprovedLeave(leaveDate: Date, employeeId: string): Promise<ILeave | null> {
+    try {
+        return await Leave.findOne({date: leaveDate, employeeId, leave_status: "approved"});
+    } catch(error) {
+        console.log(error);
+        return null;
+    }
+}
+
+export {createLeave,updateLeave, getApprovedLeave};

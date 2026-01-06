@@ -257,7 +257,8 @@ async function createAttendanceRecordHandler(socket: Socket) {
             messageEmission(socket, "failed","there is no attendance record");
             return;
         }
-        let endDate: Date = new Date(Date.now()-1);
+        let endDate: Date = new Date(Date.now());
+        endDate.setDate(endDate.getDate()-1);
         const employees: IEmployee[] = await getAllEmployeesList();
 
         for (let iterDate = new Date(startDate);iterDate <= endDate;iterDate.setDate(iterDate.getDate() + 1)) {
@@ -266,10 +267,15 @@ async function createAttendanceRecordHandler(socket: Socket) {
                 const shift = await getShift(emp.shiftId.toString());
                 if (!shift) continue;
                 const day_status = shift[day].day_status;
-                if (day_status === "holiday") await attendanceHolidayHandler(socket, iterDate, emp._id.toString());
-                else if (day_status === "first_half") await attendanceFirstHalfHandler(socket);
-                else if (day_status === "second_half") await attendanceSecondHalfHandler(socket);
-                else if (day_status === "full_day") await attendanceFullDayHandler(socket);
+                if (day_status === "holiday") {
+                    await attendanceHolidayHandler(socket, iterDate, emp._id.toString());
+                } else if (day_status === "first_half") {
+                    await attendanceFirstHalfHandler(socket, iterDate, emp._id.toString());
+                } else if (day_status === "second_half") {
+                    await attendanceSecondHalfHandler(socket, iterDate, emp._id.toString());
+                } else if (day_status === "full_day") {
+                    await attendanceFullDayHandler(socket, iterDate, emp._id.toString());
+                }
             }
         }
     } catch(error) {
