@@ -57,7 +57,45 @@ async function attendanceSecondHalfHandler(socket: Socket, attendance_date: Date
 
 async function attendanceFullDayHandler(socket: Socket, attendance_date: Date, employeeId: string): Promise<void> {
     try {
-
+        const leave = await getApprovedLeave(attendance_date, employeeId);
+        if(leave) {
+            if(leave.day_status === "full_day") {
+                await setAttendanceRecord(attendance_date,"paid_leave","paid_leave",employeeId);
+            } else if (leave.day_status === "first_half") {
+                const attendance = await getAttendanceByDate(attendance_date);
+                if (!attendance) await setAttendanceRecord(attendance_date,"paid_leave","absent", employeeId);
+                else {
+                    if (!attendance.clock_out) return;
+                    const {shiftMinutes,workedMinutes} = await getShiftData(attendance, attendance.clock_out);
+                    if (workedMinutes < shiftMinutes/2) await setAttendanceRecord(attendance_date,"paid_leave","absent", employeeId);
+                    else await setAttendanceRecord(attendance_date,"paid_leave","present", employeeId);
+                }
+            } else if (leave.day_status === "second_half") {
+                const attendance = await getAttendanceByDate(attendance_date);
+                if (!attendance) await setAttendanceRecord(attendance_date,"absent","paid_leave", employeeId);
+                else {
+                    if (!attendance.clock_out) return;
+                    const {shiftMinutes,workedMinutes} = await getShiftData(attendance, attendance.clock_out);
+                    if (workedMinutes < shiftMinutes/2) await setAttendanceRecord(attendance_date,"absent","paid_leave", employeeId);
+                    else await setAttendanceRecord(attendance_date,"present","paid_leave", employeeId);
+                }
+            }
+            return;
+        }
+        const attendance = await getAttendanceByDate(attendance_date);
+        if (!attendance) {
+            await setAttendanceRecord(attendance_date,"absent","absent", employeeId);
+        } else {
+            if(!attendance.clock_out) return;
+            const {shiftMinutes,workedMinutes} = await getShiftData(attendance, attendance.clock_out);
+            if (shiftMinutes <= workedMinutes) await setAttendanceRecord(attendance_date, "present", "present", employeeId);
+            else {
+                const {shiftStartTime,shiftEndTime} = await getShiftData(attendance, attendance.clock_out);
+                const middleDate = new Date((shiftStartTime.getTime() + shiftEndTime.getTime()) / 2);
+                if (attendance.clock_in < middleDate) await setAttendanceRecord(attendance_date,"present","absent", employeeId);
+                else await setAttendanceRecord(attendance_date,"absent","present", employeeId);
+            }
+        }
     } catch(error) {
         errorEmission(socket,error);
     }
