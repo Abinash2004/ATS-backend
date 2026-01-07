@@ -2,7 +2,15 @@ import mongoose, {Types} from "mongoose";
 import type {ISalarySlip} from "../interface/salary_slip.ts";
 
 const salarySlipSchema = new mongoose.Schema<ISalarySlip>({
-    salary: {
+    basic_salary: {
+        type: Number,
+        required: true,
+    },
+    overtime_wages: {
+        type: Number,
+        required: true,
+    },
+    gross_salary: {
         type: Number,
         required: true,
     },

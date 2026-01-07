@@ -313,7 +313,8 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
         for (let emp of employees) {
             const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(),month);
             if (!attendance.length) continue;
-            let monthSalary = 0;
+            let basicSalary = 0;
+            let overTimeWages = 0;
             let shiftId: string = attendance[0].shiftId.toString();
             let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),month, emp.salary);
             for (let att of attendance) {
@@ -321,11 +322,11 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
                     shiftId = att.shiftId.toString();
                     shiftSalary = await calculateShiftSalary(att.shiftId.toString(),month, emp.salary);
                 }
-                if (att.first_half === "present" || att.first_half === "paid_leave") monthSalary += shiftSalary;
-                if (att.second_half === "present" || att.second_half === "paid_leave") monthSalary += shiftSalary;
-                monthSalary += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
+                if (att.first_half === "present" || att.first_half === "paid_leave") basicSalary += shiftSalary;
+                if (att.second_half === "present" || att.second_half === "paid_leave") basicSalary += shiftSalary;
+                overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
             }
-            await createSalarySlip(monthSalary,emp._id.toString(),month);
+            await createSalarySlip(basicSalary, overTimeWages, basicSalary + overTimeWages,emp._id.toString(),month);
         }
         messageEmission(socket,"success","salarySlip for given month is generated successfully.");
     } catch(error) {

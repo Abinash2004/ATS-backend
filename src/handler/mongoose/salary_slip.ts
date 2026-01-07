@@ -1,9 +1,9 @@
 import SalarySlip from "../../model/salary_silp.ts";
 import type {ISalarySlip} from "../../interface/salary_slip.ts";
 
-async function createSalarySlip(salary: number, employeeId: string, month: string): Promise<void> {
+async function createSalarySlip(basic_salary: number,overtime_wages: number,gross_salary: number, employeeId: string, month: string): Promise<void> {
     try {
-        await SalarySlip.create({salary, employeeId, month});
+        await SalarySlip.create({basic_salary, overtime_wages, gross_salary, employeeId, month});
     } catch(error) {
         console.error(error);
     }
