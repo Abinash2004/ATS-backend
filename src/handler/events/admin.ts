@@ -16,6 +16,7 @@ import {
     attendanceFirstHalfHandler,attendanceFullDayHandler,
     attendanceHolidayHandler,attendanceSecondHalfHandler
 } from "../attendance.ts";
+import {isValidMonthYear} from "../../utils/validations.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -292,6 +293,22 @@ async function viewAllAttendanceRecordHandler(socket:Socket) {
     }
 }
 
+async function createSalarySlipHandler(socket:Socket, month: string) {
+    try {
+        if (!month) {
+            messageEmission(socket,"failed","month is missing.");
+            return;
+        }
+        if (!isValidMonthYear(month)) {
+            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
+            return;
+        }
+
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     createEmployeeHandler,
     readEmployeeHandler,
@@ -310,5 +327,6 @@ export {
     updateLocationHandler,
     deleteLocationHandler,
     createAttendanceRecordHandler,
-    viewAllAttendanceRecordHandler
+    viewAllAttendanceRecordHandler,
+    createSalarySlipHandler
 }

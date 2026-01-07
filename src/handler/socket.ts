@@ -14,11 +14,11 @@ import {
     resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler
 } from "./events/employee.ts";
 import {
-    createAttendanceRecordHandler,createDepartmentHandler, createEmployeeHandler,
+    createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler,
     deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
     readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
     updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler,
-    viewAllAttendanceRecordHandler,createLocationHandler, createShiftHandler
+    viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalarySlipHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -102,6 +102,8 @@ function startAdminSocketServer() {
 
         socket.on("generate_attendance_record", () => createAttendanceRecordHandler(socket));
         socket.on("view_attendance_record",() => viewAllAttendanceRecordHandler(socket));
+
+        socket.on("generate_salary_slip", (month: string) => createSalarySlipHandler(socket, month));
     });
 }
 

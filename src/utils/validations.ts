@@ -31,5 +31,13 @@ function validateAuthCredentials(employee: Partial<IEmployee>, isSignUp: boolean
     }
     return { status: true, message: isSignUp ? "successfully signed up." : "successfully signed in." };
 }
+function isValidMonthYear(value: string): boolean {
+    const match = /^(0[1-9]|1[0-2])\/\d{4}$/.exec(value);
+    if (!match) return false;
+    const [, month, year] = value.match(/^(0[1-9]|1[0-2])\/(\d{4})$/)!;
+    const y = Number(year);
+    return y >= 1900 && y <= 2100;
+}
 
-export {isNumber,isObject,isString,validateAuthCredentials};
+
+export {isNumber,isObject,isString,validateAuthCredentials,isValidMonthYear};
