@@ -24,6 +24,11 @@ const leaveSchema = new Schema<ILeave>({
         type: Schema.Types.ObjectId,
         ref: "Employee",
         required: true
+    },
+    shiftId: {
+        type: Schema.Types.ObjectId,
+        ref: "Shift",
+        required: true
     }
 });
 

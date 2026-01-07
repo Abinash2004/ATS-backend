@@ -55,6 +55,11 @@ const attendanceSchema = new Schema<IAttendance>({
     shift: {
         type: singleShift,
         required: true
+    },
+    shiftId: {
+        type: Schema.Types.ObjectId,
+        ref: "Shift",
+        required: true
     }
 });
 

@@ -19,4 +19,5 @@ export interface IAttendance {
     status: "in" | "out" | "break";
     employeeId: Types.ObjectId;
     shift: ISingleShift;
+    shiftId: Types.ObjectId;
 }

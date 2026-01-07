@@ -17,13 +17,14 @@ async function getRecentAttendanceRecordDate(): Promise<Date|null> {
         return new Date(Date.now()-1);
     }
 }
-async function setAttendanceRecord(attendance_date: Date, first_half: AttendanceStatus,second_half: AttendanceStatus, employeeId: string): Promise<void> {
+async function setAttendanceRecord(attendance_date: Date, first_half: AttendanceStatus,second_half: AttendanceStatus, employeeId: string, shiftId: string): Promise<void> {
     try {
         await AttendanceRecord.create({
             attendance_date: new Date(attendance_date.setUTCHours(0,0,0,0)),
             employeeId: employeeId,
             first_half: first_half,
-            second_half: second_half
+            second_half: second_half,
+            shiftId: shiftId
         });
     } catch (error) {
         console.log(error);

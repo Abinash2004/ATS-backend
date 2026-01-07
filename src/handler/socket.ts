@@ -54,7 +54,7 @@ function startEmployeeSocketServer() {
         socket.on("resolve",(attendanceId: string, clockOutTime: string) =>
             resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
         socket.on("leave_request", (leave_date: string, day_status: DayStatus, reason: string) =>
-            leaveRequestHandler(socket,employee._id.toString(),leave_date,day_status,reason));
+            leaveRequestHandler(socket,employee._id.toString(), employee.shiftId.toString(),leave_date,day_status,reason));
         socket.on("leave_response", (leaveId: string, response: leave_response) =>
             leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
         socket.on("view_employee_attendance_record",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));

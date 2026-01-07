@@ -268,16 +268,17 @@ async function createAttendanceRecordHandler(socket: Socket) {
                 if (!shift) continue;
                 const day_status = shift[day].day_status;
                 if (day_status === "holiday") {
-                    await attendanceHolidayHandler(socket, iterDate, emp._id.toString());
+                    await attendanceHolidayHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
                 } else if (day_status === "first_half") {
-                    await attendanceFirstHalfHandler(socket, iterDate, emp._id.toString());
+                    await attendanceFirstHalfHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
                 } else if (day_status === "second_half") {
-                    await attendanceSecondHalfHandler(socket, iterDate, emp._id.toString());
+                    await attendanceSecondHalfHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
                 } else if (day_status === "full_day") {
-                    await attendanceFullDayHandler(socket, iterDate, emp._id.toString());
+                    await attendanceFullDayHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
                 }
             }
         }
+        messageEmission(socket,"success","attendance record generated successfully.");
     } catch(error) {
         errorEmission(socket,error);
     }

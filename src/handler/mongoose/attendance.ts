@@ -102,13 +102,13 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
-                    await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
                     messageEmission(socket, "success",`late clocked in on ${dateToIST(clockInTime)}`);
                     return;
                 }
             }
-            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in});
+            await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in});
             await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
             messageEmission(socket, "success",`clocked in on ${dateToIST(clockInTime)}`);
         }
@@ -132,12 +132,12 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
-                    await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay],status: "in", late_in: late_in, late_clock_in_reason: reason});
+                    await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
                     return;
                 }
             }
-            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], late_in: late_in});
+            await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId, late_in: late_in});
             await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
         }
     } catch(error) {

@@ -20,6 +20,11 @@ const attendanceRecordSchema = new mongoose.Schema<IAttendanceRecord>({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Employee",
         required: true
+    },
+    shiftId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shift",
+        required: true
     }
 });
 

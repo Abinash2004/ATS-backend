@@ -5,7 +5,7 @@ import type {DayStatus} from "../../type/day_status.ts";
 import type {leave_response} from "../../type/leave_response.ts";
 import {messageEmission, parseDateDMY} from "../helper.ts";
 
-async function createLeave(socket: Socket ,leave_date: string, day_status: DayStatus, reason: string, employeeId: string): Promise<void> {
+async function createLeave(socket: Socket ,leave_date: string, day_status: DayStatus, reason: string, employeeId: string, shiftId: string): Promise<void> {
     try {
         const leaveDate: Date =  parseDateDMY(leave_date);
 
@@ -14,7 +14,7 @@ async function createLeave(socket: Socket ,leave_date: string, day_status: DaySt
             messageEmission(socket, "failed", "leave request already exists.")
             return;
         }
-        await Leave.create({date: leaveDate, day_status, employeeId, leave_status: "pending", reason});
+        await Leave.create({date: leaveDate, day_status, employeeId, shiftId, leave_status: "pending", reason});
         messageEmission(socket, "success", "leave request sent successfully.")
     } catch(error) {
         console.log(error);

@@ -102,13 +102,13 @@ async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: str
     }
 }
 
-async function leaveRequestHandler(socket: Socket, employeeId: string, leave_date: string, day_status: DayStatus, reason: string) {
+async function leaveRequestHandler(socket: Socket, employeeId: string, shiftId: string, leave_date: string, day_status: DayStatus, reason: string) {
     try {
         if (!leave_date || !day_status || !reason) {
             messageEmission(socket, "failed","incomplete / invalid credentials.");
             return;
         }
-        await createLeave(socket, leave_date, day_status, reason, employeeId);
+        await createLeave(socket, leave_date, day_status, reason, employeeId, shiftId);
     } catch(error) {
         errorEmission(socket,error);
     }

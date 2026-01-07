@@ -7,4 +7,5 @@ export interface ILeave {
     leave_status: "pending" | "approved" | "rejected";
     reason: string;
     employeeId: Types.ObjectId;
+    shiftId: Types.ObjectId;
 }
