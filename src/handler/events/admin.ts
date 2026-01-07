@@ -8,18 +8,10 @@ import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift
 import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
-import {calculateShiftSalary,errorEmission,getDayName,getLastDayUtc,messageEmission} from "../helper.ts";
-import {
-    getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate
-} from "../mongoose/attendance_record.ts";
-import {
-    addNewEmployee,deleteEmployee,getAllEmployeesList,
-    getEmployeeById,isEmployeeExists,updateEmployee
-} from "../mongoose/employee.ts";
-import {
-    attendanceFirstHalfHandler,attendanceFullDayHandler,
-    attendanceHolidayHandler,attendanceSecondHalfHandler
-} from "../attendance.ts";
+import {calculateOvertimePay,calculateShiftSalary,errorEmission,getDayName,getLastDayUtc,messageEmission} from "../helper.ts";
+import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
+import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
+import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -331,6 +323,7 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
                 }
                 if (att.first_half === "present" || att.first_half === "paid_leave") monthSalary += shiftSalary;
                 if (att.second_half === "present" || att.second_half === "paid_leave") monthSalary += shiftSalary;
+                monthSalary += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
             }
             await createSalarySlip(monthSalary,emp._id.toString(),month);
         }

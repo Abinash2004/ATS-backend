@@ -2,7 +2,9 @@ import type {Day} from "../type/day.ts";
 import type {Socket} from "socket.io";
 import type {ISingleShift} from "../interface/shift.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
+import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
+import {getAttendanceByDate} from "./mongoose/attendance.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -132,6 +134,19 @@ async function calculateShiftSalary(shiftId: string, month: string, salary: numb
     }
 }
 
+async function calculateOvertimePay(attendance: IAttendanceRecord, employeeId: string, shiftSalary: number): Promise<number> {
+    try {
+        const fullAttendance = await getAttendanceByDate(attendance.attendance_date, employeeId);
+        if (!fullAttendance) return 0;
+        if (!fullAttendance.clock_out) return 0;
+        let {shiftMinutes,overTimeMinutes} = await getShiftData(fullAttendance, fullAttendance.clock_out);
+        return (shiftSalary * overTimeMinutes)/(shiftMinutes/2);
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -145,5 +160,6 @@ export {
     parseDateDMY,
     getLastDayUtc,
     getFirstDayUtc,
-    calculateShiftSalary
+    calculateShiftSalary,
+    calculateOvertimePay
 };
