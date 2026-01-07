@@ -24,9 +24,18 @@ async function getMonthlySalarySlip(month: string): Promise<ISalarySlip[] | null
         return [];
     }
 }
+async function getMonthlyEmployeeSalarySlip(month: string, employeeId: string): Promise<ISalarySlip[] | null> {
+    try {
+        return await SalarySlip.find({month, employeeId}, {_id: 0,__v: 0,month:0, employeeId:0});
+    } catch(error) {
+        console.error(error);
+        return [];
+    }
+}
 
 export {
     createSalarySlip,
     getSalarySlip,
-    getMonthlySalarySlip
+    getMonthlySalarySlip,
+    getMonthlyEmployeeSalarySlip
 };

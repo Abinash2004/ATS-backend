@@ -4,9 +4,11 @@ import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
+import {isValidMonthYear} from "../../utils/validations.ts";
 import {getDepartment} from "../mongoose/department.ts";
 import {createLeave, updateLeave} from "../mongoose/leave.ts";
 import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
+import {getMonthlyEmployeeSalarySlip} from "../mongoose/salary_slip.ts";
 import {formatHoursMinutes,getShiftData,errorEmission,messageEmission,dateToIST} from "../helper.ts";
 import {
     addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
@@ -144,6 +146,23 @@ async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string)
     }
 }
 
+async function viewEmployeeSalarySlipHandler(socket:Socket, month: string, employeeId: string) {
+    try {
+        if (!month) {
+            messageEmission(socket,"failed","month is missing.");
+            return;
+        }
+        if (!isValidMonthYear(month)) {
+            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
+            return;
+        }
+        const salarySlip = await getMonthlyEmployeeSalarySlip(month,employeeId);
+        messageEmission(socket,"success",salarySlip);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
@@ -152,5 +171,6 @@ export {
     resolvePendingAttendanceHandler,
     leaveRequestHandler,
     leaveResponseHandler,
-    viewEmployeeAttendanceHandler
+    viewEmployeeAttendanceHandler,
+    viewEmployeeSalarySlipHandler
 };

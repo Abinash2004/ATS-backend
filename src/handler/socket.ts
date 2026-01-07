@@ -11,7 +11,7 @@ import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
     breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler,
-    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler
+    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler, viewEmployeeSalarySlipHandler
 } from "./events/employee.ts";
 import {
     createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler,
@@ -59,6 +59,7 @@ function startEmployeeSocketServer() {
         socket.on("leave_response", (leaveId: string, response: leave_response) =>
             leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
         socket.on("view_employee_attendance_record",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
+        socket.on("view_salary_slip", (month: string) => viewEmployeeSalarySlipHandler(socket,month,employee._id.toString()));
     });
 }
 
