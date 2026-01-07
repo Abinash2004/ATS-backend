@@ -16,5 +16,17 @@ async function getSalarySlip(month: string): Promise<ISalarySlip | null> {
         return null;
     }
 }
+async function getMonthlySalarySlip(month: string): Promise<ISalarySlip[] | null> {
+    try {
+        return await SalarySlip.find({month}, {_id: 0,__v: 0,month:0});
+    } catch(error) {
+        console.error(error);
+        return [];
+    }
+}
 
-export {createSalarySlip,getSalarySlip};
+export {
+    createSalarySlip,
+    getSalarySlip,
+    getMonthlySalarySlip
+};

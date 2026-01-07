@@ -18,7 +18,8 @@ import {
     deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
     readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
     updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler,
-    viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalarySlipHandler
+    viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalarySlipHandler,
+    viewSalarySlipHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -104,6 +105,7 @@ function startAdminSocketServer() {
         socket.on("view_attendance_record",() => viewAllAttendanceRecordHandler(socket));
 
         socket.on("generate_salary_slip", (month: string) => createSalarySlipHandler(socket, month));
+        socket.on("monthly_salary_slip", (month: string) => viewSalarySlipHandler(socket, month));
     });
 }
 

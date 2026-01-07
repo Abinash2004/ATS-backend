@@ -3,22 +3,15 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
-import {
-    getAllAttendanceRecord,
-    getEmployeeAttendanceRecordMonthWise,
-    getRecentAttendanceRecordDate
-} from "../mongoose/attendance_record.ts";
-import {
-    calculateShiftSalary,
-    errorEmission,
-    getDayName,
-    getLastDayUtc,
-    messageEmission,
-    stringToDate
-} from "../helper.ts";
+import {isValidMonthYear} from "../../utils/validations.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
-import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
+import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
+import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
+import {calculateShiftSalary,errorEmission,getDayName,getLastDayUtc,messageEmission} from "../helper.ts";
+import {
+    getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate
+} from "../mongoose/attendance_record.ts";
 import {
     addNewEmployee,deleteEmployee,getAllEmployeesList,
     getEmployeeById,isEmployeeExists,updateEmployee
@@ -27,8 +20,6 @@ import {
     attendanceFirstHalfHandler,attendanceFullDayHandler,
     attendanceHolidayHandler,attendanceSecondHalfHandler
 } from "../attendance.ts";
-import {isValidMonthYear} from "../../utils/validations.ts";
-import {createSalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -348,6 +339,22 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
         errorEmission(socket,error);
     }
 }
+async function viewSalarySlipHandler(socket:Socket, month: string) {
+    try {
+        if (!month) {
+            messageEmission(socket,"failed","month is missing.");
+            return;
+        }
+        if (!isValidMonthYear(month)) {
+            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
+            return;
+        }
+        const salarySlip = await getMonthlySalarySlip(month);
+        messageEmission(socket,"success",salarySlip);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
 
 export {
     createEmployeeHandler,
@@ -368,5 +375,6 @@ export {
     deleteLocationHandler,
     createAttendanceRecordHandler,
     viewAllAttendanceRecordHandler,
-    createSalarySlipHandler
+    createSalarySlipHandler,
+    viewSalarySlipHandler
 }
