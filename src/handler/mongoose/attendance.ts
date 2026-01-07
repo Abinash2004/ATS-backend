@@ -275,13 +275,13 @@ async function resolveAttendance(socket: Socket, attendance: IAttendance, clockO
     }
 }
 
-async function getAttendanceByDate(inputDate: Date): Promise<IAttendance | null> {
+async function getAttendanceByDate(inputDate: Date, employeeId: string): Promise<IAttendance | null> {
     try {
         const start = new Date(inputDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(start);
         end.setDate(end.getDate() + 1);
-        return await Attendance.findOne({clock_in: {$gte: start,$lt: end}});
+        return await Attendance.findOne({employeeId, clock_in: {$gte: start,$lt: end}});
     } catch(error) {
         console.error(error);
         return null;

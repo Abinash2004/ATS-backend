@@ -2,6 +2,7 @@ import Attendance from "../../model/attendance.ts";
 import AttendanceRecord from "../../model/attendance_record.ts";
 import type {AttendanceStatus} from "../../type/attendance.ts";
 import type {IAttendanceRecord} from "../../interface/attendance_record.ts";
+import {getFirstDayUtc, getLastDayUtc} from "../helper.ts";
 
 async function getRecentAttendanceRecordDate(): Promise<Date|null> {
     try {
@@ -46,10 +47,20 @@ async function getEmployeeAttendanceRecord(employeeId: string): Promise<IAttenda
         return [];
     }
 }
-
+async function getEmployeeAttendanceRecordMonthWise(employeeId: string, month: string): Promise<IAttendanceRecord[]> {
+    try {
+        const start = getFirstDayUtc(month);
+        const end = getLastDayUtc(month);
+        return await AttendanceRecord.find({employeeId,attendance_date: {$gte:start,$lte:end}});
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
 export {
     getRecentAttendanceRecordDate,
     setAttendanceRecord,
     getAllAttendanceRecord,
-    getEmployeeAttendanceRecord
+    getEmployeeAttendanceRecord,
+    getEmployeeAttendanceRecordMonthWise
 };

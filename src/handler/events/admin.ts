@@ -3,8 +3,19 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
-import {getAllAttendanceRecord, getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {errorEmission, getDayName, messageEmission} from "../helper.ts";
+import {
+    getAllAttendanceRecord,
+    getEmployeeAttendanceRecordMonthWise,
+    getRecentAttendanceRecordDate
+} from "../mongoose/attendance_record.ts";
+import {
+    calculateShiftSalary,
+    errorEmission,
+    getDayName,
+    getLastDayUtc,
+    messageEmission,
+    stringToDate
+} from "../helper.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
@@ -17,6 +28,7 @@ import {
     attendanceHolidayHandler,attendanceSecondHalfHandler
 } from "../attendance.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
+import {createSalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -303,7 +315,35 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
             messageEmission(socket,"failed","invalid month format [mm/yyyy].");
             return;
         }
-
+        const lastDate: Date = getLastDayUtc(month);
+        const currentDate: Date = new Date(Date.now());
+        if (lastDate >= currentDate) {
+            messageEmission(socket,"failed","month has not ended.");
+            return;
+        }
+        const salarySlip = await getSalarySlip(month);
+        if (salarySlip) {
+            messageEmission(socket,"failed","salarySlip for given month has already been generated.");
+            return;
+        }
+        const employees: IEmployee[] = await getAllEmployeesList();
+        for (let emp of employees) {
+            const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(),month);
+            if (!attendance.length) continue;
+            let monthSalary = 0;
+            let shiftId: string = attendance[0].shiftId.toString();
+            let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),month, emp.salary);
+            for (let att of attendance) {
+                if (shiftId !== att.shiftId.toString()) {
+                    shiftId = att.shiftId.toString();
+                    shiftSalary = await calculateShiftSalary(att.shiftId.toString(),month, emp.salary);
+                }
+                if (att.first_half === "present" || att.first_half === "paid_leave") monthSalary += shiftSalary;
+                if (att.second_half === "present" || att.second_half === "paid_leave") monthSalary += shiftSalary;
+            }
+            await createSalarySlip(monthSalary,emp._id.toString(),month);
+        }
+        messageEmission(socket,"success","salarySlip for given month is generated successfully.");
     } catch(error) {
         errorEmission(socket,error);
     }

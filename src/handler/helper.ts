@@ -2,6 +2,7 @@ import type {Day} from "../type/day.ts";
 import type {Socket} from "socket.io";
 import type {ISingleShift} from "../interface/shift.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
+import {getShift} from "./mongoose/shift.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -90,12 +91,45 @@ async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
 
 function parseDateDMY(input: string): Date {
     const [dd, mm, yyyy] = input.split("/").map(Number);
-
     if (!dd || !mm || !yyyy) {
         throw new Error("Invalid date format");
     }
-
     return new Date(Date.UTC(yyyy, mm - 1, dd));
+}
+
+function getLastDayUtc(mmYYYY: string): Date {
+    const [mm, yyyy] = mmYYYY.split("/").map(Number);
+    if (!mm || !yyyy || mm < 1 || mm > 12) {
+        throw new Error("Invalid format. Expected mm/yyyy");
+    }
+    return new Date(Date.UTC(yyyy, mm, 0, 0, 0, 0, 0));
+}
+
+function getFirstDayUtc(mmYYYY: string): Date {
+    const [mm, yyyy] = mmYYYY.split("/").map(Number);
+    if (!mm || !yyyy || mm < 1 || mm > 12) {
+        throw new Error("Invalid format. Expected mm/yyyy");
+    }
+    return new Date(Date.UTC(yyyy, mm - 1, 1, 0, 0, 0, 0));
+}
+
+async function calculateShiftSalary(shiftId: string, month: string, salary: number): Promise<number> {
+    try {
+        const shift = await getShift(shiftId);
+        if(!shift) return 0;
+        const start = getFirstDayUtc(month);
+        const end = getLastDayUtc(month);
+        let shiftCount = 0;
+        for(let iterDate = new Date(start); iterDate <= new Date(end); iterDate.setDate(iterDate.getDate()+1)) {
+            const day = getDayName(iterDate);
+            if (shift[day].day_status === "full_day") shiftCount += 2;
+            else if (shift[day].day_status === "first_half" || shift[day].day_status === "second_half") shiftCount++;
+        }
+        return salary/shiftCount;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
 }
 
 export {
@@ -108,5 +142,8 @@ export {
     getShiftData,
     getDayName,
     getShiftTimings,
-    parseDateDMY
+    parseDateDMY,
+    getLastDayUtc,
+    getFirstDayUtc,
+    calculateShiftSalary
 };
