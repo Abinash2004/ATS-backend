@@ -10,16 +10,15 @@ import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
-    breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler,
-    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler, viewEmployeeSalarySlipHandler
+    breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,
+    resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler
 } from "./events/employee.ts";
 import {
-    createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler,
-    deleteDepartmentHandler, deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler,
-    readDepartmentHandler, readEmployeeHandler, readLocationHandler, readShiftHandler,
-    updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler, updateShiftHandler,
-    viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalarySlipHandler,
-    viewSalarySlipHandler
+    createAttendanceRecordHandler,createDepartmentHandler,createEmployeeHandler,deleteDepartmentHandler,
+    deleteEmployeeHandler,deleteLocationHandler,deleteShiftHandler,readDepartmentHandler,readEmployeeHandler,
+    readLocationHandler,readShiftHandler,updateDepartmentHandler,updateEmployeeHandler,updateLocationHandler,
+    updateShiftHandler,viewAllAttendanceRecordHandler,createLocationHandler,createShiftHandler,createSalaryHandler,
+    viewSalaryHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -52,14 +51,11 @@ function startEmployeeSocketServer() {
         socket.on("break", (reason: string) => breakHandler(reason,socket,employee));
         socket.on("clock_out", (reason: string) => clockOutHandler(socket,employee,reason));
         socket.on("status",() => statusHandler(socket, employee));
-        socket.on("resolve",(attendanceId: string, clockOutTime: string) =>
-            resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
-        socket.on("leave_request", (leave_date: string, day_status: DayStatus, reason: string) =>
-            leaveRequestHandler(socket,employee._id.toString(), employee.shiftId.toString(),leave_date,day_status,reason));
-        socket.on("leave_response", (leaveId: string, response: leave_response) =>
-            leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
-        socket.on("view_employee_attendance_record",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
-        socket.on("view_salary_slip", (month: string) => viewEmployeeSalarySlipHandler(socket,month,employee._id.toString()));
+        socket.on("resolve",(attendanceId: string, clockOutTime: string) => resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
+        socket.on("request_leave", (leave_date: string, day_status: DayStatus, reason: string) => leaveRequestHandler(socket,employee._id.toString(), employee.shiftId.toString(),leave_date,day_status,reason));
+        socket.on("leave_response", (leaveId: string, response: leave_response) => leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
+        socket.on("view_attendance",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
+        socket.on("view_salary", (month: string) => viewEmployeeSalaryHandler(socket,month,employee._id.toString()));
     });
 }
 
@@ -102,11 +98,11 @@ function startAdminSocketServer() {
         socket.on("update_location",(locationId: string, location:ILocation)=>updateLocationHandler(socket,locationId,location));
         socket.on("delete_location",(locationId: string)=>deleteLocationHandler(socket, locationId));
 
-        socket.on("generate_attendance_record", () => createAttendanceRecordHandler(socket));
-        socket.on("view_attendance_record",() => viewAllAttendanceRecordHandler(socket));
+        socket.on("generate_attendance", () => createAttendanceRecordHandler(socket));
+        socket.on("view_attendance",() => viewAllAttendanceRecordHandler(socket));
 
-        socket.on("generate_salary_slip", (month: string) => createSalarySlipHandler(socket, month));
-        socket.on("monthly_salary_slip", (month: string) => viewSalarySlipHandler(socket, month));
+        socket.on("generate_salary", (month: string) => createSalaryHandler(socket, month));
+        socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
     });
 }
 

@@ -288,7 +288,7 @@ async function viewAllAttendanceRecordHandler(socket:Socket) {
     }
 }
 
-async function createSalarySlipHandler(socket:Socket, month: string) {
+async function createSalaryHandler(socket:Socket, month: string) {
     try {
         if (!month) {
             messageEmission(socket,"failed","month is missing.");
@@ -333,7 +333,7 @@ async function createSalarySlipHandler(socket:Socket, month: string) {
         errorEmission(socket,error);
     }
 }
-async function viewSalarySlipHandler(socket:Socket, month: string) {
+async function viewSalaryHandler(socket:Socket, month: string) {
     try {
         if (!month) {
             messageEmission(socket,"failed","month is missing.");
@@ -369,6 +369,6 @@ export {
     deleteLocationHandler,
     createAttendanceRecordHandler,
     viewAllAttendanceRecordHandler,
-    createSalarySlipHandler,
-    viewSalarySlipHandler
+    createSalaryHandler,
+    viewSalaryHandler
 }

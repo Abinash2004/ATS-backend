@@ -4,8 +4,8 @@ import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
-import {isValidMonthYear} from "../../utils/validations.ts";
 import {getDepartment} from "../mongoose/department.ts";
+import {isValidMonthYear} from "../../utils/validations.ts";
 import {createLeave, updateLeave} from "../mongoose/leave.ts";
 import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
 import {getMonthlyEmployeeSalarySlip} from "../mongoose/salary_slip.ts";
@@ -146,7 +146,7 @@ async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string)
     }
 }
 
-async function viewEmployeeSalarySlipHandler(socket:Socket, month: string, employeeId: string) {
+async function viewEmployeeSalaryHandler(socket:Socket, month: string, employeeId: string) {
     try {
         if (!month) {
             messageEmission(socket,"failed","month is missing.");
@@ -172,5 +172,5 @@ export {
     leaveRequestHandler,
     leaveResponseHandler,
     viewEmployeeAttendanceHandler,
-    viewEmployeeSalarySlipHandler
+    viewEmployeeSalaryHandler
 };
