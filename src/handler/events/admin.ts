@@ -11,12 +11,14 @@ import {createDepartment, deleteDepartment, getDepartment, updateDepartment} fro
 import {
     calculateOvertimeMinutes,
     calculateOvertimePay, calculateShiftSalary,
-    calculateWorkingShift, errorEmission, formatHoursMinutes, getDayName, getLastDayUtc, messageEmission
+    calculateWorkingShift, errorEmission, formatHoursMinutes,
+    formatMonthYear, getDayName, getLastDayUtc, messageEmission, stringToDate
 } from "../helper.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
+import {generatePDF} from "../../utils/pdf_generation.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -367,6 +369,34 @@ async function createSalaryHandler(socket:Socket, month: string) {
                 paid_leave: paidLeave
             }
             await createSalarySlip(salaryObject, attendanceObject,emp._id.toString(),month);
+            const department = await getDepartment(emp.departmentId.toString());
+            if (!department) return;
+            generatePDF({
+                month: formatMonthYear(month),
+                company: {
+                    name: "Ultimate Business Systems Pvt. Ltd.",
+                    address: "Diamond World 3rd floor C-301, Mini Bazar, Varachha Road, Surat, Gujarat, India, 395006",
+                },
+                employee: {
+                    name: emp.name,
+                    email: emp.email,
+                    account: "69066990666999",
+                    bank: "Super Bank of Surat",
+                    department: department.name,
+                },
+                attendance: {
+                    working_shift: workingShift.toString(),
+                    present_shift: presentShift.toString(),
+                    absent_shift: absentShift.toString(),
+                    paid_leave: paidLeave.toString(),
+                    over_time: formatHoursMinutes(overtimeMinutes)
+                },
+                salary: {
+                    basic: basicSalary.toString(),
+                    over_time: overTimeWages.toString(),
+                    gross: (basicSalary + overTimeWages).toString()
+                }
+            });
         }
         messageEmission(socket,"success","salarySlip for given month is generated successfully.");
     } catch(error) {

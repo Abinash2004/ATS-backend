@@ -170,6 +170,17 @@ async function calculateOvertimeMinutes(attendance: IAttendanceRecord, employeeI
     }
 }
 
+function formatMonthYear(input: string): string {
+    const [mm, yyyy] = input.split("/").map(Number);
+    if (!mm || mm < 1 || mm > 12 || !yyyy) {
+        throw new Error("Invalid format. Expected mm/yyyy");
+    }
+    const monthName = new Date(yyyy, mm - 1).toLocaleString("en-US", {
+        month: "long"
+    });
+    return `${monthName} ${yyyy}`;
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -186,5 +197,6 @@ export {
     calculateShiftSalary,
     calculateOvertimePay,
     calculateWorkingShift,
-    calculateOvertimeMinutes
+    calculateOvertimeMinutes,
+    formatMonthYear
 };
