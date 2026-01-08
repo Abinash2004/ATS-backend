@@ -9,10 +9,8 @@ import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {
-    calculateOvertimeMinutes,
-    calculateOvertimePay, calculateShiftSalary,
-    calculateWorkingShift, errorEmission, formatHoursMinutes,
-    formatMonthYear, getDayName, getLastDayUtc, messageEmission, stringToDate
+    calculateOvertimeMinutes,calculateOvertimePay, calculateShiftSalary, calculateTotalWorkingShift,
+    errorEmission, formatHoursMinutes,formatMonthYear, getDayName, getLastDayUtc, messageEmission
 } from "../helper.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
@@ -328,7 +326,7 @@ async function createSalaryHandler(socket:Socket, month: string) {
             let absentShift = 0;
             let paidLeave = 0;
             let overtimeMinutes = 0;
-            let workingShift = await calculateWorkingShift(emp.shiftId.toString(), month);
+            let workingShift = await calculateTotalWorkingShift(emp._id.toString(), month);
 
             let shiftId: string = attendance[0].shiftId.toString();
             let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),month, emp.salary);

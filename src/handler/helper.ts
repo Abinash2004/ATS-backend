@@ -5,6 +5,7 @@ import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
+import {getEmployeeAttendanceRecordMonthWise} from "./mongoose/attendance_record.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -144,6 +145,31 @@ async function calculateWorkingShift(shiftId: string, month: string): Promise<nu
     }
 }
 
+async function calculateTotalWorkingShift(employeeId: string, month: string): Promise<number> {
+    try {
+        let shiftCount = 0;
+        const attendanceRecord = await getEmployeeAttendanceRecordMonthWise(employeeId, month);
+        if (!attendanceRecord[0]) return 0;
+        let shiftId: string = attendanceRecord[0].shiftId.toString();
+        let shift = await getShift(shiftId.toString());
+        if(!shift) return 0;
+        for (let attendance of attendanceRecord) {
+            if (shiftId !== attendance.shiftId.toString()) {
+                shiftId = attendance.shiftId.toString();
+                shift = await getShift(attendance.shiftId.toString());
+                if(!shift) return 0;
+            }
+            const day = getDayName(attendance.attendance_date);
+            if (shift[day].day_status === "full_day") shiftCount += 2;
+            else if (shift[day].day_status === "first_half" || shift[day].day_status === "second_half") shiftCount++;
+        }
+        return shiftCount;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+
 async function calculateOvertimePay(attendance: IAttendanceRecord, employeeId: string, shiftSalary: number): Promise<number> {
     try {
         const fullAttendance = await getAttendanceByDate(attendance.attendance_date, employeeId);
@@ -198,5 +224,6 @@ export {
     calculateOvertimePay,
     calculateWorkingShift,
     calculateOvertimeMinutes,
-    formatMonthYear
+    formatMonthYear,
+    calculateTotalWorkingShift
 };
