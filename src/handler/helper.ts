@@ -117,6 +117,16 @@ function getFirstDayUtc(mmYYYY: string): Date {
 
 async function calculateShiftSalary(shiftId: string, month: string, salary: number): Promise<number> {
     try {
+        const shiftCount = await calculateWorkingShift(shiftId,month);
+        return salary/shiftCount;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+
+async function calculateWorkingShift(shiftId: string, month: string): Promise<number> {
+    try {
         const shift = await getShift(shiftId);
         if(!shift) return 0;
         const start = getFirstDayUtc(month);
@@ -127,7 +137,7 @@ async function calculateShiftSalary(shiftId: string, month: string, salary: numb
             if (shift[day].day_status === "full_day") shiftCount += 2;
             else if (shift[day].day_status === "first_half" || shift[day].day_status === "second_half") shiftCount++;
         }
-        return salary/shiftCount;
+        return shiftCount;
     } catch(error) {
         console.log(error);
         return 0;
@@ -141,6 +151,19 @@ async function calculateOvertimePay(attendance: IAttendanceRecord, employeeId: s
         if (!fullAttendance.clock_out) return 0;
         let {shiftMinutes,overTimeMinutes} = await getShiftData(fullAttendance, fullAttendance.clock_out);
         return (shiftSalary * overTimeMinutes)/(shiftMinutes/2);
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+
+async function calculateOvertimeMinutes(attendance: IAttendanceRecord, employeeId: string): Promise<number> {
+    try {
+        const fullAttendance = await getAttendanceByDate(attendance.attendance_date, employeeId);
+        if (!fullAttendance) return 0;
+        if (!fullAttendance.clock_out) return 0;
+        let {overTimeMinutes} = await getShiftData(fullAttendance, fullAttendance.clock_out);
+        return overTimeMinutes;
     } catch(error) {
         console.log(error);
         return 0;
@@ -161,5 +184,7 @@ export {
     getLastDayUtc,
     getFirstDayUtc,
     calculateShiftSalary,
-    calculateOvertimePay
+    calculateOvertimePay,
+    calculateWorkingShift,
+    calculateOvertimeMinutes
 };

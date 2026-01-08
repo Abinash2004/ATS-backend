@@ -8,10 +8,15 @@ import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift
 import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
-import {calculateOvertimePay,calculateShiftSalary,errorEmission,getDayName,getLastDayUtc,messageEmission} from "../helper.ts";
+import {
+    calculateOvertimeMinutes,
+    calculateOvertimePay, calculateShiftSalary,
+    calculateWorkingShift, errorEmission, formatHoursMinutes, getDayName, getLastDayUtc, messageEmission
+} from "../helper.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
+import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -313,8 +318,16 @@ async function createSalaryHandler(socket:Socket, month: string) {
         for (let emp of employees) {
             const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(),month);
             if (!attendance.length) continue;
+
             let basicSalary = 0;
             let overTimeWages = 0;
+
+            let presentShift = 0;
+            let absentShift = 0;
+            let paidLeave = 0;
+            let overtimeMinutes = 0;
+            let workingShift = await calculateWorkingShift(emp.shiftId.toString(), month);
+
             let shiftId: string = attendance[0].shiftId.toString();
             let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),month, emp.salary);
             for (let att of attendance) {
@@ -322,11 +335,38 @@ async function createSalaryHandler(socket:Socket, month: string) {
                     shiftId = att.shiftId.toString();
                     shiftSalary = await calculateShiftSalary(att.shiftId.toString(),month, emp.salary);
                 }
-                if (att.first_half === "present" || att.first_half === "paid_leave") basicSalary += shiftSalary;
-                if (att.second_half === "present" || att.second_half === "paid_leave") basicSalary += shiftSalary;
+                if (att.first_half === "present") {
+                    basicSalary += shiftSalary;
+                    presentShift++;
+
+                } if(att.first_half === "paid_leave") {
+                    basicSalary += shiftSalary;
+                    paidLeave++;
+                } if (att.second_half === "present") {
+                    basicSalary += shiftSalary;
+                    presentShift++;
+                } if (att.second_half === "paid_leave") {
+                    basicSalary += shiftSalary;
+                    paidLeave++;
+                }
+                if (att.first_half === "absent") absentShift++;
+                if (att.second_half === "absent") absentShift++;
+                overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
                 overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
             }
-            await createSalarySlip(basicSalary, overTimeWages, basicSalary + overTimeWages,emp._id.toString(),month);
+            const salaryObject: ISalary = {
+                basic_salary: basicSalary,
+                over_time_wages: overTimeWages,
+                gross_salary: basicSalary + overTimeWages
+            };
+            const attendanceObject: ISalaryAttendance = {
+                working_shifts: workingShift,
+                present_shifts: presentShift,
+                absent_shifts: absentShift,
+                over_time_hours: formatHoursMinutes(overtimeMinutes),
+                paid_leave: paidLeave
+            }
+            await createSalarySlip(salaryObject, attendanceObject,emp._id.toString(),month);
         }
         messageEmission(socket,"success","salarySlip for given month is generated successfully.");
     } catch(error) {

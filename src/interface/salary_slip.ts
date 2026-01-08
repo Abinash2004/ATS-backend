@@ -1,9 +1,22 @@
 import {Types} from "mongoose";
 
-export interface ISalarySlip {
+export interface ISalaryAttendance {
+    working_shifts: number;
+    present_shifts: number;
+    absent_shifts: number;
+    paid_leave: number;
+    over_time_hours: string;
+}
+
+export interface ISalary {
     basic_salary: number;
-    overtime_wages: number;
+    over_time_wages: number;
     gross_salary: number;
+}
+
+export interface ISalarySlip {
+    salary: ISalary;
+    attendance: ISalaryAttendance;
     employeeId: Types.ObjectId;
     month: string;
 }
