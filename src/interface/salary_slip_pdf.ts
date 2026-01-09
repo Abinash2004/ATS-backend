@@ -22,6 +22,7 @@ export interface ISalarySlipPDF {
         basic: string;
         over_time: string;
         bonus: string;
+        penalty: string;
         gross: string;
     }
 }

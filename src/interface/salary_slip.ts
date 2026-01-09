@@ -12,6 +12,7 @@ export interface ISalary {
     basic_salary: number;
     over_time_wages: number;
     bonus_salary: number;
+    penalty_amount: number;
     gross_salary: number;
 }
 

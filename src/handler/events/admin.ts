@@ -9,6 +9,7 @@ import {generatePDF} from "../../utils/pdf_generation.ts";
 import {generateSheet} from "../../utils/sheet_generation.ts";
 import {getMonthlyBonus} from "../mongoose/bonus.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
+import {getMonthlyPenalty} from "../mongoose/penalty.ts";
 import {createShift,deleteShift,getShift,updateShift} from "../mongoose/shift.ts";
 import {createSalarySlip,getMonthlySalarySlip,getSalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation,deleteLocation,getLocation,updateLocation} from "../mongoose/location.ts";
@@ -317,6 +318,7 @@ async function createSalaryHandler(socket:Socket, month: string) {
             let paidLeave = 0;
             let overtimeMinutes = 0;
             let totalBonus = await getMonthlyBonus(emp._id.toString(),month);
+            let totalPenalties = await getMonthlyPenalty(emp._id.toString(),month);
             let workingShift = await calculateTotalWorkingShift(emp._id.toString(), month);
 
             let shiftId: string = attendance[0].shiftId.toString();
@@ -349,7 +351,8 @@ async function createSalaryHandler(socket:Socket, month: string) {
                 basic_salary: basicSalary,
                 over_time_wages: overTimeWages,
                 bonus_salary: totalBonus,
-                gross_salary: basicSalary + overTimeWages + totalBonus
+                penalty_amount: totalPenalties,
+                gross_salary: basicSalary + overTimeWages + totalBonus - totalPenalties
             };
             const attendanceObject: ISalaryAttendance = {
                 working_shifts: workingShift,
@@ -385,7 +388,8 @@ async function createSalaryHandler(socket:Socket, month: string) {
                     basic: basicSalary.toString(),
                     over_time: overTimeWages.toString(),
                     bonus: totalBonus.toString(),
-                    gross: (basicSalary + overTimeWages + totalBonus).toString()
+                    penalty: totalPenalties.toString(),
+                    gross: (basicSalary + overTimeWages + totalBonus - totalPenalties).toString()
                 }
             });
         }

@@ -70,6 +70,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
         "Basic Salary",
         "Overtime Wages",
         "Bonus Salary",
+        "Penalty Amount",
         "Gross Salary"
     ].forEach((k, i) => row(40, k, salaryValues[i]));
     doc.moveDown(1);
@@ -77,6 +78,6 @@ export function generatePDF(d: ISalarySlipPDF): void {
 
     // FOOTER
     const year = new Date().getFullYear();
-    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,450,{ align: "center" });
+    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,475,{ align: "center" });
     doc.end();
 }
