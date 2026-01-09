@@ -10,7 +10,7 @@ import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
-    breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,
+    breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,giveBonusHandler,
     resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler
 } from "./events/employee.ts";
 import {
@@ -18,9 +18,8 @@ import {
     deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler, readDepartmentHandler, readEmployeeHandler,
     readLocationHandler, readShiftHandler, updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler,
     updateShiftHandler, viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalaryHandler,
-    viewSalaryHandler, generateAttendanceSheetHandler, giveBonusHandler
+    viewSalaryHandler, generateAttendanceSheetHandler
 } from "./events/admin.ts";
-import employee from "../model/employee.ts";
 
 function startAuthSocketServer() {
     const authNamespace = io.of("/auth");
@@ -57,6 +56,7 @@ function startEmployeeSocketServer() {
         socket.on("leave_response", (leaveId: string, response: leave_response) => leaveResponseHandler(socket, leaveId, response, employee.departmentId.toString()));
         socket.on("view_attendance",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
         socket.on("view_salary", (month: string) => viewEmployeeSalaryHandler(socket,month,employee._id.toString()));
+        socket.on("give_bonus", (employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
     });
 }
 
@@ -105,7 +105,6 @@ function startAdminSocketServer() {
         socket.on("generate_salary", (month: string) => createSalaryHandler(socket, month));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
         socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
-        socket.on("give_bonus", (employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employeeId, amount, reason));
     });
 }
 

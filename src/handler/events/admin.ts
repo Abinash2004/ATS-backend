@@ -20,7 +20,6 @@ import {
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {createBonus} from "../mongoose/bonus.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -453,18 +452,6 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
         errorEmission(socket,error);
     }
 }
-async function giveBonusHandler(socket:Socket, employeeId: string, amount: Number, reason: string) {
-    try {
-        if (!employeeId || !amount || !reason) {
-            messageEmission(socket,"failed","required arguments are missing.");
-            return;
-        }
-        await createBonus(employeeId, amount, reason);
-        messageEmission(socket,"success",`Bonus successfully created for ${employeeId}`);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
 
 export {
     createEmployeeHandler,
@@ -487,6 +474,5 @@ export {
     viewAllAttendanceRecordHandler,
     createSalaryHandler,
     viewSalaryHandler,
-    generateAttendanceSheetHandler,
-    giveBonusHandler
+    generateAttendanceSheetHandler
 }
