@@ -7,7 +7,7 @@ import type {Day} from "../../type/day.ts";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 import {
-    getShiftData, messageEmission, stringToDate,
+    getShiftData, messageEmission, stringToDate, formatHoursMinutes,
     dateToIST, getDayName, calculateMinutes, getShiftTimings
 } from "../helper.ts";
 
@@ -222,6 +222,8 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
             return;
         }
         if (reason) {
+            const earlyMinutes = shiftMinutes - workedMinutes;
+            await createPenalty(employeeId, 500, `early clock-out on ${dateToIST(currentTime)} for ${formatHoursMinutes(earlyMinutes)}`);
             await Attendance.updateOne({_id: attendance._id},{$set:{
                 clock_out: currentTime,
                 early_clock_out_reason: reason,
@@ -232,8 +234,7 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
         } else {
             await Attendance.updateOne({_id: attendance._id}, {$set: {
                 clock_out: currentTime,
-                status: "out",
-                early_out: early_out
+                status: "out"
             }});
             messageEmission(socket, "success",`clocked out on ${dateToIST(currentTime)}.`);
         }
