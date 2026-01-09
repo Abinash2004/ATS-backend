@@ -18,8 +18,9 @@ import {
     deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler, readDepartmentHandler, readEmployeeHandler,
     readLocationHandler, readShiftHandler, updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler,
     updateShiftHandler, viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalaryHandler,
-    viewSalaryHandler, generateAttendanceSheetHandler
+    viewSalaryHandler, generateAttendanceSheetHandler, giveBonusHandler
 } from "./events/admin.ts";
+import employee from "../model/employee.ts";
 
 function startAuthSocketServer() {
     const authNamespace = io.of("/auth");
@@ -104,6 +105,7 @@ function startAdminSocketServer() {
         socket.on("generate_salary", (month: string) => createSalaryHandler(socket, month));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
         socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
+        socket.on("give_bonus", (employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employeeId, amount, reason));
     });
 }
 
