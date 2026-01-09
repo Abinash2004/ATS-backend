@@ -10,6 +10,10 @@ const salarySchema = new mongoose.Schema<ISalary>({
         type: Number,
         required: true
     },
+    bonus_salary: {
+        type: Number,
+        required: true
+    },
     gross_salary: {
         type: Number,
         required: true

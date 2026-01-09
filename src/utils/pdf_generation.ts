@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
-import type { ISalarySlipPDF } from "../interface/salary_slip_pdf";
+import type {ISalarySlipPDF} from "../interface/salary_slip_pdf";
 
 export function generatePDF(d: ISalarySlipPDF): void {
     const dirPath = path.join("salary_slips", d.month);
@@ -69,6 +69,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
     [
         "Basic Salary",
         "Overtime Wages",
+        "Bonus Salary",
         "Gross Salary"
     ].forEach((k, i) => row(40, k, salaryValues[i]));
     doc.moveDown(1);
@@ -76,6 +77,6 @@ export function generatePDF(d: ISalarySlipPDF): void {
 
     // FOOTER
     const year = new Date().getFullYear();
-    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,425,{ align: "center" });
+    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,450,{ align: "center" });
     doc.end();
 }
