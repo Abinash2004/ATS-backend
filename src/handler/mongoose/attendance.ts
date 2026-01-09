@@ -223,19 +223,12 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
         }
         if (reason) {
             const earlyMinutes = shiftMinutes - workedMinutes;
-            await createPenalty(employeeId, 500, `early clock-out on ${dateToIST(currentTime)} for ${formatHoursMinutes(earlyMinutes)}`);
-            await Attendance.updateOne({_id: attendance._id},{$set:{
-                clock_out: currentTime,
-                early_clock_out_reason: reason,
-                status: "out",
-                early_out: early_out
-            }});
+            const count = await getEarlyOutCountPerMonth(employeeId, new Date(currentTime));
+            if (count >= 3) await createPenalty(employeeId, 500, `early clock-out on ${dateToIST(currentTime)} for ${formatHoursMinutes(earlyMinutes)}`);
+            await Attendance.updateOne({_id: attendance._id},{$set:{clock_out: currentTime,early_clock_out_reason: reason,status: "out",early_out: early_out}});
             messageEmission(socket, "success",`early clocked out for reason (${reason}) on ${dateToIST(currentTime)}.`);
         } else {
-            await Attendance.updateOne({_id: attendance._id}, {$set: {
-                clock_out: currentTime,
-                status: "out"
-            }});
+            await Attendance.updateOne({_id: attendance._id}, {$set: {clock_out: currentTime,status: "out"}});
             messageEmission(socket, "success",`clocked out on ${dateToIST(currentTime)}.`);
         }
         await Timesheet.create({time: currentTime,status: "out", employeeId: employeeId});
@@ -291,6 +284,18 @@ async function getAttendanceByDate(inputDate: Date, employeeId: string): Promise
     } catch(error) {
         console.error(error);
         return null;
+    }
+}
+
+async function getEarlyOutCountPerMonth(employeeId: string, currDate: Date): Promise<number> {
+    try {
+        const startDate = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
+        const lastDate = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0);
+        const result = await Attendance.find({employeeId, clock_in: {$gte: startDate, $lte: lastDate}, early_clock_out_reason: {$exists: true}});
+        return result.length;
+    } catch(error) {
+        console.error(error);
+        return 0;
     }
 }
 
