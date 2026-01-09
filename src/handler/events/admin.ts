@@ -3,20 +3,22 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
+import type {IAttendanceSheet} from "../../interface/attendance_sheet.ts";
+import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
 import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
 import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
 import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
 import {
-    calculateOvertimeMinutes,calculateOvertimePay, calculateShiftSalary, calculateTotalWorkingShift,
-    errorEmission, formatHoursMinutes,formatMonthYear, getDayName, getLastDayUtc, messageEmission
+    calculateOvertimeMinutes, calculateOvertimePay, calculateShiftSalary, calculateTotalWorkingShift, dateToIST,
+    errorEmission, formatHoursMinutes, formatMonthYear, getDayName, getLastDayUtc, messageEmission
 } from "../helper.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
 import {generatePDF} from "../../utils/pdf_generation.ts";
+import {generateSheet} from "../../utils/sheet_generation.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -321,7 +323,6 @@ async function createSalaryHandler(socket:Socket, month: string) {
 
             let basicSalary = 0;
             let overTimeWages = 0;
-
             let presentShift = 0;
             let absentShift = 0;
             let paidLeave = 0;
@@ -396,7 +397,7 @@ async function createSalaryHandler(socket:Socket, month: string) {
                 }
             });
         }
-        messageEmission(socket,"success","salarySlip for given month is generated successfully.");
+        messageEmission(socket,"success",`salarySlip for ${formatMonthYear(month)} is generated successfully.`);
     } catch(error) {
         errorEmission(socket,error);
     }
@@ -413,6 +414,64 @@ async function viewSalaryHandler(socket:Socket, month: string) {
         }
         const salarySlip = await getMonthlySalarySlip(month);
         messageEmission(socket,"success",salarySlip);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+async function generateAttendanceSheetHandler(socket:Socket, month: string) {
+    try {
+        if (!month) {
+            messageEmission(socket,"failed","month is missing.");
+            return;
+        }
+        if (!isValidMonthYear(month)) {
+            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
+            return;
+        }
+        const lastDate: Date = getLastDayUtc(month);
+        const currentDate: Date = new Date(Date.now());
+        if (lastDate >= currentDate) {
+            messageEmission(socket,"failed","month has not ended.");
+            return;
+        }
+        const employees: IEmployee[] = await getAllEmployeesList();
+        for (let emp of employees) {
+            const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(), month);
+            if (!attendance.length) continue;
+            let shiftId: string = attendance[0].shiftId.toString();
+            let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(), month, emp.salary);
+            let attendanceSheetData: IAttendanceSheet[] = [];
+            let sheetData: IAttendanceSheet;
+            for (let att of attendance) {
+                let first_half_pay: number = 0;
+                let second_half_pay: number = 0;
+
+                if (shiftId !== att.shiftId.toString()) {
+                    shiftId = att.shiftId.toString();
+                    shiftSalary = await calculateShiftSalary(att.shiftId.toString(), month, emp.salary);
+                }
+                if (att.first_half === "present" || att.first_half === "paid_leave") {
+                    first_half_pay += shiftSalary;
+                }
+                if (att.second_half === "present" || att.second_half === "paid_leave") {
+                    second_half_pay += shiftSalary;
+                }
+                const overtimeMinutes = await calculateOvertimeMinutes(att, emp._id.toString());
+                const overTimeWages = await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
+                sheetData = {
+                    date: dateToIST(att.attendance_date).split(",")[0],
+                    first_half: att.first_half,
+                    second_half: att.second_half,
+                    first_half_pay: first_half_pay.toString(),
+                    second_half_pay: second_half_pay.toString(),
+                    over_time: formatHoursMinutes(overtimeMinutes),
+                    over_time_pay: overTimeWages.toString()
+                }
+                attendanceSheetData.push(sheetData);
+            }
+            generateSheet(attendanceSheetData, formatMonthYear(month),emp.email);
+            messageEmission(socket,"success",`Attendance Excel Sheet for ${formatMonthYear(month)} is generated successfully.`);
+        }
     } catch(error) {
         errorEmission(socket,error);
     }
@@ -438,5 +497,6 @@ export {
     createAttendanceRecordHandler,
     viewAllAttendanceRecordHandler,
     createSalaryHandler,
-    viewSalaryHandler
+    viewSalaryHandler,
+    generateAttendanceSheetHandler
 }

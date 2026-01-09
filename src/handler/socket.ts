@@ -14,11 +14,11 @@ import {
     resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler
 } from "./events/employee.ts";
 import {
-    createAttendanceRecordHandler,createDepartmentHandler,createEmployeeHandler,deleteDepartmentHandler,
-    deleteEmployeeHandler,deleteLocationHandler,deleteShiftHandler,readDepartmentHandler,readEmployeeHandler,
-    readLocationHandler,readShiftHandler,updateDepartmentHandler,updateEmployeeHandler,updateLocationHandler,
-    updateShiftHandler,viewAllAttendanceRecordHandler,createLocationHandler,createShiftHandler,createSalaryHandler,
-    viewSalaryHandler
+    createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler, deleteDepartmentHandler,
+    deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler, readDepartmentHandler, readEmployeeHandler,
+    readLocationHandler, readShiftHandler, updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler,
+    updateShiftHandler, viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalaryHandler,
+    viewSalaryHandler, generateAttendanceSheetHandler
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -103,6 +103,7 @@ function startAdminSocketServer() {
 
         socket.on("generate_salary", (month: string) => createSalaryHandler(socket, month));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
+        socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
     });
 }
 
