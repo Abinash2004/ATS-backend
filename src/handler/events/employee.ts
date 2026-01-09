@@ -5,6 +5,7 @@ import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
 import {createBonus} from "../mongoose/bonus.ts";
+import {createPenalty} from "../mongoose/penalty.ts";
 import {getDepartment} from "../mongoose/department.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
 import {createLeave, updateLeave} from "../mongoose/leave.ts";
@@ -182,6 +183,24 @@ async function giveBonusHandler(socket:Socket, currEmpId: string, employeeId: st
     }
 }
 
+async function givePenaltyHandler(socket:Socket, currEmpId: string, employeeId: string, amount: Number, reason: string) {
+    try {
+        if (!currEmpId || !employeeId || !amount || !reason) {
+            messageEmission(socket,"failed","required arguments are missing.");
+            return;
+        }
+        const department: IDepartment | null = await getDepartment(employeeId);
+        if (department && department.name !== "Human Resources") {
+            messageEmission(socket,"failed","only HR department can provide penalty.");
+            return;
+        }
+        await createPenalty(employeeId, amount, reason);
+        messageEmission(socket,"success",`Penalty successfully created for ${employeeId}`);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
@@ -192,5 +211,6 @@ export {
     leaveResponseHandler,
     viewEmployeeAttendanceHandler,
     viewEmployeeSalaryHandler,
-    giveBonusHandler
+    giveBonusHandler,
+    givePenaltyHandler
 };

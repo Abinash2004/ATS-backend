@@ -10,8 +10,9 @@ import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
 import {
-    breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,giveBonusHandler,
-    resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler
+    breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler, giveBonusHandler,
+    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler, viewEmployeeSalaryHandler,
+    givePenaltyHandler
 } from "./events/employee.ts";
 import {
     createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler, deleteDepartmentHandler,
@@ -57,6 +58,7 @@ function startEmployeeSocketServer() {
         socket.on("view_attendance",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
         socket.on("view_salary", (month: string) => viewEmployeeSalaryHandler(socket,month,employee._id.toString()));
         socket.on("give_bonus", (employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
+        socket.on("give_penalty", (employeeId: string, amount: Number, reason: string) => givePenaltyHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
     });
 }
 
