@@ -1,10 +1,10 @@
 export interface IAttendanceSheet {
-    date: string;
-    first_half: string;
-    second_half: string;
-    first_half_pay: string;
-    second_half_pay: string;
-    over_time: string;
-    over_time_pay: string;
-    total_pay: string;
+    "Date": string;
+    "First Half": string;
+    "Second Half": string;
+    "First Half Pay": string;
+    "Second Half Pay": string;
+    "Over Time": string;
+    "Over Time Pay": string;
+    "Total Pay": string;
 }

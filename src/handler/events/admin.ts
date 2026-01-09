@@ -434,14 +434,14 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
                 const overtimeMinutes = await calculateOvertimeMinutes(att, emp._id.toString());
                 const overTimeWages = await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
                 sheetData = {
-                    date: dateToIST(att.attendance_date).split(",")[0],
-                    first_half: att.first_half,
-                    second_half: att.second_half,
-                    first_half_pay: first_half_pay.toString(),
-                    second_half_pay: second_half_pay.toString(),
-                    over_time: formatHoursMinutes(overtimeMinutes),
-                    over_time_pay: overTimeWages.toString(),
-                    total_pay: (first_half_pay+second_half_pay+overTimeWages).toString()
+                    "Date": dateToIST(att.attendance_date).split(",")[0],
+                    "First Half": att.first_half,
+                    "Second Half": att.second_half,
+                    "First Half Pay": first_half_pay.toString(),
+                    "Second Half Pay": second_half_pay.toString(),
+                    "Over Time": formatHoursMinutes(overtimeMinutes),
+                    "Over Time Pay": overTimeWages.toString(),
+                    "Total Pay": (first_half_pay+second_half_pay+overTimeWages).toString()
                 }
                 attendanceSheetData.push(sheetData);
             }
