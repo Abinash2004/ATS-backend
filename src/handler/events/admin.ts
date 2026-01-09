@@ -5,20 +5,21 @@ import type {IDepartment} from "../../interface/department.ts";
 import type {ILocation} from "../../interface/location.ts";
 import type {IAttendanceSheet} from "../../interface/attendance_sheet.ts";
 import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
+import {generatePDF} from "../../utils/pdf_generation.ts";
+import {generateSheet} from "../../utils/sheet_generation.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
-import {createShift, deleteShift, getShift, updateShift} from "../mongoose/shift.ts";
-import {createSalarySlip, getMonthlySalarySlip, getSalarySlip} from "../mongoose/salary_slip.ts";
-import {createLocation, deleteLocation, getLocation, updateLocation} from "../mongoose/location.ts";
-import {createDepartment, deleteDepartment, getDepartment, updateDepartment} from "../mongoose/department.ts";
+import {createShift,deleteShift,getShift,updateShift} from "../mongoose/shift.ts";
+import {createSalarySlip,getMonthlySalarySlip,getSalarySlip} from "../mongoose/salary_slip.ts";
+import {createLocation,deleteLocation,getLocation,updateLocation} from "../mongoose/location.ts";
+import {createDepartment,deleteDepartment,getDepartment,updateDepartment} from "../mongoose/department.ts";
 import {
-    calculateOvertimeMinutes, calculateOvertimePay, calculateShiftSalary, calculateTotalWorkingShift, dateToIST,
-    errorEmission, formatHoursMinutes, formatMonthYear, getDayName, getLastDayUtc, messageEmission
+    calculateOvertimeMinutes,calculateOvertimePay,calculateShiftSalary,calculateTotalWorkingShift,
+    checkMonthValidationAndCurrentDate,dateToIST,errorEmission,formatHoursMinutes,formatMonthYear,
+    getDayName,messageEmission
 } from "../helper.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {generatePDF} from "../../utils/pdf_generation.ts";
-import {generateSheet} from "../../utils/sheet_generation.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -297,20 +298,7 @@ async function viewAllAttendanceRecordHandler(socket:Socket) {
 
 async function createSalaryHandler(socket:Socket, month: string) {
     try {
-        if (!month) {
-            messageEmission(socket,"failed","month is missing.");
-            return;
-        }
-        if (!isValidMonthYear(month)) {
-            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
-            return;
-        }
-        const lastDate: Date = getLastDayUtc(month);
-        const currentDate: Date = new Date(Date.now());
-        if (lastDate >= currentDate) {
-            messageEmission(socket,"failed","month has not ended.");
-            return;
-        }
+        if (!checkMonthValidationAndCurrentDate(month, socket)) return;
         const salarySlip = await getSalarySlip(month);
         if (salarySlip) {
             messageEmission(socket,"failed","salarySlip for given month has already been generated.");
@@ -420,20 +408,7 @@ async function viewSalaryHandler(socket:Socket, month: string) {
 }
 async function generateAttendanceSheetHandler(socket:Socket, month: string) {
     try {
-        if (!month) {
-            messageEmission(socket,"failed","month is missing.");
-            return;
-        }
-        if (!isValidMonthYear(month)) {
-            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
-            return;
-        }
-        const lastDate: Date = getLastDayUtc(month);
-        const currentDate: Date = new Date(Date.now());
-        if (lastDate >= currentDate) {
-            messageEmission(socket,"failed","month has not ended.");
-            return;
-        }
+        if (!checkMonthValidationAndCurrentDate(month, socket)) return;
         const employees: IEmployee[] = await getAllEmployeesList();
         for (let emp of employees) {
             const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(), month);

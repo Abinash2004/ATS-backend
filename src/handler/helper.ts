@@ -6,6 +6,7 @@ import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getEmployeeAttendanceRecordMonthWise} from "./mongoose/attendance_record.ts";
+import {isValidMonthYear} from "../utils/validations.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -207,6 +208,24 @@ function formatMonthYear(input: string): string {
     return `${monthName} ${yyyy}`;
 }
 
+function checkMonthValidationAndCurrentDate(month: string, socket:Socket): boolean {
+    if (!month) {
+        messageEmission(socket,"failed","month is missing.");
+        return false;
+    }
+    if (!isValidMonthYear(month)) {
+        messageEmission(socket,"failed","invalid month format [mm/yyyy].");
+        return false;
+    }
+    const lastDate: Date = getLastDayUtc(month);
+    const currentDate: Date = new Date(Date.now());
+    if (lastDate >= currentDate) {
+        messageEmission(socket,"failed","month has not ended.");
+        return false;
+    }
+    return true;
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -225,5 +244,6 @@ export {
     calculateWorkingShift,
     calculateOvertimeMinutes,
     formatMonthYear,
-    calculateTotalWorkingShift
+    calculateTotalWorkingShift,
+    checkMonthValidationAndCurrentDate
 };
