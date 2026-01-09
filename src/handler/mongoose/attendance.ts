@@ -1,4 +1,5 @@
 import {getShift} from "./shift.ts";
+import {createPenalty} from "./penalty.ts";
 import Timesheet from "../../model/timesheet.ts";
 import Attendance from "../../model/attendance.ts";
 import type {Socket} from "socket.io";
@@ -6,8 +7,8 @@ import type {Day} from "../../type/day.ts";
 import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 import {
-    getShiftData,messageEmission,stringToDate,
-    dateToIST,getDayName,calculateMinutes,getShiftTimings
+    getShiftData, messageEmission, stringToDate,
+    dateToIST, getDayName, calculateMinutes, getShiftTimings
 } from "../helper.ts";
 
 async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: string) : Promise<IAttendance | null> {
@@ -102,6 +103,8 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
+                    const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
+                    if (lateMinutes >= 30) await createPenalty(employeeId, 500, `late clock-in on ${dateToIST(currentTime)}`);
                     await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
                     messageEmission(socket, "success",`late clocked in on ${dateToIST(clockInTime)}`);
@@ -132,6 +135,8 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     messageEmission(socket,"failed","clocking in late, provide reason");
                     return;
                 } else {
+                    const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
+                    if (lateMinutes >= 30) await createPenalty(employeeId, 500, `late clock-in on ${dateToIST(currentTime)}`);
                     await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
                     return;
