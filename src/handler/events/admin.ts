@@ -440,7 +440,8 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
                     first_half_pay: first_half_pay.toString(),
                     second_half_pay: second_half_pay.toString(),
                     over_time: formatHoursMinutes(overtimeMinutes),
-                    over_time_pay: overTimeWages.toString()
+                    over_time_pay: overTimeWages.toString(),
+                    total_pay: (first_half_pay+second_half_pay+overTimeWages).toString()
                 }
                 attendanceSheetData.push(sheetData);
             }

@@ -6,4 +6,5 @@ export interface IAttendanceSheet {
     second_half_pay: string;
     over_time: string;
     over_time_pay: string;
+    total_pay: string;
 }
