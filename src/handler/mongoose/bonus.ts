@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Bonus from "../../model/bonus.ts";
 import {getFirstDayUtc,getLastDayUtc} from "../helper.ts";
+import type {IBonus} from "../../interface/bonus.ts";
 
 async function createBonus(employeeId: string, amount: Number, reason: string): Promise<void> {
     try {
@@ -26,4 +27,13 @@ async function getMonthlyBonus(employeeId: string,month: string): Promise<number
     }
 }
 
-export {createBonus,getMonthlyBonus};
+async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
+    try {
+        return await Bonus.find({employeeId});
+    } catch(error) {
+        console.error(error);
+        return [];
+    }
+}
+
+export {createBonus,getMonthlyBonus,getEmployeeBonus};

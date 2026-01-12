@@ -12,7 +12,7 @@ import {authSignIn, authSignUp} from "./auth.ts";
 import {
     breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler, giveBonusHandler,
     resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler, viewEmployeeSalaryHandler,
-    givePenaltyHandler
+    givePenaltyHandler, viewPenaltyHandler, viewBonusHandler
 } from "./events/employee.ts";
 import {
     createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler, deleteDepartmentHandler,
@@ -59,6 +59,8 @@ function startEmployeeSocketServer() {
         socket.on("view_salary", (month: string) => viewEmployeeSalaryHandler(socket,month,employee._id.toString()));
         socket.on("give_bonus", (employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
         socket.on("give_penalty", (employeeId: string, amount: Number, reason: string) => givePenaltyHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
+        socket.on("view_penalty",() => viewPenaltyHandler(socket,employee._id.toString()));
+        socket.on("view_bonus",() => viewBonusHandler(socket,employee._id.toString()));
     });
 }
 

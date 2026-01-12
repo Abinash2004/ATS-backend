@@ -1,11 +1,13 @@
 import type {Socket} from "socket.io";
+import type {IBonus} from "../../interface/bonus.ts";
+import type {IPenalty} from "../../interface/penalty.ts";
 import type {DayStatus} from "../../type/day_status.ts";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
-import {createBonus} from "../mongoose/bonus.ts";
-import {createPenalty} from "../mongoose/penalty.ts";
+import {createBonus, getEmployeeBonus} from "../mongoose/bonus.ts";
+import {createPenalty, getEmployeePenalty} from "../mongoose/penalty.ts";
 import {getDepartment} from "../mongoose/department.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
 import {createLeave, updateLeave} from "../mongoose/leave.ts";
@@ -201,6 +203,24 @@ async function givePenaltyHandler(socket:Socket, currEmpId: string, employeeId: 
     }
 }
 
+async function viewBonusHandler(socket:Socket, employeeId: string) {
+    try {
+        const bonus: IBonus[] = await getEmployeeBonus(employeeId);
+        messageEmission(socket,"success",bonus);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
+async function viewPenaltyHandler(socket:Socket, employeeId: string) {
+    try {
+        const penalty: IPenalty[] = await getEmployeePenalty(employeeId);
+        messageEmission(socket,"success",penalty);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
+
 export {
     clockInHandler,
     breakHandler,
@@ -212,5 +232,7 @@ export {
     viewEmployeeAttendanceHandler,
     viewEmployeeSalaryHandler,
     giveBonusHandler,
-    givePenaltyHandler
+    givePenaltyHandler,
+    viewBonusHandler,
+    viewPenaltyHandler
 };

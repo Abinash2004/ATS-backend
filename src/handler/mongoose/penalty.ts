@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Penalty from "../../model/penalty.ts";
 import {getFirstDayUtc,getLastDayUtc} from "../helper.ts";
+import type {IPenalty} from "../../interface/penalty.ts";
 
 async function createPenalty(employeeId: string, amount: Number, reason: string): Promise<void> {
     try {
@@ -26,4 +27,13 @@ async function getMonthlyPenalty(employeeId: string,month: string): Promise<numb
     }
 }
 
-export {createPenalty,getMonthlyPenalty};
+async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
+    try {
+        return await Penalty.find({employeeId});
+    } catch(error) {
+        console.error(error);
+        return [];
+    }
+}
+
+export {createPenalty,getMonthlyPenalty,getEmployeePenalty};
