@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import Bonus from "../../model/bonus.ts";
-import {getFirstDayUtc,getLastDayUtc} from "../helper.ts";
 import type {IBonus} from "../../interface/bonus.ts";
 
 async function createBonus(employeeId: string, amount: Number, reason: string): Promise<void> {
@@ -11,11 +10,8 @@ async function createBonus(employeeId: string, amount: Number, reason: string): 
     }
 }
 
-async function getMonthlyBonus(employeeId: string,month: string): Promise<number> {
+async function getBonusByDate(employeeId: string,startDate: Date, endDate:Date): Promise<number> {
     try {
-        const startDate = getFirstDayUtc(month);
-        const endDate = getLastDayUtc(month);
-
         const result = await Bonus.aggregate([
             {$match: {employeeId: new mongoose.Types.ObjectId(employeeId),bonus_date: {$gte: startDate,$lte: endDate}}},
             {$group: {_id: null,totalSum: { $sum: "$amount" }}}
@@ -36,4 +32,4 @@ async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
     }
 }
 
-export {createBonus,getMonthlyBonus,getEmployeeBonus};
+export {createBonus,getBonusByDate,getEmployeeBonus};

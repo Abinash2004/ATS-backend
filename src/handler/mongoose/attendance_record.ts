@@ -1,4 +1,3 @@
-import Attendance from "../../model/attendance.ts";
 import AttendanceRecord from "../../model/attendance_record.ts";
 import type {AttendanceStatus} from "../../type/attendance.ts";
 import type {IAttendanceRecord} from "../../interface/attendance_record.ts";
@@ -7,15 +6,11 @@ import {getFirstDayUtc, getLastDayUtc} from "../helper.ts";
 async function getRecentAttendanceRecordDate(): Promise<Date|null> {
     try {
         const recentAttendance = await AttendanceRecord.findOne().sort({attendance_date: -1}).exec();
-        if (!recentAttendance) {
-            const firstAttendance = await Attendance.findOne().sort({clock_in: 1}).exec();
-            if (!firstAttendance) return null;
-            return new Date(firstAttendance.clock_in.setUTCHours(0,0,0,0));
-        }
-        return new Date(recentAttendance.attendance_date.setDate(recentAttendance.attendance_date.getDate() + 1));
+        if (!recentAttendance) return null
+        return new Date(recentAttendance.attendance_date);
     } catch(error) {
         console.log(error);
-        return new Date(Date.now()-1);
+        return null;
     }
 }
 async function setAttendanceRecord(attendance_date: Date, first_half: AttendanceStatus,second_half: AttendanceStatus, employeeId: string, shiftId: string): Promise<void> {
@@ -47,6 +42,14 @@ async function getEmployeeAttendanceRecord(employeeId: string): Promise<IAttenda
         return [];
     }
 }
+async function getEmployeeAttendanceRecordDateWise(employeeId: string, start: Date, end: Date): Promise<IAttendanceRecord[]> {
+    try {
+        return await AttendanceRecord.find({employeeId,attendance_date: {$gte:start,$lte:end}});
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
 async function getEmployeeAttendanceRecordMonthWise(employeeId: string, month: string): Promise<IAttendanceRecord[]> {
     try {
         const start = getFirstDayUtc(month);
@@ -57,10 +60,12 @@ async function getEmployeeAttendanceRecordMonthWise(employeeId: string, month: s
         return [];
     }
 }
+
 export {
     getRecentAttendanceRecordDate,
     setAttendanceRecord,
     getAllAttendanceRecord,
     getEmployeeAttendanceRecord,
+    getEmployeeAttendanceRecordDateWise,
     getEmployeeAttendanceRecordMonthWise
 };

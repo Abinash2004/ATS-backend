@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import Penalty from "../../model/penalty.ts";
-import {getFirstDayUtc,getLastDayUtc} from "../helper.ts";
 import type {IPenalty} from "../../interface/penalty.ts";
 
 async function createPenalty(employeeId: string, amount: Number, reason: string): Promise<void> {
@@ -11,11 +10,8 @@ async function createPenalty(employeeId: string, amount: Number, reason: string)
     }
 }
 
-async function getMonthlyPenalty(employeeId: string,month: string): Promise<number> {
+async function getPenaltyByDate(employeeId: string,startDate: Date, endDate: Date): Promise<number> {
     try {
-        const startDate = getFirstDayUtc(month);
-        const endDate = getLastDayUtc(month);
-
         const result = await Penalty.aggregate([
             {$match: {employeeId: new mongoose.Types.ObjectId(employeeId),penalty_date: {$gte: startDate,$lte: endDate}}},
             {$group: {_id: null,totalSum: { $sum: "$amount" }}}
@@ -36,4 +32,4 @@ async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
     }
 }
 
-export {createPenalty,getMonthlyPenalty,getEmployeePenalty};
+export {createPenalty,getPenaltyByDate,getEmployeePenalty};

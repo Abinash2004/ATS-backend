@@ -106,7 +106,7 @@ function startAdminSocketServer() {
         socket.on("generate_attendance", () => createAttendanceRecordHandler(socket));
         socket.on("view_attendance",() => viewAllAttendanceRecordHandler(socket));
 
-        socket.on("generate_salary", (month: string) => createSalaryHandler(socket, month));
+        socket.on("run_payroll", (endDate: string,startDate: string) => createSalaryHandler(socket, startDate, endDate));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
         socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
     });

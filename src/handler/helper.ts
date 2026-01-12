@@ -5,8 +5,8 @@ import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
-import {getEmployeeAttendanceRecordMonthWise} from "./mongoose/attendance_record.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
+import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 
 function stringToDate(inputTime: string): Date {
     const [hh,mm] = inputTime.split(":").map(Number);
@@ -117,9 +117,9 @@ function getFirstDayUtc(mmYYYY: string): Date {
     return new Date(Date.UTC(yyyy, mm - 1, 1, 0, 0, 0, 0));
 }
 
-async function calculateShiftSalary(shiftId: string, month: string, salary: number): Promise<number> {
+async function calculateShiftSalary(shiftId: string, start: Date, end: Date, salary: number): Promise<number> {
     try {
-        const shiftCount = await calculateWorkingShift(shiftId,month);
+        const shiftCount = await calculateWorkingShift(shiftId,start,end);
         return salary/shiftCount;
     } catch(error) {
         console.log(error);
@@ -127,13 +127,13 @@ async function calculateShiftSalary(shiftId: string, month: string, salary: numb
     }
 }
 
-async function calculateWorkingShift(shiftId: string, month: string): Promise<number> {
+async function calculateWorkingShift(shiftId: string,start: Date, end: Date): Promise<number> {
     try {
         const shift = await getShift(shiftId);
         if(!shift) return 0;
-        const start = getFirstDayUtc(month);
-        const end = getLastDayUtc(month);
         let shiftCount = 0;
+        start = new Date(start.getFullYear(), start.getMonth(), 1);
+        end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
         for(let iterDate = new Date(start); iterDate <= new Date(end); iterDate.setDate(iterDate.getDate()+1)) {
             const day = getDayName(iterDate);
             if (shift[day].day_status === "full_day") shiftCount += 2;
@@ -146,10 +146,10 @@ async function calculateWorkingShift(shiftId: string, month: string): Promise<nu
     }
 }
 
-async function calculateTotalWorkingShift(employeeId: string, month: string): Promise<number> {
+async function calculateTotalWorkingShift(employeeId: string, start: Date, end: Date): Promise<number> {
     try {
         let shiftCount = 0;
-        const attendanceRecord = await getEmployeeAttendanceRecordMonthWise(employeeId, month);
+        const attendanceRecord = await getEmployeeAttendanceRecordDateWise(employeeId,start,end);
         if (!attendanceRecord[0]) return 0;
         let shiftId: string = attendanceRecord[0].shiftId.toString();
         let shift = await getShift(shiftId.toString());
@@ -197,7 +197,11 @@ async function calculateOvertimeMinutes(attendance: IAttendanceRecord, employeeI
     }
 }
 
-function formatMonthYear(input: string): string {
+function formatMonthYear(input: Date): string {
+    return input.toLocaleDateString("en-GB", {month: "long",year: "numeric"});
+}
+
+function toMonthName(input: string) {
     const [mm, yyyy] = input.split("/").map(Number);
     if (!mm || mm < 1 || mm > 12 || !yyyy) {
         throw new Error("Invalid format. Expected mm/yyyy");
@@ -241,6 +245,31 @@ function checkBreakPenalty(breaks: IBreak[], currentTime: Date): number {
     return penalty;
 }
 
+function countDays(startDate: Date, endDate: Date): number {
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+    const start = Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate()
+    );
+
+    const end = Date.UTC(
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate()
+    );
+
+    return Math.floor((end - start) / MS_PER_DAY) + 1;
+}
+
+function dateToMonthYear(date: Date): string {
+    return date.toLocaleDateString("en-GB", {
+        month: "2-digit",
+        year: "numeric",
+    });
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -261,5 +290,8 @@ export {
     formatMonthYear,
     calculateTotalWorkingShift,
     checkMonthValidationAndCurrentDate,
-    checkBreakPenalty
+    checkBreakPenalty,
+    countDays,
+    dateToMonthYear,
+    toMonthName
 };
