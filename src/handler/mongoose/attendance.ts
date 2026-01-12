@@ -187,7 +187,19 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
                 dateStart.setDate(dateStart.getDate() - 1);
             }
         }
-
+        const breaks: IBreak[] = attendance.breaks;
+        let breakMinutes: number = 0;
+        let penalty: number = 0;
+        for (let b of breaks) {
+            if (!b.break_out) {
+                breakMinutes = calculateMinutes(b.break_in, currentTime);
+            }
+        }
+        while (breakMinutes > 0) {
+            breakMinutes -= 60;
+            penalty += 100;
+        }
+        if (penalty) await createPenalty(employeeId, (penalty > 500) ? 500 : penalty, "break more than 1 hours");
         await Attendance.updateOne({_id: attendance._id,breaks: {$elemMatch: {
             break_in: {$gte: dateStart, $lt: currentTime},
             break_out: {$exists: false}
