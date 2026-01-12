@@ -226,6 +226,21 @@ function checkMonthValidationAndCurrentDate(month: string, socket:Socket): boole
     return true;
 }
 
+function checkBreakPenalty(breaks: IBreak[], currentTime: Date): number {
+    let breakMinutes: number = 0;
+    let penalty: number = 0;
+    for (let b of breaks) {
+        if (!b.break_out) {
+            breakMinutes = calculateMinutes(b.break_in, currentTime);
+        }
+    }
+    while (breakMinutes > 0) {
+        breakMinutes -= 60;
+        penalty += 100;
+    }
+    return penalty;
+}
+
 export {
     stringToDate,
     dateToIST,
@@ -245,5 +260,6 @@ export {
     calculateOvertimeMinutes,
     formatMonthYear,
     calculateTotalWorkingShift,
-    checkMonthValidationAndCurrentDate
+    checkMonthValidationAndCurrentDate,
+    checkBreakPenalty
 };

@@ -8,7 +8,7 @@ import type {IShift} from "../../interface/shift.ts";
 import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 import {
     getShiftData, messageEmission, stringToDate, formatHoursMinutes,
-    dateToIST, getDayName, calculateMinutes, getShiftTimings
+    dateToIST, getDayName, calculateMinutes, getShiftTimings, checkBreakPenalty
 } from "../helper.ts";
 
 async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: string) : Promise<IAttendance | null> {
@@ -187,18 +187,7 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
                 dateStart.setDate(dateStart.getDate() - 1);
             }
         }
-        const breaks: IBreak[] = attendance.breaks;
-        let breakMinutes: number = 0;
-        let penalty: number = 0;
-        for (let b of breaks) {
-            if (!b.break_out) {
-                breakMinutes = calculateMinutes(b.break_in, currentTime);
-            }
-        }
-        while (breakMinutes > 0) {
-            breakMinutes -= 60;
-            penalty += 100;
-        }
+        const penalty = checkBreakPenalty(attendance.breaks, currentTime);
         if (penalty) await createPenalty(employeeId, (penalty > 500) ? 500 : penalty, "break more than 1 hours");
         await Attendance.updateOne({_id: attendance._id,breaks: {$elemMatch: {
             break_in: {$gte: dateStart, $lt: currentTime},
