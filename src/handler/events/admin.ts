@@ -360,6 +360,7 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         const employees: IEmployee[] = await getAllEmployeesList();
         for (let emp of employees) {
             let basicSalary = 0;
+            let advanceSalary = 0;
             let overTimeWages = 0;
             let presentShift = 0;
             let absentShift = 0;
@@ -429,15 +430,16 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
                 }
                 workingShift += shiftCount;
                 presentShift += shiftCount;
-                basicSalary += shiftSalary * shiftCount;
+                advanceSalary = shiftSalary * shiftCount;
                 end = actualEndDate;
             }
             const salaryObject: ISalary = {
                 basic_salary: basicSalary,
+                advance_salary: advanceSalary,
                 over_time_wages: overTimeWages,
                 bonus_salary: totalBonus,
                 penalty_amount: totalPenalties,
-                gross_salary: basicSalary + overTimeWages + totalBonus - totalPenalties
+                gross_salary: basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties
             };
             const attendanceObject: ISalaryAttendance = {
                 working_shifts: workingShift,
@@ -471,10 +473,11 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
                 },
                 salary: {
                     basic: basicSalary.toString(),
+                    advance: advanceSalary.toString(),
                     over_time: overTimeWages.toString(),
                     bonus: totalBonus.toString(),
                     penalty: totalPenalties.toString(),
-                    gross: (basicSalary + overTimeWages + totalBonus - totalPenalties).toString()
+                    gross: (basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties).toString()
                 }
             });
         }

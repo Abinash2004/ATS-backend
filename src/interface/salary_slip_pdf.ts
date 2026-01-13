@@ -20,6 +20,7 @@ export interface ISalarySlipPDF {
     },
     salary: {
         basic: string;
+        advance: string;
         over_time: string;
         bonus: string;
         penalty: string;
