@@ -268,7 +268,7 @@ async function resolveAttendance(socket: Socket, attendance: IAttendance, clockO
             attendance.clock_in.getMonth(),
             attendance.clock_in.getDate()
         );
-        await Attendance.updateOne({_id: attendance._id},{$set:{clock_out: clock_out}});
+        await Attendance.updateOne({_id: attendance._id},{$set:{clock_out: clock_out,status: "out"}});
         messageEmission(socket,"success",`attendance resolved, clocked out at ${dateToIST(clock_out)}`);
     } catch(error: unknown) {
         console.error(error);
