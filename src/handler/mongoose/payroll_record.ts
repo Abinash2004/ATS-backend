@@ -21,9 +21,12 @@ async function createPayrollRecord(start: Date,end: Date,year: string): Promise<
         const payroll = await PayrollRecord.find();
         if (payroll.length === 0) await PayrollRecord.create({start_date: start,end_date: end,year: nextFinancialYear});
         else {
-            const count = await PayrollRecord.countDocuments({year: prevFinancialYear});
-            const financialYear = count >= 12 ? nextFinancialYear : prevFinancialYear;
-            await PayrollRecord.create({start_date: start,end_date: end,year: financialYear});
+            if (payroll.length < 12) await PayrollRecord.create({start_date: start,end_date: end,year: nextFinancialYear});
+            else {
+                const count = await PayrollRecord.countDocuments({year: prevFinancialYear});
+                const financialYear = count >= 12 ? nextFinancialYear : prevFinancialYear;
+                await PayrollRecord.create({start_date: start,end_date: end,year: financialYear});
+            }
         }
     } catch (error) {
         console.log(error);
