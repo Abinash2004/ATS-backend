@@ -10,7 +10,7 @@ import {generatePDF} from "../../utils/pdf_generation.ts";
 import {generateSheet} from "../../utils/sheet_generation.ts";
 import {getBonusByDate} from "../mongoose/bonus.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
-import {getPenaltyByDate} from "../mongoose/penalty.ts";
+import {createPenalty, getPenaltyByDate} from "../mongoose/penalty.ts";
 import {createPayrollRecord, getLastPayrollDate} from "../mongoose/payroll_record.ts";
 import {createShift,deleteShift,getShift,updateShift} from "../mongoose/shift.ts";
 import {createSalarySlip,getMonthlySalarySlip} from "../mongoose/salary_slip.ts";
@@ -24,11 +24,10 @@ import {
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
 import {
-    getAllAttendanceRecord, getEmployeeAttendanceRecordDateWise,
-    getEmployeeAttendanceRecordMonthWise, getRecentAttendanceRecordDate
+    getAllAttendanceRecord, getEmployeeAttendanceRecordDateWise,    getEmployeeAttendanceRecordMonthWise, getRecentAttendanceRecordDate
 } from "../mongoose/attendance_record.ts";
 import Attendance from "../../model/attendance.ts";
-import {createAdvancePayroll} from "../mongoose/advance_payroll.ts";
+import {createAdvancePayroll, getPendingAdvancePayroll, resolveAdvancePayroll} from "../mongoose/advance_payroll.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -352,22 +351,51 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
             return;
         }
 
+        //advance payroll calculation & verification
+        let isPendingAdvancePayroll = false;
+        const pendingAdvancePayroll = await getPendingAdvancePayroll();
+        if (pendingAdvancePayroll) {
+            if (recentAttendanceDate < pendingAdvancePayroll.end_date) {
+                messageEmission(socket, "failed", `payroll can't be run before ${dateToIST(pendingAdvancePayroll.end_date)} (to resolve the advance payment).`);
+                return;
+            }
+            isPendingAdvancePayroll = true;
+        }
+
         const employees: IEmployee[] = await getAllEmployeesList();
         for (let emp of employees) {
-            const attendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),start,end);
-
             let basicSalary = 0;
             let overTimeWages = 0;
             let presentShift = 0;
             let absentShift = 0;
             let paidLeave = 0;
             let overtimeMinutes = 0;
+            const attendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),start,end);
             let totalBonus = await getBonusByDate(emp._id.toString(),start,end);
-            let totalPenalties = await getPenaltyByDate(emp._id.toString(),start,end);
             let workingShift = await calculateTotalWorkingShift(emp._id.toString(), start,end);
-
             let shiftId: string = attendance[0].shiftId.toString();
             let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),start,end, emp.salary);
+
+            //resolve advance payroll
+            if (isPendingAdvancePayroll && pendingAdvancePayroll) {
+                let advancePayrollAttendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),pendingAdvancePayroll.start_date, pendingAdvancePayroll.end_date);
+                for (let att of advancePayrollAttendance) {
+                    if (shiftId !== att.shiftId.toString()) {
+                        shiftId = att.shiftId.toString();
+                        shiftSalary = await calculateShiftSalary(att.shiftId.toString(),start,end, emp.salary);
+                    }
+                    if (att.first_half === "absent") {
+                        await createPenalty(emp._id.toString(),shiftSalary, `remain absent on first half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
+                    }
+                    if (att.second_half === "absent") {
+                        await createPenalty(emp._id.toString(),shiftSalary, `remain absent on second half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
+                    }
+                    overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
+                    overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
+                }
+            }
+
+            let totalPenalties = await getPenaltyByDate(emp._id.toString(),start,end);
             for (let att of attendance) {
                 if (shiftId !== att.shiftId.toString()) {
                     shiftId = att.shiftId.toString();
@@ -458,6 +486,7 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         const startAdvancePayroll = new Date(recentAttendanceDate);
         startAdvancePayroll.setDate(startAdvancePayroll.getDate() + 1);
         if (isAdvancePayroll) await createAdvancePayroll(startAdvancePayroll,actualEndDate);
+        if (isPendingAdvancePayroll) await resolveAdvancePayroll();
         await createPayrollRecord(start, end, String(new Date().getFullYear()));
         messageEmission(socket,"success",`salarySlip for ${formatMonthYear(start)} is generated successfully.`);
     } catch(error) {
