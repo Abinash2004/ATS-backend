@@ -28,6 +28,7 @@ import {
     getEmployeeAttendanceRecordMonthWise, getRecentAttendanceRecordDate
 } from "../mongoose/attendance_record.ts";
 import Attendance from "../../model/attendance.ts";
+import {createAdvancePayroll} from "../mongoose/advance_payroll.ts";
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
@@ -314,7 +315,7 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         let end: Date;
         if (!endDate) {
             messageEmission(socket,"failed","ending date is required.");
-            return false;
+            return;
         }
         const tempDate: Date|null = await getLastPayrollDate();
         if (tempDate) {
@@ -323,7 +324,7 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         } else {
             if (!startDate) {
                 messageEmission(socket,"failed","starting date is required.");
-                return false;
+                return;
             }
             start = parseDateDMY(startDate);
             end = parseDateDMY(endDate);
@@ -332,23 +333,28 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         const days = countDays(start,end);
         if(days < 29 || days > 31) {
             messageEmission(socket,"failed","number of payroll days must be between 29 to 31.");
-            return false;
+            return;
         }
-
+        let isAdvancePayroll = false;
+        let actualEndDate: Date = end;
         const recentAttendanceDate: Date|null = await getRecentAttendanceRecordDate();
         if (!recentAttendanceDate) {
             messageEmission(socket,"failed",`attendance record till ${dateToIST(end)} is not exists.`);
-            return false;
+            return;
         }
         if (recentAttendanceDate < end) {
-            messageEmission(socket,"failed",`attendance record till ${dateToIST(end)} is not exists.`);
-            return false;
+            isAdvancePayroll = true;
+            end = recentAttendanceDate;
+        }
+
+        if (recentAttendanceDate < start) {
+            messageEmission(socket,"failed",`attendance record after ${dateToIST(recentAttendanceDate)} do not exists.`);
+            return;
         }
 
         const employees: IEmployee[] = await getAllEmployeesList();
         for (let emp of employees) {
             const attendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),start,end);
-            if (!attendance.length) continue;
 
             let basicSalary = 0;
             let overTimeWages = 0;
@@ -385,6 +391,23 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
                 if (att.second_half === "absent") absentShift++;
                 overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
                 overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
+            }
+            if (isAdvancePayroll) {
+                const shift = await getShift(shiftId);
+                if(!shift) return;
+                let shiftCount = 0;
+                let iterDate = new Date(recentAttendanceDate);
+                iterDate.setDate(iterDate.getDate() + 1);
+                while (iterDate <= actualEndDate) {
+                    const day = getDayName(iterDate);
+                    if (shift[day].day_status === "full_day") shiftCount += 2;
+                    else if (shift[day].day_status === "first_half" || shift[day].day_status === "second_half") shiftCount++;
+                    iterDate.setDate(iterDate.getDate()+1);
+                }
+                workingShift += shiftCount;
+                presentShift += shiftCount;
+                basicSalary += shiftSalary * shiftCount;
+                end = actualEndDate;
             }
             const salaryObject: ISalary = {
                 basic_salary: basicSalary,
@@ -432,6 +455,9 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
                 }
             });
         }
+        const startAdvancePayroll = new Date(recentAttendanceDate);
+        startAdvancePayroll.setDate(startAdvancePayroll.getDate() + 1);
+        if (isAdvancePayroll) await createAdvancePayroll(startAdvancePayroll,actualEndDate);
         await createPayrollRecord(start, end, String(new Date().getFullYear()));
         messageEmission(socket,"success",`salarySlip for ${formatMonthYear(start)} is generated successfully.`);
     } catch(error) {
