@@ -12,10 +12,10 @@ import {generateSheet} from "../../utils/sheet_generation.ts";
 import {getBonusByDate} from "../mongoose/bonus.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
 import {createPenalty, getPenaltyByDate} from "../mongoose/penalty.ts";
-import {createPayrollRecord, getLastPayrollDate} from "../mongoose/payroll_record.ts";
 import {createShift,deleteShift,getShift,updateShift} from "../mongoose/shift.ts";
 import {createSalarySlip,getMonthlySalarySlip} from "../mongoose/salary_slip.ts";
 import {createLocation,deleteLocation,getLocation,updateLocation} from "../mongoose/location.ts";
+import {createPayrollRecord,getLastPayrollDate,getPayrollHistory} from "../mongoose/payroll_record.ts";
 import {createDepartment,deleteDepartment,getDepartment,updateDepartment} from "../mongoose/department.ts";
 import {createAdvancePayroll,getPendingAdvancePayroll,resolveAdvancePayroll} from "../mongoose/advance_payroll.ts";
 import {addNewEmployee,deleteEmployee,getAllEmployeesList,getEmployeeById,isEmployeeExists,updateEmployee} from "../mongoose/employee.ts";
@@ -555,6 +555,14 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
         errorEmission(socket,error);
     }
 }
+async function viewPayrollHistory(socket:Socket) {
+    try {
+        const payrollHistory = await getPayrollHistory();
+        messageEmission(socket, "success",payrollHistory);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
 
 export {
     createEmployeeHandler,
@@ -577,5 +585,6 @@ export {
     viewAllAttendanceRecordHandler,
     createSalaryHandler,
     viewSalaryHandler,
-    generateAttendanceSheetHandler
+    generateAttendanceSheetHandler,
+    viewPayrollHistory
 }

@@ -33,5 +33,13 @@ async function createPayrollRecord(start: Date,end: Date,year: string): Promise<
     }
 }
 
+async function getPayrollHistory(): Promise<IPayrollRecord[]> {
+    try {
+        return await PayrollRecord.find();
+    } catch(error) {
+        console.log(error);
+        return [];
+    }
+}
 
-export {getLastPayrollDate,createPayrollRecord};
+export {getLastPayrollDate,createPayrollRecord,getPayrollHistory};

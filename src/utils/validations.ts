@@ -39,5 +39,4 @@ function isValidMonthYear(value: string): boolean {
     return y >= 1900 && y <= 2100;
 }
 
-
 export {isNumber,isObject,isString,validateAuthCredentials,isValidMonthYear};

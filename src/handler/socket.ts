@@ -9,17 +9,16 @@ import type {leave_response} from "../type/leave_response.ts";
 import {verifyToken} from "../config/jwt.ts";
 import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
-import {
-    breakHandler, clockInHandler, clockOutHandler, leaveRequestHandler, leaveResponseHandler, giveBonusHandler,
-    resolvePendingAttendanceHandler, statusHandler, viewEmployeeAttendanceHandler, viewEmployeeSalaryHandler,
-    givePenaltyHandler, viewPenaltyHandler, viewBonusHandler
+import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,giveBonusHandler,
+    resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,
+    givePenaltyHandler,viewPenaltyHandler,viewBonusHandler
 } from "./events/employee.ts";
 import {
-    createAttendanceRecordHandler, createDepartmentHandler, createEmployeeHandler, deleteDepartmentHandler,
-    deleteEmployeeHandler, deleteLocationHandler, deleteShiftHandler, readDepartmentHandler, readEmployeeHandler,
-    readLocationHandler, readShiftHandler, updateDepartmentHandler, updateEmployeeHandler, updateLocationHandler,
-    updateShiftHandler, viewAllAttendanceRecordHandler, createLocationHandler, createShiftHandler, createSalaryHandler,
-    viewSalaryHandler, generateAttendanceSheetHandler
+    createAttendanceRecordHandler,createDepartmentHandler,createEmployeeHandler,deleteDepartmentHandler,
+    deleteEmployeeHandler,deleteLocationHandler,deleteShiftHandler,readDepartmentHandler,readEmployeeHandler,
+    readLocationHandler,readShiftHandler,updateDepartmentHandler,updateEmployeeHandler,updateLocationHandler,
+    updateShiftHandler,viewAllAttendanceRecordHandler,createLocationHandler,createShiftHandler,createSalaryHandler,
+    viewSalaryHandler,generateAttendanceSheetHandler,viewPayrollHistory
 } from "./events/admin.ts";
 
 function startAuthSocketServer() {
@@ -109,6 +108,7 @@ function startAdminSocketServer() {
         socket.on("run_payroll", (endDate: string,startDate: string) => createSalaryHandler(socket, startDate, endDate));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
         socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
+        socket.on("payroll_history", () => viewPayrollHistory(socket));
     });
 }
 
