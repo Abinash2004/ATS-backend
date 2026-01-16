@@ -41,7 +41,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
 
         const days = countDays(start,end);
         if(days < 29 || days > 31) {
-            messageEmission(socket,"failed","number of payroll days must be between 29 to 31.");
+            messageEmission(socket,"failed","number of payroll days must be between 29 and 31.");
             return;
         }
         let isAdvancePayroll = false;
@@ -84,8 +84,9 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
             const attendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),start,end);
             let totalBonus = await getBonusByDate(emp._id.toString(),start,end);
             let workingShift = await calculateTotalWorkingShift(emp._id.toString(), start,end);
-            let shiftId: string = attendance[0].shiftId.toString();
-            let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(),start,end, emp.salary);
+            let shiftId: string = emp.shiftId.toString();
+            if (attendance.length !== 0) shiftId = attendance[0].shiftId.toString();
+            let shiftSalary = await calculateShiftSalary(shiftId,start,end, emp.salary);
 
             //resolve advance payroll
             if (isPendingAdvancePayroll && pendingAdvancePayroll) {
@@ -96,10 +97,10 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
                         shiftSalary = await calculateShiftSalary(att.shiftId.toString(),start,end, emp.salary);
                     }
                     if (att.first_half === "absent") {
-                        await createPenalty(emp._id.toString(),shiftSalary, `remain absent on first half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
+                        await createPenalty(emp._id.toString(),Math.round(shiftSalary*100)/100, `remain absent on first half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                     }
                     if (att.second_half === "absent") {
-                        await createPenalty(emp._id.toString(),shiftSalary, `remain absent on second half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
+                        await createPenalty(emp._id.toString(),Math.round(shiftSalary*100)/100, `remain absent on second half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                     }
                     overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
                     overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
@@ -149,12 +150,12 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
                 end = actualEndDate;
             }
             const salaryObject: ISalary = {
-                basic_salary: basicSalary,
-                advance_salary: advanceSalary,
-                over_time_wages: overTimeWages,
-                bonus_salary: totalBonus,
-                penalty_amount: totalPenalties,
-                gross_salary: basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties
+                basic_salary: Math.round(basicSalary*100)/100,
+                advance_salary: Math.round(advanceSalary*100)/100,
+                over_time_wages: Math.round(overTimeWages*100)/100,
+                bonus_salary: Math.round(totalBonus*100)/100,
+                penalty_amount: Math.round(totalPenalties*100)/100,
+                gross_salary: Math.round((basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100
             };
             const attendanceObject: ISalaryAttendance = {
                 working_shifts: workingShift,
@@ -170,7 +171,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
                 month: formatMonthYear(start),
                 company: {
                     name: "Ultimate Business Systems Pvt. Ltd.",
-                    address: "Diamond World 3rd floor C-301, Mini Bazar, Varachha Road, Surat, Gujarat, India, 395006",
+                    address: "Diamond World 3rd floor C-301, Mini Bazaar, Varachha Road, Surat, Gujarat, India, 395006",
                 },
                 employee: {
                     name: emp.name,
@@ -187,12 +188,12 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
                     over_time: formatHoursMinutes(overtimeMinutes)
                 },
                 salary: {
-                    basic: basicSalary.toString(),
-                    advance: advanceSalary.toString(),
-                    over_time: overTimeWages.toString(),
-                    bonus: totalBonus.toString(),
-                    penalty: totalPenalties.toString(),
-                    gross: (basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties).toString()
+                    basic: (Math.round(basicSalary*100)/100).toString(),
+                    advance: (Math.round(advanceSalary*100)/100).toString(),
+                    over_time: (Math.round(overTimeWages*100)/100).toString(),
+                    bonus: (Math.round(totalBonus*100)/100).toString(),
+                    penalty: (Math.round(totalPenalties*100)/100).toString(),
+                    gross: (Math.round((basicSalary + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100).toString()
                 }
             });
         }
