@@ -7,7 +7,8 @@ import {getDepartment} from "../mongoose/department.ts";
 import {getBonusByDate} from "../mongoose/bonus.ts";
 import {createSalarySlip} from "../mongoose/salary_slip.ts";
 import {getAllEmployeesList} from "../mongoose/employee.ts";
-import {createPenalty, getPenaltyByDate} from "../mongoose/penalty.ts";
+import {createAttendanceRecordHandler} from "./hr.ts";
+import {createPenalty,getPenaltyByDate} from "../mongoose/penalty.ts";
 import {createPayrollRecord,getLastPayrollDate,getPayrollHistory} from "../mongoose/payroll_record.ts";
 import {createAdvancePayroll,getPendingAdvancePayroll,resolveAdvancePayroll} from "../mongoose/advance_payroll.ts";
 import {getEmployeeAttendanceRecordDateWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
@@ -44,6 +45,8 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
             messageEmission(socket,"failed","number of payroll days must be between 29 and 31.");
             return;
         }
+
+        await createAttendanceRecordHandler(socket);
         let isAdvancePayroll = false;
         let actualEndDate: Date = end;
         const recentAttendanceDate: Date|null = await getRecentAttendanceRecordDate();
