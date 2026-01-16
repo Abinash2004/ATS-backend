@@ -48,7 +48,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
         let actualEndDate: Date = end;
         const recentAttendanceDate: Date|null = await getRecentAttendanceRecordDate();
         if (!recentAttendanceDate) {
-            messageEmission(socket,"failed",`attendance record till ${dateToIST(end)} is not exists.`);
+            messageEmission(socket,"failed",`attendance record is empty.`);
             return;
         }
         if (recentAttendanceDate < end) {

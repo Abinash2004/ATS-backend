@@ -29,7 +29,7 @@ async function createAttendanceRecordHandler(socket: Socket) {
                 return;
             }
             startDate = attendance.clock_in;
-        }
+        } else startDate.setDate(startDate.getDate()+1);
         let endDate: Date = new Date(Date.now());
         endDate.setDate(endDate.getDate()-1);
         const employees: IEmployee[] = await getAllEmployeesList();
