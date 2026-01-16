@@ -77,7 +77,6 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
         if (!checkMonthValidationAndCurrentDate(month, socket)) return;
         const employees: IEmployee[] = await getAllEmployeesList();
         for (let emp of employees) {
-            console.log("pass");
             const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(), month);
             if (!attendance.length) {
                 messageEmission(socket,"failed",`there is no attendance record for ${toMonthName(month)}`);
@@ -109,17 +108,17 @@ async function generateAttendanceSheetHandler(socket:Socket, month: string) {
                     "Date": dateToIST(att.attendance_date).split(",")[0],
                     "First Half": att.first_half,
                     "Second Half": att.second_half,
-                    "First Half Pay": first_half_pay.toString(),
-                    "Second Half Pay": second_half_pay.toString(),
+                    "First Half Pay": (Math.round(first_half_pay*100)/100).toString(),
+                    "Second Half Pay": (Math.round(second_half_pay*100)/100).toString(),
                     "Over Time": formatHoursMinutes(overtimeMinutes),
-                    "Over Time Pay": overTimeWages.toString(),
-                    "Total Pay": (first_half_pay+second_half_pay+overTimeWages).toString()
+                    "Over Time Pay": (Math.round(overTimeWages*100)/100).toString(),
+                    "Total Pay": (Math.round((first_half_pay+second_half_pay+overTimeWages)*100)/100).toString()
                 }
                 attendanceSheetData.push(sheetData);
             }
             generateSheet(attendanceSheetData, toMonthName(month),emp.email);
-            messageEmission(socket,"success",`Attendance Excel Sheet for ${toMonthName(month)} is generated successfully.`);
         }
+        messageEmission(socket,"success",`Attendance Excel Sheet for ${toMonthName(month)} is generated successfully.`);
     } catch(error) {
         errorEmission(socket,error);
     }
