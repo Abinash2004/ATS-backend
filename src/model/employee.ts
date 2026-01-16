@@ -19,6 +19,11 @@ const employeeSchema = new Schema<IEmployee>({
         type: Number,
         required: true
     },
+    role: {
+        type: String,
+        enum: ["employee","admin"],
+        required: true
+    },
     locationId: {
         type: Schema.Types.ObjectId,
         ref: "Location",

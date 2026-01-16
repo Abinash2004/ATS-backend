@@ -7,19 +7,14 @@ import type {ILocation} from "../interface/location.ts";
 import type {IDepartment} from "../interface/department.ts";
 import type {leave_response} from "../type/leave_response.ts";
 import {verifyToken} from "../config/jwt.ts";
-import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
 import {authSignIn, authSignUp} from "./auth.ts";
-import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,giveBonusHandler,
-    resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,
-    givePenaltyHandler,viewPenaltyHandler,viewBonusHandler
-} from "./events/employee.ts";
-import {
-    createAttendanceRecordHandler,createDepartmentHandler,createEmployeeHandler,deleteDepartmentHandler,
-    deleteEmployeeHandler,deleteLocationHandler,deleteShiftHandler,readDepartmentHandler,readEmployeeHandler,
-    readLocationHandler,readShiftHandler,updateDepartmentHandler,updateEmployeeHandler,updateLocationHandler,
-    updateShiftHandler,viewAllAttendanceRecordHandler,createLocationHandler,createShiftHandler,createSalaryHandler,
-    viewSalaryHandler,generateAttendanceSheetHandler,viewPayrollHistory
-} from "./events/admin.ts";
+import {getEmployeeDataByEmail} from "./mongoose/employee.ts";
+import {createShiftHandler, deleteShiftHandler, readShiftHandler, updateShiftHandler} from "./crud/shift.ts";
+import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
+import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
+import {createDepartmentHandler,deleteDepartmentHandler,readDepartmentHandler,updateDepartmentHandler} from "./crud/department.ts";
+import {createAttendanceRecordHandler,viewAllAttendanceRecordHandler,createSalaryHandler,viewSalaryHandler,generateAttendanceSheetHandler,viewPayrollHistory} from "./events/admin.ts";
+import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,leaveResponseHandler,giveBonusHandler,resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,givePenaltyHandler,viewPenaltyHandler,viewBonusHandler} from "./events/employee.ts";
 
 function startAuthSocketServer() {
     const authNamespace = io.of("/auth");
@@ -72,9 +67,10 @@ function startAdminSocketServer() {
             if (!authHeader?.startsWith("Bearer ")) return next(new Error("Authentication token missing."));
             const token = authHeader?.split(" ")[1];
             const email = verifyToken(token);
+            socket.data.employee = await getEmployeeDataByEmail(email);
+            if (socket.data.employee.role !== "admin") return next(new Error("not an admin"));
             if (!adminPassword) return next(new Error("adminPassword is missing."));
             if (adminPassword !== "me nahi bataunga") return next(new Error("invalid adminPassword."));
-            socket.data.employee = await getEmployeeDataByEmail(email);
             next();
         } catch (err: unknown) {
             return next(new Error("invalid or expired token"));
@@ -104,7 +100,6 @@ function startAdminSocketServer() {
 
         socket.on("generate_attendance", () => createAttendanceRecordHandler(socket));
         socket.on("view_attendance",() => viewAllAttendanceRecordHandler(socket));
-
         socket.on("run_payroll", (endDate: string,startDate: string) => createSalaryHandler(socket, startDate, endDate));
         socket.on("monthly_salary", (month: string) => viewSalaryHandler(socket, month));
         socket.on("generate_sheet",(month: string) => generateAttendanceSheetHandler(socket,month));
