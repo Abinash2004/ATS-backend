@@ -8,7 +8,6 @@ async function createDepartment(department: IDepartment): Promise<void> {
         console.log(error);
     }
 }
-
 async function getDepartment(departmentId: string): Promise<IDepartment | null> {
     try {
         return await Department.findOne({_id: departmentId});
@@ -17,7 +16,6 @@ async function getDepartment(departmentId: string): Promise<IDepartment | null> 
         return null;
     }
 }
-
 async function updateDepartment(departmentId: string, department: IDepartment): Promise<void> {
     try {
         await Department.updateOne({_id: departmentId}, {
@@ -27,7 +25,6 @@ async function updateDepartment(departmentId: string, department: IDepartment): 
         console.error(error);
     }
 }
-
 async function deleteDepartment(departmentId: string): Promise<void> {
     try {
         await Department.deleteOne({_id: departmentId});

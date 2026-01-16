@@ -21,7 +21,6 @@ async function createLeave(socket: Socket ,leave_date: string, day_status: DaySt
         console.log(error);
     }
 }
-
 async function updateLeave(socket: Socket, leaveId: string, response: leave_response): Promise<void> {
     try {
         const leave = await Leave.findOne({_id:leaveId});
@@ -35,7 +34,6 @@ async function updateLeave(socket: Socket, leaveId: string, response: leave_resp
         console.log(error);
     }
 }
-
 async function getApprovedLeave(leaveDate: Date, employeeId: string): Promise<ILeave | null> {
     try {
         return await Leave.findOne({date: leaveDate, employeeId, leave_status: "approved"});
@@ -45,4 +43,4 @@ async function getApprovedLeave(leaveDate: Date, employeeId: string): Promise<IL
     }
 }
 
-export {createLeave,updateLeave, getApprovedLeave};
+export {createLeave,updateLeave,getApprovedLeave};

@@ -9,7 +9,6 @@ async function getShift(shiftId: string): Promise<IShift | null> {
         return null;
     }
 }
-
 async function createShift(shift: IShift): Promise<void> {
     try {
         await Shift.create(shift);
@@ -17,7 +16,6 @@ async function createShift(shift: IShift): Promise<void> {
         console.error(error);
     }
 }
-
 async function deleteShift(shiftId: string): Promise<void> {
     try {
         await Shift.deleteOne({_id: shiftId});
@@ -25,7 +23,6 @@ async function deleteShift(shiftId: string): Promise<void> {
         console.error(error);
     }
 }
-
 async function updateShift(shiftId: string, shift: IShift): Promise<void> {
     try {
         await Shift.updateOne({_id: shiftId}, {

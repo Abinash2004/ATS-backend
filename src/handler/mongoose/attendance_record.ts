@@ -1,7 +1,7 @@
-import AttendanceRecord from "../../model/attendance_record.ts";
 import type {AttendanceStatus} from "../../type/attendance.ts";
 import type {IAttendanceRecord} from "../../interface/attendance_record.ts";
-import {getFirstDayUtc, getLastDayUtc} from "../../utils/date_time.ts";
+import AttendanceRecord from "../../model/attendance_record.ts";
+import {getFirstDayUtc,getLastDayUtc} from "../../utils/date_time.ts";
 
 async function getRecentAttendanceRecordDate(): Promise<Date|null> {
     try {

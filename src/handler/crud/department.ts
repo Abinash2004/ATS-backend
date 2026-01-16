@@ -5,6 +5,10 @@ import {createDepartment,deleteDepartment,getDepartment,updateDepartment} from "
 
 async function createDepartmentHandler(socket:Socket, department:IDepartment) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!department) {
             messageEmission(socket,"failed","department ID is missing.");
             return;
@@ -17,6 +21,10 @@ async function createDepartmentHandler(socket:Socket, department:IDepartment) {
 }
 async function readDepartmentHandler(socket:Socket, departmentId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!departmentId) {
             messageEmission(socket,"failed","department ID is missing.");
             return;
@@ -33,6 +41,10 @@ async function readDepartmentHandler(socket:Socket, departmentId: string) {
 }
 async function updateDepartmentHandler(socket:Socket, departmentId: string, department:IDepartment) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!departmentId) {
             messageEmission(socket,"failed","department ID is missing.");
             return;
@@ -49,6 +61,10 @@ async function updateDepartmentHandler(socket:Socket, departmentId: string, depa
 }
 async function deleteDepartmentHandler(socket:Socket, departmentId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!departmentId) {
             messageEmission(socket,"failed","department ID is missing.");
             return;

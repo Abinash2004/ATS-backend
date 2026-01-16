@@ -1,6 +1,6 @@
+import {singleShift} from "./shift.ts";
 import {Schema,model} from "mongoose";
 import type {IBreak,IAttendance} from "../interface/attendance.ts";
-import {singleShift} from "./shift.ts";
 
 const breakSchema = new Schema<IBreak>(
     {

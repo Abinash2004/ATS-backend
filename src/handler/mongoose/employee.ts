@@ -10,7 +10,6 @@ async function isEmployeeExists(email: string): Promise<boolean> {
         return false;
     }
 }
-
 async function addNewEmployee(employee: IEmployee): Promise<void> {
     try {
         await Employee.create(employee);
@@ -18,7 +17,6 @@ async function addNewEmployee(employee: IEmployee): Promise<void> {
         console.log(error);
     }
 }
-
 async function getEmployeeDataByEmail(email: string) {
     try {
         const emp =  await Employee.findOne({email});
@@ -27,7 +25,6 @@ async function getEmployeeDataByEmail(email: string) {
         console.log(error);
     }
 }
-
 async function getEmployeeById(id: string): Promise<IEmployee | null> {
     try {
         return await Employee.findOne({_id: id});
@@ -36,7 +33,6 @@ async function getEmployeeById(id: string): Promise<IEmployee | null> {
         return null
     }
 }
-
 async function updateEmployee(employeeId: string,employee: IEmployee): Promise<void> {
     try {
         await Employee.updateOne({_id:employeeId},{
@@ -54,7 +50,6 @@ async function updateEmployee(employeeId: string,employee: IEmployee): Promise<v
         console.log(error);
     }
 }
-
 async function deleteEmployee(employeeId: string): Promise<void> {
     try {
         await Employee.deleteOne({_id:employeeId});
@@ -62,7 +57,6 @@ async function deleteEmployee(employeeId: string): Promise<void> {
         console.log(error);
     }
 }
-
 async function getAllEmployeesList(): Promise<IEmployee[]> {
     try {
         return await Employee.find();

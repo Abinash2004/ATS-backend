@@ -9,7 +9,6 @@ async function createPenalty(employeeId: string, amount: Number, reason: string)
         console.error(error);
     }
 }
-
 async function getPenaltyByDate(employeeId: string,startDate: Date, endDate: Date): Promise<number> {
     try {
         const result = await Penalty.aggregate([
@@ -22,7 +21,6 @@ async function getPenaltyByDate(employeeId: string,startDate: Date, endDate: Dat
         return 0;
     }
 }
-
 async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
     try {
         return await Penalty.find({employeeId});

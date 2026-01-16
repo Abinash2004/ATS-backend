@@ -1,8 +1,11 @@
 import type {Socket} from "socket.io";
 import type {IEmployee} from "../interface/employee.ts";
-import {signToken} from "../config/jwt.ts";
+import type {IDepartment} from "../interface/department.ts";
+import type {ExtendedError} from "socket.io/dist/namespace";
+import {getDepartment} from "./mongoose/department.ts";
+import {signToken,verifyToken} from "../config/jwt.ts";
 import {validateAuthCredentials} from "../utils/validations.ts";
-import {addNewEmployee, isEmployeeExists} from "./mongoose/employee.ts";
+import {addNewEmployee,getEmployeeDataByEmail,isEmployeeExists} from "./mongoose/employee.ts";
 
 async function authSignUp(socket: Socket, employee: IEmployee) {
     const message = validateAuthCredentials(employee, true);
@@ -17,7 +20,6 @@ async function authSignUp(socket: Socket, employee: IEmployee) {
     const token = signToken({email});
     return socket.emit("sign_up_response", { status: "success", message: message.message, token });
 }
-
 async function authSignIn(socket: Socket, employee: IEmployee) {
     const message = validateAuthCredentials(employee, false);
     if (!message.status) {
@@ -30,5 +32,31 @@ async function authSignIn(socket: Socket, employee: IEmployee) {
     }
     return socket.emit("sign_in_response", { status: "failed", message: "employee not found with this email."});
 }
+async function authVerification(socket: Socket, next: (err?: ExtendedError) => void) {
+    try {
+        const authHeader = socket.handshake.headers.authorization;
+        const adminPassword = socket.handshake.headers.admin_password;
 
-export {authSignUp, authSignIn};
+        if (!authHeader?.startsWith("Bearer ")) return next(new Error("Authentication token missing."));
+        const token = authHeader?.split(" ")[1];
+        const email = verifyToken(token);
+        const employee: IEmployee | undefined = await getEmployeeDataByEmail(email);
+        if (!employee) return next(new Error("Employee not found."));
+
+        if(employee.role === "admin" && adminPassword) {
+            if(adminPassword === "me nahi bataunga") socket.data.role = "admin"
+            else return next(new Error("invalid admin password."));
+        } else {
+            const department: IDepartment|null = await getDepartment(employee.departmentId.toString());
+            if (!department) return next(new Error("Department not found."));
+            if (department.name === "Human Resources") socket.data.role = "HR";
+            else socket.data.role = "employee";
+        }
+        socket.data.employee = employee;
+        next();
+    } catch (err: unknown) {
+        return next(new Error("invalid or expired token"));
+    }
+}
+
+export {authSignUp,authSignIn,authVerification};

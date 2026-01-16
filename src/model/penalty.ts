@@ -1,5 +1,5 @@
-import type {IPenalty} from "../interface/penalty.ts";
 import mongoose from "mongoose";
+import type {IPenalty} from "../interface/penalty.ts";
 
 const penaltySchema = new mongoose.Schema<IPenalty>({
     penalty_date: {

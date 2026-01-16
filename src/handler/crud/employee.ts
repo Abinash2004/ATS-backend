@@ -5,6 +5,10 @@ import {addNewEmployee,deleteEmployee,getEmployeeById,isEmployeeExists,updateEmp
 
 async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!employee) {
             messageEmission(socket,"failed","employee data are needed");
             return
@@ -22,6 +26,10 @@ async function createEmployeeHandler(socket:Socket, employee:IEmployee) {
 }
 async function readEmployeeHandler(socket:Socket, employeeId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!employeeId) {
             messageEmission(socket,"failed","employee ID is missing.");
             return;
@@ -38,6 +46,10 @@ async function readEmployeeHandler(socket:Socket, employeeId: string) {
 }
 async function updateEmployeeHandler(socket:Socket, employeeId: string, employee:IEmployee) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!employeeId) {
             messageEmission(socket,"failed","employee ID is missing.");
             return;
@@ -54,6 +66,10 @@ async function updateEmployeeHandler(socket:Socket, employeeId: string, employee
 }
 async function deleteEmployeeHandler(socket:Socket, employeeId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!employeeId) {
             messageEmission(socket,"failed","employee ID is missing.");
             return;

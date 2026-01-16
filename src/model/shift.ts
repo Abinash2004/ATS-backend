@@ -1,5 +1,5 @@
 import {Schema,model} from "mongoose";
-import type {IShift, ISingleShift} from "../interface/shift.ts";
+import type {IShift,ISingleShift} from "../interface/shift.ts";
 
 export const singleShift = new Schema<ISingleShift>({
     start_time: {

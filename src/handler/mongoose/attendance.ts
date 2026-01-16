@@ -1,11 +1,11 @@
+import type {Day} from "../../type/day.ts";
+import type {Socket} from "socket.io";
+import type {IShift} from "../../interface/shift.ts";
+import type {IAttendance,IBreak} from "../../interface/attendance.ts";
+import Attendance from "../../model/attendance.ts";
+import Timesheet from "../../model/timesheet.ts";
 import {getShift} from "./shift.ts";
 import {createPenalty} from "./penalty.ts";
-import Timesheet from "../../model/timesheet.ts";
-import Attendance from "../../model/attendance.ts";
-import type {Socket} from "socket.io";
-import type {Day} from "../../type/day.ts";
-import type {IShift} from "../../interface/shift.ts";
-import type {IAttendance, IBreak} from "../../interface/attendance.ts";
 import {getShiftData,messageEmission,getShiftTimings,checkBreakPenalty} from "../helper.ts";
 import {calculateMinutes,dateToIST,formatHoursMinutes,getDayName,stringToDate} from "../../utils/date_time.ts";
 
@@ -58,7 +58,6 @@ async function getTodayAttendance(socket:Socket, employeeId: string, shiftId: st
         return null;
     }
 }
-
 async function addNewAttendance(socket: Socket,employeeId: string, shiftId: string, reason: string): Promise<void> {
     try {
         const pendingClockOutAttendance: IAttendance | null = await Attendance.findOne({employeeId,clock_out:{$exists: false}});
@@ -147,7 +146,6 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
         console.error(error);
     }
 }
-
 async function addNewBreak(socket: Socket, employeeId: string, attendance: IAttendance, reason: string): Promise<void> {
     try {
 
@@ -170,7 +168,6 @@ async function addNewBreak(socket: Socket, employeeId: string, attendance: IAtte
         console.error(error);
     }
 }
-
 async function updateOngoingBreak(socket: Socket, employeeId: string, attendance: IAttendance): Promise<void> {
     try {
         const [shiftInitialTime, shiftExitTime] = await getShiftTimings(attendance.shift);
@@ -197,7 +194,6 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
         console.error(error);
     }
 }
-
 async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
     try {
         const currentTime = new Date();
@@ -208,7 +204,6 @@ async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
         return false;
     }
 }
-
 async function updateClockOutTime(socket:Socket, employeeId: string, attendance: IAttendance, reason: string): Promise<void> {
     try {
         const currentTime = new Date();
@@ -235,7 +230,6 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
         console.error(error);
     }
 }
-
 async function getAttendanceRecord(employeeId: string): Promise<any> {
     try {
         const attendance = await Attendance.find({employeeId});
@@ -248,7 +242,6 @@ async function getAttendanceRecord(employeeId: string): Promise<any> {
         console.error(error);
     }
 }
-
 async function getAttendance(attendanceId: string): Promise<IAttendance | null> {
     try {
         return await Attendance.findOne({_id: attendanceId});
@@ -257,7 +250,6 @@ async function getAttendance(attendanceId: string): Promise<IAttendance | null> 
         return null;
     }
 }
-
 async function resolveAttendance(socket: Socket, attendance: IAttendance, clockOutTime: string): Promise<void> {
     try {
         const clock_out = stringToDate(clockOutTime);
@@ -272,7 +264,6 @@ async function resolveAttendance(socket: Socket, attendance: IAttendance, clockO
         console.error(error);
     }
 }
-
 async function getAttendanceByDate(inputDate: Date, employeeId: string): Promise<IAttendance | null> {
     try {
         const start = new Date(inputDate);
@@ -285,7 +276,6 @@ async function getAttendanceByDate(inputDate: Date, employeeId: string): Promise
         return null;
     }
 }
-
 async function getEarlyOutCountPerMonth(employeeId: string, currDate: Date): Promise<number> {
     try {
         const startDate = new Date(currDate.getFullYear(), currDate.getMonth(), 1);

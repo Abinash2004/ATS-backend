@@ -3,10 +3,10 @@ import type {ISingleShift} from "../interface/shift.ts";
 import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
-import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
+import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
-import {calculateMinutes, getDayName, getLastDayUtc, stringToDate} from "../utils/date_time.ts";
+import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
 
 function errorEmission(socket: Socket, error: unknown) :void {
     socket.emit("server_response",{
@@ -14,11 +14,9 @@ function errorEmission(socket: Socket, error: unknown) :void {
         message: error instanceof Error ? error.message : error
     });
 }
-
 function messageEmission(socket: Socket, status: string, message: any) :void {
     socket.emit("server_response",{status,message});
 }
-
 async function getShiftData(attendance: IAttendance,currentTime: Date) {
     let shiftStartTime = stringToDate(attendance.shift.start_time);
     let shiftEndTime = stringToDate(attendance.shift.end_time);
@@ -46,7 +44,6 @@ async function getShiftData(attendance: IAttendance,currentTime: Date) {
     const overTimeMinutes = (workedMinutes - shiftMinutes > 0) ? workedMinutes - shiftMinutes : 0;
     return {shiftStartTime,shiftEndTime,shiftMinutes,breakMinutes,workedMinutes,pendingTimeMinutes,overTimeMinutes};
 }
-
 async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
     try {
         let shiftInitialTime: Date = stringToDate(shift.start_time);
@@ -65,7 +62,6 @@ async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
         return [];
     }
 }
-
 async function calculateShiftSalary(shiftId: string, start: Date, end: Date, salary: number): Promise<number> {
     try {
         const shiftCount = await calculateWorkingShift(shiftId,start,end);
@@ -75,7 +71,6 @@ async function calculateShiftSalary(shiftId: string, start: Date, end: Date, sal
         return 0;
     }
 }
-
 async function calculateWorkingShift(shiftId: string,start: Date, end: Date): Promise<number> {
     try {
         const shift = await getShift(shiftId);
@@ -94,7 +89,6 @@ async function calculateWorkingShift(shiftId: string,start: Date, end: Date): Pr
         return 0;
     }
 }
-
 async function calculateTotalWorkingShift(employeeId: string, start: Date, end: Date): Promise<number> {
     try {
         let shiftCount = 0;
@@ -119,7 +113,6 @@ async function calculateTotalWorkingShift(employeeId: string, start: Date, end: 
         return 0;
     }
 }
-
 async function calculateOvertimePay(attendance: IAttendanceRecord, employeeId: string, shiftSalary: number): Promise<number> {
     try {
         const fullAttendance = await getAttendanceByDate(attendance.attendance_date, employeeId);
@@ -132,7 +125,6 @@ async function calculateOvertimePay(attendance: IAttendanceRecord, employeeId: s
         return 0;
     }
 }
-
 async function calculateOvertimeMinutes(attendance: IAttendanceRecord, employeeId: string): Promise<number> {
     try {
         const fullAttendance = await getAttendanceByDate(attendance.attendance_date, employeeId);
@@ -145,7 +137,6 @@ async function calculateOvertimeMinutes(attendance: IAttendanceRecord, employeeI
         return 0;
     }
 }
-
 function checkMonthValidationAndCurrentDate(month: string, socket:Socket): boolean {
     if (!month) {
         messageEmission(socket,"failed","month is missing.");
@@ -163,7 +154,6 @@ function checkMonthValidationAndCurrentDate(month: string, socket:Socket): boole
     }
     return true;
 }
-
 function checkBreakPenalty(breaks: IBreak[], currentTime: Date): number {
     let breakMinutes: number = 0;
     let penalty: number = 0;

@@ -11,7 +11,6 @@ async function getLastPayrollDate(): Promise<Date|null> {
         return null;
     }
 }
-
 async function createPayrollRecord(start: Date,end: Date,year: string): Promise<void> {
     try {
         const currentYear = Number(year);
@@ -32,7 +31,6 @@ async function createPayrollRecord(start: Date,end: Date,year: string): Promise<
         console.log(error);
     }
 }
-
 async function getPayrollHistory(): Promise<IPayrollRecord[]> {
     try {
         return await PayrollRecord.find();

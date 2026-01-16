@@ -9,7 +9,6 @@ async function createBonus(employeeId: string, amount: Number, reason: string): 
         console.error(error);
     }
 }
-
 async function getBonusByDate(employeeId: string,startDate: Date, endDate:Date): Promise<number> {
     try {
         const result = await Bonus.aggregate([
@@ -22,7 +21,6 @@ async function getBonusByDate(employeeId: string,startDate: Date, endDate:Date):
         return 0;
     }
 }
-
 async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
     try {
         return await Bonus.find({employeeId});

@@ -5,6 +5,10 @@ import {createShift,deleteShift,getShift,updateShift} from "../mongoose/shift.ts
 
 async function createShiftHandler(socket:Socket, shift:IShift) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!shift) {
             messageEmission(socket,"failed","shift ID is missing.");
             return;
@@ -17,6 +21,10 @@ async function createShiftHandler(socket:Socket, shift:IShift) {
 }
 async function readShiftHandler(socket:Socket, shiftId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!shiftId) {
             messageEmission(socket,"failed","shift ID is missing.");
             return;
@@ -33,6 +41,10 @@ async function readShiftHandler(socket:Socket, shiftId: string) {
 }
 async function updateShiftHandler(socket:Socket, shiftId: string, shift:IShift) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!shiftId) {
             messageEmission(socket,"failed","shift ID is missing.");
             return;
@@ -49,6 +61,10 @@ async function updateShiftHandler(socket:Socket, shiftId: string, shift:IShift) 
 }
 async function deleteShiftHandler(socket:Socket, shiftId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!shiftId) {
             messageEmission(socket,"failed","shift ID is missing.");
             return;

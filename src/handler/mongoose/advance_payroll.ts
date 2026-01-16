@@ -8,7 +8,6 @@ async function createAdvancePayroll(start_date: Date, end_date: Date) {
         console.log(error);
     }
 }
-
 async function getPendingAdvancePayroll(): Promise<IAdvancePayroll|null> {
     try {
         return await AdvancePayroll.findOne({status: "pending"});
@@ -17,7 +16,6 @@ async function getPendingAdvancePayroll(): Promise<IAdvancePayroll|null> {
         return null;
     }
 }
-
 async function resolveAdvancePayroll() {
     try {
         await AdvancePayroll.updateOne({status:"pending"},{status: "resolved"});

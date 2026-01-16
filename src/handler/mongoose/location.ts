@@ -8,7 +8,6 @@ async function createLocation(location: ILocation): Promise<void> {
         console.log(error);
     }
 }
-
 async function getLocation(locationId: string): Promise<ILocation | null> {
     try {
         return await Location.findOne({_id: locationId});
@@ -17,7 +16,6 @@ async function getLocation(locationId: string): Promise<ILocation | null> {
         return null;
     }
 }
-
 async function updateLocation(locationId: string, location: ILocation): Promise<void> {
     try {
         await Location.updateOne({_id: locationId}, {
@@ -31,7 +29,6 @@ async function updateLocation(locationId: string, location: ILocation): Promise<
         console.error(error);
     }
 }
-
 async function deleteLocation(locationId: string): Promise<void> {
     try {
         await Location.deleteOne({_id: locationId});

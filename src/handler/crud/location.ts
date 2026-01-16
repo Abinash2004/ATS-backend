@@ -5,6 +5,10 @@ import {createLocation, deleteLocation, getLocation, updateLocation} from "../mo
 
 async function createLocationHandler(socket:Socket, location:ILocation) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!location) {
             messageEmission(socket,"failed","location ID is missing.");
             return;
@@ -17,6 +21,10 @@ async function createLocationHandler(socket:Socket, location:ILocation) {
 }
 async function readLocationHandler(socket:Socket, locationId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!locationId) {
             messageEmission(socket,"failed","location ID is missing.");
             return;
@@ -33,6 +41,10 @@ async function readLocationHandler(socket:Socket, locationId: string) {
 }
 async function updateLocationHandler(socket:Socket, locationId: string, location:ILocation) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!locationId) {
             messageEmission(socket,"failed","location ID is missing.");
             return;
@@ -49,6 +61,10 @@ async function updateLocationHandler(socket:Socket, locationId: string, location
 }
 async function deleteLocationHandler(socket:Socket, locationId: string) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         if (!locationId) {
             messageEmission(socket,"failed","location ID is missing.");
             return;

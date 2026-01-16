@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import {Types} from "mongoose";
 import type {ISingleShift} from "./shift.ts";
 
 export interface IBreak {

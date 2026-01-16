@@ -3,7 +3,7 @@ import type {AttendanceStatus} from "../type/attendance.ts";
 import {getApprovedLeave} from "./mongoose/leave.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {setAttendanceRecord} from "./mongoose/attendance_record.ts";
-import {errorEmission, getShiftData} from "./helper.ts";
+import {errorEmission,getShiftData} from "./helper.ts";
 
 async function attendanceHolidayHandler(socket: Socket, attendance_date: Date, employeeId: string, shiftId: string): Promise<void> {
     try {
@@ -12,7 +12,6 @@ async function attendanceHolidayHandler(socket: Socket, attendance_date: Date, e
         errorEmission(socket,error);
     }
 }
-
 async function attendanceFirstHalfHandler(socket: Socket, attendance_date: Date, employeeId: string, shiftId: string): Promise<void> {
     try {
         const second_half: AttendanceStatus = "no_shift";
@@ -33,7 +32,6 @@ async function attendanceFirstHalfHandler(socket: Socket, attendance_date: Date,
         errorEmission(socket,error);
     }
 }
-
 async function attendanceSecondHalfHandler(socket: Socket, attendance_date: Date, employeeId: string, shiftId: string): Promise<void> {
     try {
         const first_half: AttendanceStatus = "no_shift";
@@ -54,7 +52,6 @@ async function attendanceSecondHalfHandler(socket: Socket, attendance_date: Date
         errorEmission(socket,error);
     }
 }
-
 async function attendanceFullDayHandler(socket: Socket, attendance_date: Date, employeeId: string, shiftId: string): Promise<void> {
     try {
         const leave = await getApprovedLeave(attendance_date, employeeId);

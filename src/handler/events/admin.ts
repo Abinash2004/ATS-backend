@@ -1,72 +1,25 @@
 import type {Socket} from "socket.io";
 import type {IEmployee} from "../../interface/employee.ts";
-import type {IAttendance} from "../../interface/attendance.ts";
-import type {IAttendanceSheet} from "../../interface/attendance_sheet.ts";
 import type {ISalary, ISalaryAttendance} from "../../interface/salary_slip.ts";
-import Attendance from "../../model/attendance.ts";
 import {getShift} from "../mongoose/shift.ts";
 import {generatePDF} from "../../utils/pdf_generation.ts";
-import {generateSheet} from "../../utils/sheet_generation.ts";
 import {getDepartment} from "../mongoose/department.ts";
 import {getBonusByDate} from "../mongoose/bonus.ts";
-import {isValidMonthYear} from "../../utils/validations.ts";
+import {createSalarySlip} from "../mongoose/salary_slip.ts";
 import {getAllEmployeesList} from "../mongoose/employee.ts";
 import {createPenalty, getPenaltyByDate} from "../mongoose/penalty.ts";
-import {createSalarySlip,getMonthlySalarySlip} from "../mongoose/salary_slip.ts";
 import {createPayrollRecord,getLastPayrollDate,getPayrollHistory} from "../mongoose/payroll_record.ts";
 import {createAdvancePayroll,getPendingAdvancePayroll,resolveAdvancePayroll} from "../mongoose/advance_payroll.ts";
-import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
-import {getAllAttendanceRecord,getEmployeeAttendanceRecordDateWise,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {countDays,dateToIST,dateToMonthYear,formatHoursMinutes,formatMonthYear,getDayName,getFirstDayUtc,getLastDayUtc,parseDateDMY,toMonthName} from "../../utils/date_time.ts";
-import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftSalary,calculateTotalWorkingShift,checkMonthValidationAndCurrentDate,errorEmission,messageEmission} from "../helper.ts";
+import {getEmployeeAttendanceRecordDateWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
+import {countDays,dateToIST,dateToMonthYear,formatHoursMinutes,formatMonthYear,getDayName,parseDateDMY} from "../../utils/date_time.ts";
+import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftSalary,calculateTotalWorkingShift,errorEmission,messageEmission} from "../helper.ts";
 
-async function createAttendanceRecordHandler(socket: Socket) {
+async function runPayrollHandler(socket:Socket,startDate: string, endDate: string) {
     try {
-        let startDate:Date | null = await getRecentAttendanceRecordDate();
-        if (!startDate) {
-            const attendance: IAttendance | null = await Attendance.findOne().sort({clock_in: 1}).exec();
-            if (!attendance) {
-                messageEmission(socket, "failed","there is no attendance record");
-                return;
-            }
-            startDate = attendance.clock_in;
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
         }
-        let endDate: Date = new Date(Date.now());
-        endDate.setDate(endDate.getDate()-1);
-        const employees: IEmployee[] = await getAllEmployeesList();
-
-        for (let iterDate = new Date(startDate);iterDate <= endDate;iterDate.setDate(iterDate.getDate() + 1)) {
-            const day = getDayName(iterDate);
-            for (let emp of employees) {
-                const shift = await getShift(emp.shiftId.toString());
-                if (!shift) continue;
-                const day_status = shift[day].day_status;
-                if (day_status === "holiday") {
-                    await attendanceHolidayHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
-                } else if (day_status === "first_half") {
-                    await attendanceFirstHalfHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
-                } else if (day_status === "second_half") {
-                    await attendanceSecondHalfHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
-                } else if (day_status === "full_day") {
-                    await attendanceFullDayHandler(socket, iterDate, emp._id.toString(),emp.shiftId.toString());
-                }
-            }
-        }
-        messageEmission(socket,"success","attendance record generated successfully.");
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-async function viewAllAttendanceRecordHandler(socket:Socket) {
-    try {
-        const attendanceRecord = await getAllAttendanceRecord();
-        messageEmission(socket,"success",attendanceRecord);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-async function createSalaryHandler(socket:Socket,startDate: string, endDate: string) {
-    try {
         let start: Date;
         let end: Date;
         if (!endDate) {
@@ -253,72 +206,12 @@ async function createSalaryHandler(socket:Socket,startDate: string, endDate: str
         errorEmission(socket,error);
     }
 }
-async function viewSalaryHandler(socket:Socket, month: string) {
-    try {
-        if (!month) {
-            messageEmission(socket,"failed","month is missing.");
-            return;
-        }
-        if (!isValidMonthYear(month)) {
-            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
-            return;
-        }
-        const salarySlip = await getMonthlySalarySlip(month);
-        messageEmission(socket,"success",salarySlip);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-async function generateAttendanceSheetHandler(socket:Socket, month: string) {
-    try {
-        if (!checkMonthValidationAndCurrentDate(month, socket)) return;
-        const employees: IEmployee[] = await getAllEmployeesList();
-        for (let emp of employees) {
-            const attendance = await getEmployeeAttendanceRecordMonthWise(emp._id.toString(), month);
-            if (!attendance.length) continue;
-            let shiftId: string = attendance[0].shiftId.toString();
-            const startDate: Date = getFirstDayUtc(month);
-            const lastDate: Date = getLastDayUtc(month);
-            let shiftSalary = await calculateShiftSalary(attendance[0].shiftId.toString(), startDate,lastDate, emp.salary);
-            let attendanceSheetData: IAttendanceSheet[] = [];
-            let sheetData: IAttendanceSheet;
-            for (let att of attendance) {
-                let first_half_pay: number = 0;
-                let second_half_pay: number = 0;
-
-                if (shiftId !== att.shiftId.toString()) {
-                    shiftId = att.shiftId.toString();
-                    shiftSalary = await calculateShiftSalary(att.shiftId.toString(), startDate,lastDate, emp.salary);
-                }
-                if (att.first_half === "present" || att.first_half === "paid_leave") {
-                    first_half_pay += shiftSalary;
-                }
-                if (att.second_half === "present" || att.second_half === "paid_leave") {
-                    second_half_pay += shiftSalary;
-                }
-                const overtimeMinutes = await calculateOvertimeMinutes(att, emp._id.toString());
-                const overTimeWages = await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
-                sheetData = {
-                    "Date": dateToIST(att.attendance_date).split(",")[0],
-                    "First Half": att.first_half,
-                    "Second Half": att.second_half,
-                    "First Half Pay": first_half_pay.toString(),
-                    "Second Half Pay": second_half_pay.toString(),
-                    "Over Time": formatHoursMinutes(overtimeMinutes),
-                    "Over Time Pay": overTimeWages.toString(),
-                    "Total Pay": (first_half_pay+second_half_pay+overTimeWages).toString()
-                }
-                attendanceSheetData.push(sheetData);
-            }
-            generateSheet(attendanceSheetData, toMonthName(month),emp.email);
-            messageEmission(socket,"success",`Attendance Excel Sheet for ${toMonthName(month)} is generated successfully.`);
-        }
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
 async function viewPayrollHistory(socket:Socket) {
     try {
+        if (socket.data.role !== "admin") {
+            messageEmission(socket,"failed","only admin are permitted.")
+            return;
+        }
         const payrollHistory = await getPayrollHistory();
         messageEmission(socket, "success",payrollHistory);
     } catch(error) {
@@ -326,11 +219,4 @@ async function viewPayrollHistory(socket:Socket) {
     }
 }
 
-export {
-    createAttendanceRecordHandler,
-    viewAllAttendanceRecordHandler,
-    createSalaryHandler,
-    viewSalaryHandler,
-    generateAttendanceSheetHandler,
-    viewPayrollHistory
-}
+export {runPayrollHandler,viewPayrollHistory}

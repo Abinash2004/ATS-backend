@@ -3,21 +3,16 @@ import type {IBonus} from "../../interface/bonus.ts";
 import type {IPenalty} from "../../interface/penalty.ts";
 import type {DayStatus} from "../../type/day_status.ts";
 import type {IEmployee} from "../../interface/employee.ts";
-import type {IDepartment} from "../../interface/department.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
-import type {leave_response} from "../../type/leave_response.ts";
-import {getDepartment} from "../mongoose/department.ts";
+import {createLeave} from "../mongoose/leave.ts";
+import {getEmployeeBonus} from "../mongoose/bonus.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
-import {createLeave,updateLeave} from "../mongoose/leave.ts";
+import {getEmployeePenalty} from "../mongoose/penalty.ts";
 import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
 import {getMonthlyEmployeeSalarySlip} from "../mongoose/salary_slip.ts";
 import {dateToIST,formatHoursMinutes} from "../../utils/date_time.ts";
-import {createBonus,getEmployeeBonus} from "../mongoose/bonus.ts";
-import {createPenalty,getEmployeePenalty} from "../mongoose/penalty.ts";
 import {getShiftData,errorEmission,messageEmission} from "../helper.ts";
-import {addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,
-    isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak
-} from "../mongoose/attendance.ts";
+import {addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak} from "../mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee, reason: string): Promise<void> {
     try {
@@ -33,7 +28,6 @@ async function clockInHandler(socket: Socket,employee: IEmployee, reason: string
         errorEmission(socket,error);
     }
 }
-
 async function clockOutHandler(socket: Socket,employee: IEmployee, reason: string) {
     try {
         const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
@@ -50,7 +44,6 @@ async function clockOutHandler(socket: Socket,employee: IEmployee, reason: strin
         errorEmission(socket,error);
     }
 }
-
 async function breakHandler(reason: string, socket: Socket,employee: IEmployee) {
     try {
         const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
@@ -65,7 +58,6 @@ async function breakHandler(reason: string, socket: Socket,employee: IEmployee) 
         errorEmission(socket,error);
     }
 }
-
 async function statusHandler(socket:Socket, employee: IEmployee) {
     try {
         let status;
@@ -94,7 +86,6 @@ async function statusHandler(socket:Socket, employee: IEmployee) {
         errorEmission(socket,error);
     }
 }
-
 async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: string, clockOutTime: string) {
     try {
         const attendance: IAttendance | null = await getAttendance(attendanceId);
@@ -107,7 +98,6 @@ async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: str
         errorEmission(socket,error);
     }
 }
-
 async function leaveRequestHandler(socket: Socket, employeeId: string, shiftId: string, leave_date: string, day_status: DayStatus, reason: string) {
     try {
         if (!leave_date || !day_status || !reason) {
@@ -119,28 +109,6 @@ async function leaveRequestHandler(socket: Socket, employeeId: string, shiftId: 
         errorEmission(socket,error);
     }
 }
-
-async function leaveResponseHandler(socket: Socket, leaveId: string, response: leave_response, departmentId: string) {
-    try {
-        if (!leaveId || !response) {
-            messageEmission(socket, "failed","incomplete / invalid credentials.");
-            return;
-        }
-        if (response !== "pending" && response !== "approved" && response !== "rejected") {
-            messageEmission(socket,"success","response can only be approved, pending or rejected.");
-            return;
-        }
-        const department: IDepartment | null = await getDepartment(departmentId);
-        if (department && department.name !== "Human Resources") {
-            messageEmission(socket, "failed","current user is not in HR department.");
-            return;
-        }
-        await updateLeave(socket, leaveId, response);
-    } catch (error) {
-        errorEmission(socket,error);
-    }
-}
-
 async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string) {
     try {
         const attendanceRecord = await getEmployeeAttendanceRecord(employeeId);
@@ -149,7 +117,6 @@ async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string)
         errorEmission(socket,error);
     }
 }
-
 async function viewEmployeeSalaryHandler(socket:Socket, month: string, employeeId: string) {
     try {
         if (!month) {
@@ -166,43 +133,6 @@ async function viewEmployeeSalaryHandler(socket:Socket, month: string, employeeI
         errorEmission(socket,error);
     }
 }
-
-async function giveBonusHandler(socket:Socket, currEmpId: string, employeeId: string, amount: Number, reason: string) {
-    try {
-        if (!currEmpId || !employeeId || !amount || !reason) {
-            messageEmission(socket,"failed","required arguments are missing.");
-            return;
-        }
-        const department: IDepartment | null = await getDepartment(employeeId);
-        if (department && department.name !== "Human Resources") {
-            messageEmission(socket,"failed","only HR department can provide bonus.");
-            return;
-        }
-        await createBonus(employeeId, amount, reason);
-        messageEmission(socket,"success",`Bonus successfully created for ${employeeId}`);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-
-async function givePenaltyHandler(socket:Socket, currEmpId: string, employeeId: string, amount: Number, reason: string) {
-    try {
-        if (!currEmpId || !employeeId || !amount || !reason) {
-            messageEmission(socket,"failed","required arguments are missing.");
-            return;
-        }
-        const department: IDepartment | null = await getDepartment(employeeId);
-        if (department && department.name !== "Human Resources") {
-            messageEmission(socket,"failed","only HR department can provide penalty.");
-            return;
-        }
-        await createPenalty(employeeId, amount, reason);
-        messageEmission(socket,"success",`Penalty successfully created for ${employeeId}`);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-
 async function viewBonusHandler(socket:Socket, employeeId: string) {
     try {
         const bonus: IBonus[] = await getEmployeeBonus(employeeId);
@@ -211,7 +141,6 @@ async function viewBonusHandler(socket:Socket, employeeId: string) {
         errorEmission(socket,error);
     }
 }
-
 async function viewPenaltyHandler(socket:Socket, employeeId: string) {
     try {
         const penalty: IPenalty[] = await getEmployeePenalty(employeeId);
@@ -228,11 +157,8 @@ export {
     statusHandler,
     resolvePendingAttendanceHandler,
     leaveRequestHandler,
-    leaveResponseHandler,
     viewEmployeeAttendanceHandler,
     viewEmployeeSalaryHandler,
-    giveBonusHandler,
-    givePenaltyHandler,
     viewBonusHandler,
     viewPenaltyHandler
 };
