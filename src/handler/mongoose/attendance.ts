@@ -6,6 +6,7 @@ import Attendance from "../../model/attendance.ts";
 import Timesheet from "../../model/timesheet.ts";
 import {getShift} from "./shift.ts";
 import {createPenalty} from "./penalty.ts";
+import {getBreakLimitPenalty,getEarlyOutPenalty,getLateInPenalty} from "./policy.ts";
 import {getShiftData,messageEmission,getShiftTimings,checkBreakPenalty} from "../helper.ts";
 import {calculateMinutes,dateToIST,formatHoursMinutes,getDayName,stringToDate} from "../../utils/date_time.ts";
 
@@ -101,7 +102,10 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     return;
                 } else {
                     const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
-                    if (lateMinutes >= 30) await createPenalty(employeeId, 500, `late clock-in on ${dateToIST(currentTime)}`);
+                    if (lateMinutes >= 30) {
+                        const lateInPenalty = await getLateInPenalty();
+                        await createPenalty(employeeId, lateInPenalty, `late clock-in on ${dateToIST(currentTime)}`);
+                    }
                     await Attendance.create({clock_in: clockInTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: clockInTime,status: "in", employeeId: employeeId});
                     messageEmission(socket, "success",`late clocked in on ${dateToIST(clockInTime)}`);
@@ -133,7 +137,10 @@ async function addNewAttendance(socket: Socket,employeeId: string, shiftId: stri
                     return;
                 } else {
                     const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
-                    if (lateMinutes >= 30) await createPenalty(employeeId, 500, `late clock-in on ${dateToIST(currentTime)}`);
+                    if (lateMinutes >= 30) {
+                        const lateInPenalty = await getLateInPenalty();
+                        await createPenalty(employeeId, lateInPenalty, `late clock-in on ${dateToIST(currentTime)}`);
+                    }
                     await Attendance.create({clock_in: currentTime,employeeId: employeeId, shift: shift[currentDay], shiftId: shiftId,status: "in", late_in: late_in, late_clock_in_reason: reason});
                     await Timesheet.create({time: currentTime,status: "in", employeeId: employeeId});
                     return;
@@ -182,8 +189,11 @@ async function updateOngoingBreak(socket: Socket, employeeId: string, attendance
                 dateStart.setDate(dateStart.getDate() - 1);
             }
         }
-        const penalty = checkBreakPenalty(attendance.breaks, currentTime);
-        if (penalty) await createPenalty(employeeId, (penalty > 500) ? 500 : penalty, "break more than 1 hours");
+        const penalty = await checkBreakPenalty(attendance.breaks, currentTime);
+        const penaltyLimit = await getBreakLimitPenalty();
+        if (penalty) {
+            await createPenalty(employeeId, (penalty > penaltyLimit) ? penaltyLimit : penalty, "break more than 1 hours");
+        }
         await Attendance.updateOne({_id: attendance._id,breaks: {$elemMatch: {
             break_in: {$gte: dateStart, $lt: currentTime},
             break_out: {$exists: false}
@@ -218,7 +228,10 @@ async function updateClockOutTime(socket:Socket, employeeId: string, attendance:
         if (reason) {
             const earlyMinutes = shiftMinutes - workedMinutes;
             const count = await getEarlyOutCountPerMonth(employeeId, new Date(currentTime));
-            if (count >= 3) await createPenalty(employeeId, 500, `early clock-out on ${dateToIST(currentTime)} for ${formatHoursMinutes(earlyMinutes)}`);
+            if (count >= 3) {
+                const earlyOutPenalty = await getEarlyOutPenalty();
+                await createPenalty(employeeId, earlyOutPenalty, `early clock-out on ${dateToIST(currentTime)} for ${formatHoursMinutes(earlyMinutes)}`);
+            }
             await Attendance.updateOne({_id: attendance._id},{$set:{clock_out: currentTime,early_clock_out_reason: reason,status: "out",early_out: early_out}});
             messageEmission(socket, "success",`early clocked out for reason (${reason}) on ${dateToIST(currentTime)}.`);
         } else {

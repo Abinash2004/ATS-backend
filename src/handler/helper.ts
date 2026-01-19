@@ -7,6 +7,7 @@ import {isValidMonthYear} from "../utils/validations.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
+import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 
 function errorEmission(socket: Socket, error: unknown) :void {
     socket.emit("server_response",{
@@ -154,7 +155,7 @@ function checkMonthValidationAndCurrentDate(month: string, socket:Socket): boole
     }
     return true;
 }
-function checkBreakPenalty(breaks: IBreak[], currentTime: Date): number {
+async function checkBreakPenalty(breaks: IBreak[], currentTime: Date): Promise<number> {
     let breakMinutes: number = 0;
     let penalty: number = 0;
     for (let b of breaks) {
@@ -162,9 +163,10 @@ function checkBreakPenalty(breaks: IBreak[], currentTime: Date): number {
             breakMinutes = calculateMinutes(b.break_in, currentTime);
         }
     }
+    const penaltyPerHour = await getBreakPerHourPenalty();
     while (breakMinutes > 0) {
         breakMinutes -= 60;
-        penalty += 100;
+        penalty += penaltyPerHour;
     }
     return penalty;
 }
