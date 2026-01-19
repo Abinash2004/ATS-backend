@@ -66,6 +66,6 @@ const salarySlipSchema = new mongoose.Schema<ISalarySlip>({
         required: true
     }
 });
-
+salarySlipSchema.index({month: 1,employeeId: 1});
 const SalarySlip = mongoose.model<ISalarySlip>("salary_slip", salarySlipSchema);
 export default SalarySlip;

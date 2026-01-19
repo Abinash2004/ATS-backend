@@ -15,6 +15,6 @@ const payrollRecordSchema = new Schema<IPayrollRecord>({
         required: true
     }
 });
-
+payrollRecordSchema.index({end_date: -1});
 const PayrollRecord = mongoose.model<IPayrollRecord>("Payroll_Record", payrollRecordSchema);
 export default PayrollRecord;

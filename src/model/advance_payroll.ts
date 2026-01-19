@@ -15,5 +15,6 @@ const advancePayrollSchema = new mongoose.Schema<IAdvancePayroll>({
         default: "pending"
     }
 });
+advancePayrollSchema.index({status: 1});
 const AdvancePayroll = mongoose.model<IAdvancePayroll>("Advance_Payroll", advancePayrollSchema);
 export default AdvancePayroll;

@@ -27,6 +27,7 @@ const attendanceRecordSchema = new mongoose.Schema<IAttendanceRecord>({
         required: true
     }
 });
-
+attendanceRecordSchema.index({attendance_date: -1});
+attendanceRecordSchema.index({employeeId: 1,attendance_date: 1});
 const AttendanceRecord = mongoose.model<IAttendanceRecord>("Attendance_Record",attendanceRecordSchema);
 export default AttendanceRecord;

@@ -62,6 +62,7 @@ const attendanceSchema = new Schema<IAttendance>({
         required: true
     }
 });
-
+attendanceSchema.index({clock_in: 1});
+attendanceSchema.index({employeeId: 1,clock_in: 1});
 const Attendance = model<IAttendance>("Attendance",attendanceSchema);
 export default Attendance;

@@ -19,5 +19,6 @@ const bonusSchema = new mongoose.Schema<IBonus>({
         required: true
     }
 });
+bonusSchema.index({employeeId: 1,bonus_date: 1});
 const Bonus = mongoose.model<IBonus>("Bonus", bonusSchema);
 export default Bonus;

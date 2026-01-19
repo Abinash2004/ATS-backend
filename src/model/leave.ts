@@ -31,6 +31,6 @@ const leaveSchema = new Schema<ILeave>({
         required: true
     }
 });
-
+leaveSchema.index({date: 1,employeeId: 1,leave_status: 1});
 const Leave = mongoose.model<ILeave>("Leave", leaveSchema);
 export default Leave;

@@ -20,6 +20,6 @@ const penaltySchema = new mongoose.Schema<IPenalty>({
         required: true
     }
 });
-
+penaltySchema.index({employeeId: 1,penalty_date: 1});
 const Penalty = mongoose.model<IPenalty>("Penalty", penaltySchema);
 export default Penalty;
