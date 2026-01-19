@@ -1,10 +1,17 @@
-import type {IPayrollRecord} from "../../interface/payroll_record.ts";
+import {redisClient} from "../../config/redis.ts";
 import PayrollRecord from "../../model/payroll_record.ts";
+import type {IPayrollRecord} from "../../interface/payroll_record.ts";
+
+const PAYROLL_LAST_DATE_TTL = 60 * 60;
+const payrollLastDateKey = `payroll:last_date`;
 
 async function getLastPayrollDate(): Promise<Date|null> {
     try {
+        const payrollLastDateCache = await redisClient.get(payrollLastDateKey);
+        if (payrollLastDateCache) return new Date(payrollLastDateCache);
         const payroll: IPayrollRecord|null = await PayrollRecord.findOne().sort({ end_date: -1}).exec();
         if (!payroll) return null;
+        await redisClient.set(payrollLastDateKey,payroll.end_date.toISOString(),{EX:PAYROLL_LAST_DATE_TTL});
         return payroll.end_date;
     } catch(error) {
         console.error(error);
@@ -27,6 +34,7 @@ async function createPayrollRecord(start: Date,end: Date,year: string): Promise<
                 await PayrollRecord.create({start_date: start,end_date: end,year: financialYear});
             }
         }
+        await redisClient.del("payroll:last_date");
     } catch (error) {
         console.log(error);
     }

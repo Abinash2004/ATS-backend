@@ -17,12 +17,12 @@ async function addNewEmployee(employee: IEmployee): Promise<void> {
         console.log(error);
     }
 }
-async function getEmployeeDataByEmail(email: string) {
+async function getEmployeeDataByEmail(email: string): Promise<IEmployee | null> {
     try {
-        const emp =  await Employee.findOne({email});
-        return emp as IEmployee;
+        return await Employee.findOne({email});
     } catch(error) {
         console.log(error);
+        return null;
     }
 }
 async function getEmployeeById(id: string): Promise<IEmployee | null> {

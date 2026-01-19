@@ -79,6 +79,10 @@ function dateToMonthYear(date: Date): string {
         year: "numeric",
     });
 }
+function normalizeDate(date: string | Date) {
+    const d = typeof date === "string" ? parseDateDMY(date) : date;
+    return d.toISOString().split("T")[0]; // YYYY-MM-DD
+}
 
 export {
     stringToDate,
@@ -92,5 +96,6 @@ export {
     formatMonthYear,
     countDays,
     dateToMonthYear,
-    toMonthName
+    toMonthName,
+    normalizeDate
 };

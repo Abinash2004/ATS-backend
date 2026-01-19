@@ -1,10 +1,15 @@
 import mongoose from "mongoose";
 import Penalty from "../../model/penalty.ts";
+import {redisClient} from "../../config/redis.ts";
 import type {IPenalty} from "../../interface/penalty.ts";
+
+const PENALTY_LIST_TTL = 15 * 60;
+const penaltyListKey = (empId: string) => `penalty:list:${empId}`;
 
 async function createPenalty(employeeId: string, amount: Number, reason: string): Promise<void> {
     try {
         await Penalty.create({employeeId, amount, reason, penalty_date: new Date(Date.now())});
+        await redisClient.del(penaltyListKey(employeeId));
     } catch(error) {
         console.error(error);
     }
@@ -23,7 +28,11 @@ async function getPenaltyByDate(employeeId: string,startDate: Date, endDate: Dat
 }
 async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
     try {
-        return await Penalty.find({employeeId});
+        const employeePenaltyCache = await redisClient.get(penaltyListKey(employeeId));
+        if (employeePenaltyCache) return JSON.parse(employeePenaltyCache);
+        const employeePenaltyData = await Penalty.find({employeeId}).lean<IPenalty[]>().exec();
+        await redisClient.set(penaltyListKey(employeeId),JSON.stringify(employeePenaltyData),{EX: PENALTY_LIST_TTL});
+        return employeePenaltyData;
     } catch(error) {
         console.error(error);
         return [];

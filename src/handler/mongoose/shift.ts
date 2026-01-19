@@ -1,9 +1,18 @@
 import Shift from "../../model/shift.ts";
 import type {IShift} from "../../interface/shift.ts";
+import {redisClient} from "../../config/redis.ts";
+
+const SHIFT_CACHE_TTL = 60 * 60;
+const shiftKey = (id: string) => `shift:${id}`;
 
 async function getShift(shiftId: string): Promise<IShift | null> {
     try {
-        return await Shift.findOne({_id: shiftId});
+        const shiftCache = await redisClient.get(shiftKey(shiftId));
+        if (shiftCache) return JSON.parse(shiftCache) as IShift;
+        const shiftData = await Shift.findOne({_id: shiftId}).lean<IShift>();
+        if (!shiftData) return null;
+        await  redisClient.set(shiftKey(shiftId), JSON.stringify(shiftData),{EX: SHIFT_CACHE_TTL});
+        return shiftData;
     } catch(error) {
         console.error(error);
         return null;
@@ -19,6 +28,7 @@ async function createShift(shift: IShift): Promise<void> {
 async function deleteShift(shiftId: string): Promise<void> {
     try {
         await Shift.deleteOne({_id: shiftId});
+        await redisClient.del(shiftKey(shiftId));
     } catch(error) {
         console.error(error);
     }
@@ -36,6 +46,7 @@ async function updateShift(shiftId: string, shift: IShift): Promise<void> {
                 sunday: shift.sunday
             }
         });
+        await redisClient.del(shiftKey(shiftId));
     } catch(error) {
         console.error(error);
     }
