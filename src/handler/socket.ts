@@ -1,14 +1,16 @@
 import {io} from '../config/server.ts';
 import type {Socket} from 'socket.io';
 import type {IShift} from "../interface/shift.ts";
+import type {IPolicy} from "../interface/policy.ts";
 import type {DayStatus} from "../type/day_status.ts";
 import type {IEmployee} from "../interface/employee.ts";
 import type {ILocation} from "../interface/location.ts";
 import type {IDepartment} from "../interface/department.ts";
 import type {leave_response} from "../type/leave_response.ts";
 import type { ExtendedError } from "socket.io/dist/namespace";
-import {authSignIn,authSignUp,authVerification} from "./auth.ts";
 import {runPayrollHandler,viewPayrollHistory} from "./events/admin.ts";
+import {authSignIn,authSignUp,authVerification} from "./auth.ts";
+import {createPolicyHandler,updatePolicyHandler} from "./crud/policy.ts";
 import {createShiftHandler,deleteShiftHandler,readShiftHandler,updateShiftHandler} from "./crud/shift.ts";
 import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
 import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
@@ -72,6 +74,8 @@ function startSocketServer() {
         socket.on("location.read",(locationId: string)=>readLocationHandler(socket,locationId));
         socket.on("location.update",(locationId: string, location:ILocation)=>updateLocationHandler(socket,locationId,location));
         socket.on("location.delete",(locationId: string)=>deleteLocationHandler(socket, locationId));
+        socket.on("policy.create",(policy: IPolicy)=>createPolicyHandler(socket,policy));
+        socket.on("policy.update",(policy:IPolicy)=>updatePolicyHandler(socket,policy));
     });
 }
 
