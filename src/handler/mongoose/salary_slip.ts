@@ -7,6 +7,8 @@ const salarySlipKey = (employeeId: string, month: string) => `salarySlip:${emplo
 
 async function createSalarySlip(salary: ISalary,attendance: ISalaryAttendance, employeeId: string, month: string): Promise<void> {
     try {
+        const salarySlip = await SalarySlip.findOne({employeeId,month});
+        if (salarySlip) await SalarySlip.deleteOne({employeeId,month});
         await SalarySlip.create({salary, attendance, employeeId, month});
         await redisClient.del(salarySlipKey(employeeId, month));
     } catch(error) {
