@@ -1,7 +1,7 @@
 import type {Socket} from "socket.io";
 import type {IPolicy} from "../../interface/policy.ts";
 import {errorEmission,messageEmission} from "../helper.ts";
-import {createPolicy,getLateInPenalty,updatePolicy} from "../mongoose/policy.ts";
+import {createPolicy, getLateInPenalty, readPolicy, updatePolicy} from "../mongoose/policy.ts";
 
 async function createPolicyHandler(socket: Socket, policy: IPolicy): Promise<void> {
     try {
@@ -45,6 +45,21 @@ async function updatePolicyHandler(socket: Socket, policy: IPolicy): Promise<voi
         errorEmission(socket, error);
     }
 }
+async function readPolicyHandler(socket: Socket): Promise<void> {
+    try {
+        if (socket.data.role !== "admin" && socket.data.role !== "HR") {
+            messageEmission(socket,"failed","only admin & HR are permitted.")
+            return;
+        }
+        const policy = await readPolicy();
+        if (!policy) {
+            messageEmission(socket,"failed","policy not exists.");
+            return;
+        }
+        messageEmission(socket,"success",policy);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
 
-
-export {createPolicyHandler,updatePolicyHandler};
+export {createPolicyHandler,updatePolicyHandler,readPolicyHandler};

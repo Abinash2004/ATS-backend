@@ -60,5 +60,13 @@ async function updatePolicy(policy: IPolicy): Promise<void> {
         console.log(error);
     }
 }
+async function readPolicy(): Promise<IPolicy | null> {
+    try {
+        return await Policy.findOne();
+    } catch(error) {
+        console.log(error);
+        return null;
+    }
+}
 
-export{getLateInPenalty,getEarlyOutPenalty,getBreakPerHourPenalty,getBreakLimitPenalty,createPolicy,updatePolicy};
+export{getLateInPenalty,getEarlyOutPenalty,getBreakPerHourPenalty,getBreakLimitPenalty,createPolicy,updatePolicy,readPolicy};

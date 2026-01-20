@@ -10,7 +10,7 @@ import type {leave_response} from "../type/leave_response.ts";
 import type { ExtendedError } from "socket.io/dist/namespace";
 import {runPayrollHandler,viewPayrollHistory} from "./events/admin.ts";
 import {authSignIn,authSignUp,authVerification} from "./auth.ts";
-import {createPolicyHandler,updatePolicyHandler} from "./crud/policy.ts";
+import {createPolicyHandler, readPolicyHandler, updatePolicyHandler} from "./crud/policy.ts";
 import {createShiftHandler,deleteShiftHandler,readShiftHandler,updateShiftHandler} from "./crud/shift.ts";
 import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
 import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
@@ -52,6 +52,7 @@ function startSocketServer() {
         socket.on("leave.response",(leaveId: string, response: leave_response) => leaveResponseHandler(socket, leaveId, response));
         socket.on("penalty.add",(employeeId: string, amount: Number, reason: string) => givePenaltyHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
         socket.on("bonus.add",(employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
+        socket.on("policy.view",() => readPolicyHandler(socket));
 
         //payroll section - only admin permitted
         socket.on("payroll.run",(endDate: string,startDate: string) => runPayrollHandler(socket, startDate, endDate));
