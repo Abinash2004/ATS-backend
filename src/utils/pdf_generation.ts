@@ -22,7 +22,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
 
     // TITLE
     text(20, BLACK, `Salary Slip - ${d.month}`, 40, 40, { align: "center" });
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     HR();
 
     // COMPANY
@@ -35,7 +35,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
     let y = doc.y;
     const row = (x: number, key: string, value: string | number): void => {
         text(13, BLACK, key, x, y);
-        text(14, BLACK, `:  ${value}`, x + 120, y);
+        text(14, BLACK, `:  ${value}`, x + 150, y);
         y += 24;
     };
 
@@ -62,23 +62,25 @@ export function generatePDF(d: ISalarySlipPDF): void {
 
     // SALARY
     y = doc.y + 35;
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     HR();
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     const salaryValues = Object.values(d.salary);
     [
         "Basic Salary",
+        "House Rental Allowance",
+        "Travel Allowance",
         "Advance Salary",
         "Overtime Wages",
         "Bonus Salary",
         "Penalty Amount",
         "Gross Salary"
     ].forEach((k, i) => row(40, k, salaryValues[i]));
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     HR();
 
     // FOOTER
     const year = new Date().getFullYear();
-    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,500,{ align: "center" });
+    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,530,{ align: "center" });
     doc.end();
 }

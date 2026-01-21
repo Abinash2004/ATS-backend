@@ -176,6 +176,8 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
             },
             salary: {
                 basic: (Math.round(basic*100)/100).toString(),
+                hra: (Math.round(hra*100)/100).toString(),
+                ta: (Math.round(ta*100)/100).toString(),
                 advance: (Math.round(advanceSalary*100)/100).toString(),
                 over_time: (Math.round(overTimeWages*100)/100).toString(),
                 bonus: (Math.round(totalBonus*100)/100).toString(),
