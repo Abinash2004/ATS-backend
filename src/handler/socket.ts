@@ -11,12 +11,13 @@ import type { ExtendedError } from "socket.io/dist/namespace";
 import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import {runPayrollHandler,viewPayrollHistory} from "./events/admin.ts";
 import {authSignIn,authSignUp,authVerification} from "./auth.ts";
-import {createPolicyHandler, readPolicyHandler, updatePolicyHandler} from "./crud/policy.ts";
+import {salaryTemplateCreateHandler,salaryTemplateUpdateHandler} from "./crud/salary_template.ts";
+import {createPolicyHandler,readPolicyHandler,updatePolicyHandler} from "./crud/policy.ts";
 import {createShiftHandler,deleteShiftHandler,readShiftHandler,updateShiftHandler} from "./crud/shift.ts";
 import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
 import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
 import {createDepartmentHandler,deleteDepartmentHandler,readDepartmentHandler,updateDepartmentHandler} from "./crud/department.ts";
-import {createAttendanceRecordHandler,generateAttendanceSheetHandler,giveBonusHandler,givePenaltyHandler,leaveResponseHandler,salaryTemplateCreateHandler,salaryTemplateUpdateHandler,viewAllAttendanceRecordHandler} from "./events/hr.ts";
+import {createAttendanceRecordHandler,generateAttendanceSheetHandler,giveBonusHandler,givePenaltyHandler,leaveResponseHandler,viewAllAttendanceRecordHandler} from "./events/hr.ts";
 import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,viewPenaltyHandler,viewBonusHandler} from "./events/employee.ts";
 
 function startAuthSocketServer() {

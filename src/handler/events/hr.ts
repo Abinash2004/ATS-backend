@@ -2,7 +2,6 @@ import type {Socket} from "socket.io";
 import type {IEmployee} from "../../interface/employee.ts";
 import type {IAttendance} from "../../interface/attendance.ts";
 import type {leave_response} from "../../type/leave_response.ts";
-import type {ISalaryTemplate} from "../../interface/salary_template.ts";
 import type {IAttendanceSheet} from "../../interface/attendance_sheet.ts";
 import Attendance from "../../model/attendance.ts";
 import {getShift} from "../mongoose/shift.ts";
@@ -11,8 +10,6 @@ import {createBonus} from "../mongoose/bonus.ts";
 import {createPenalty} from "../mongoose/penalty.ts";
 import {generateSheet} from "../../utils/sheet_generation.ts";
 import {getAllEmployeesList} from "../mongoose/employee.ts";
-import {isValidSalaryTemplate} from "../../utils/validations.ts";
-import {createSalaryTemplate,updateSalaryTemplate} from "../mongoose/salary_template.ts";
 import {dateToIST,formatHoursMinutes,getDayName,getFirstDayUtc,getLastDayUtc,toMonthName} from "../../utils/date_time.ts";
 import {getAllAttendanceRecord,getEmployeeAttendanceRecordMonthWise,getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
 import {attendanceFirstHalfHandler,attendanceFullDayHandler,attendanceHolidayHandler,attendanceSecondHalfHandler} from "../attendance.ts";
@@ -177,32 +174,6 @@ async function givePenaltyHandler(socket:Socket, currEmpId: string, employeeId: 
         errorEmission(socket,error);
     }
 }
-async function salaryTemplateCreateHandler(socket: Socket, salaryTemplate: ISalaryTemplate) {
-    try {
-        if (socket.data.role !== "admin" && socket.data.role !== "HR") {
-            messageEmission(socket,"failed","only admin & HR are permitted.");
-            return;
-        }
-        if (!isValidSalaryTemplate(socket, salaryTemplate)) return;
-        await createSalaryTemplate(salaryTemplate);
-        messageEmission(socket,"success","salary template created successfully.");
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
-async function salaryTemplateUpdateHandler(socket: Socket, salaryTemplateId: string, salaryTemplate: ISalaryTemplate) {
-    try {
-        if (socket.data.role !== "admin" && socket.data.role !== "HR") {
-            messageEmission(socket,"failed","only admin & HR are permitted.");
-            return;
-        }
-        if (!isValidSalaryTemplate(socket, salaryTemplate)) return;
-        await updateSalaryTemplate(salaryTemplateId,salaryTemplate);
-        messageEmission(socket,"success","salary template created successfully.");
-    } catch(error) {
-        errorEmission(socket,error);
-    }
-}
 
 export {
     createAttendanceRecordHandler,
@@ -210,7 +181,5 @@ export {
     generateAttendanceSheetHandler,
     leaveResponseHandler,
     giveBonusHandler,
-    givePenaltyHandler,
-    salaryTemplateCreateHandler,
-    salaryTemplateUpdateHandler
+    givePenaltyHandler
 };
