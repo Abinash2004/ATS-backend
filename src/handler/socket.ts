@@ -8,6 +8,7 @@ import type {ILocation} from "../interface/location.ts";
 import type {IDepartment} from "../interface/department.ts";
 import type {leave_response} from "../type/leave_response.ts";
 import type { ExtendedError } from "socket.io/dist/namespace";
+import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import {runPayrollHandler,viewPayrollHistory} from "./events/admin.ts";
 import {authSignIn,authSignUp,authVerification} from "./auth.ts";
 import {createPolicyHandler, readPolicyHandler, updatePolicyHandler} from "./crud/policy.ts";
@@ -15,7 +16,7 @@ import {createShiftHandler,deleteShiftHandler,readShiftHandler,updateShiftHandle
 import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
 import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
 import {createDepartmentHandler,deleteDepartmentHandler,readDepartmentHandler,updateDepartmentHandler} from "./crud/department.ts";
-import {createAttendanceRecordHandler,generateAttendanceSheetHandler,giveBonusHandler,givePenaltyHandler,leaveResponseHandler,viewAllAttendanceRecordHandler} from "./events/hr.ts";
+import {createAttendanceRecordHandler,generateAttendanceSheetHandler,giveBonusHandler,givePenaltyHandler,leaveResponseHandler,salaryTemplateCreateHandler,salaryTemplateUpdateHandler,viewAllAttendanceRecordHandler} from "./events/hr.ts";
 import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,viewPenaltyHandler,viewBonusHandler} from "./events/employee.ts";
 
 function startAuthSocketServer() {
@@ -53,6 +54,8 @@ function startSocketServer() {
         socket.on("penalty.add",(employeeId: string, amount: Number, reason: string) => givePenaltyHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
         socket.on("bonus.add",(employeeId: string, amount: Number, reason: string) => giveBonusHandler(socket, employee.departmentId.toString(), employeeId, amount, reason));
         socket.on("policy.view",() => readPolicyHandler(socket));
+        socket.on("salary_template.create", (salaryTemplate: ISalaryTemplate) => salaryTemplateCreateHandler(socket, salaryTemplate));
+        socket.on("salary_template.update", (salaryTemplateId: string,salaryTemplate: ISalaryTemplate) => salaryTemplateUpdateHandler(socket,salaryTemplateId, salaryTemplate));
 
         //payroll section - only admin permitted
         socket.on("payroll.run",(endDate: string,startDate: string) => runPayrollHandler(socket, startDate, endDate));

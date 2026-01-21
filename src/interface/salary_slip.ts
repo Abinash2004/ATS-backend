@@ -10,6 +10,8 @@ export interface ISalaryAttendance {
 
 export interface ISalary {
     basic_salary: number;
+    hra: number,
+    ta: number,
     advance_salary: number;
     over_time_wages: number;
     bonus_salary: number;

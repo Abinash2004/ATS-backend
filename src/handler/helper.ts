@@ -4,10 +4,11 @@ import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
+import {readSalaryTemplate} from "./mongoose/salary_template.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
+import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
-import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 
 function errorEmission(socket: Socket, error: unknown) :void {
     socket.emit("server_response",{
@@ -67,6 +68,24 @@ async function calculateShiftSalary(shiftId: string, start: Date, end: Date, sal
     try {
         const shiftCount = await calculateWorkingShift(shiftId,start,end);
         return salary/shiftCount;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+async function calculateShiftHRA(shiftId: string, start: Date, end: Date, hra: number): Promise<number> {
+    try {
+        const shiftCount = await calculateWorkingShift(shiftId,start,end);
+        return hra/shiftCount;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+async function calculateShiftTA(shiftId: string, start: Date, end: Date, ta: number): Promise<number> {
+    try {
+        const shiftCount = await calculateWorkingShift(shiftId,start,end);
+        return ta/shiftCount;
     } catch(error) {
         console.log(error);
         return 0;
@@ -170,6 +189,26 @@ async function checkBreakPenalty(breaks: IBreak[], currentTime: Date): Promise<n
     }
     return penalty;
 }
+async function getSalaryTemplateData(employeeId: string, salary: number) {
+    try {
+        let monthlyBasic = salary;
+        let monthlyHRA = 0;
+        let monthlyTA = 0;
+        const salaryTemplate = await readSalaryTemplate(employeeId);
+        if (salaryTemplate) {
+            monthlyBasic = salary * (salaryTemplate.basic_percentage/100);
+            monthlyHRA = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
+            monthlyTA = (salaryTemplate.ta_type === "percentage") ? salary * (salaryTemplate.ta/100) : salaryTemplate.ta;
+        }
+        return {monthlyBasic, monthlyHRA, monthlyTA};
+    } catch(error) {
+        let monthlyBasic = salary;
+        let monthlyHRA = 0;
+        let monthlyTA = 0;
+        console.log(error);
+        return {monthlyBasic, monthlyHRA, monthlyTA};
+    }
+}
 
 export {
     errorEmission,
@@ -177,10 +216,13 @@ export {
     getShiftData,
     getShiftTimings,
     calculateShiftSalary,
+    calculateShiftHRA,
+    calculateShiftTA,
     calculateOvertimePay,
     calculateWorkingShift,
     calculateOvertimeMinutes,
     calculateTotalWorkingShift,
     checkMonthValidationAndCurrentDate,
-    checkBreakPenalty
+    checkBreakPenalty,
+    getSalaryTemplateData
 };

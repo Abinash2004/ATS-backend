@@ -1,6 +1,9 @@
 import {Types} from "mongoose";
+import type {Socket} from "socket.io";
 import type {IEmployee} from "../interface/employee.ts";
+import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import type {ICredentialsValidationResponse} from "../interface/auth.ts";
+import {messageEmission} from "../handler/helper.ts";
 
 function isString(str: unknown): boolean {
     return typeof str === 'string' && str.trim().length > 0;
@@ -38,5 +41,24 @@ function isValidMonthYear(value: string): boolean {
     const y = Number(year);
     return y >= 1900 && y <= 2100;
 }
+function isValidSalaryTemplate(socket: Socket, salaryTemplate: ISalaryTemplate) {
+    if (!salaryTemplate.hra || !salaryTemplate.ta || !salaryTemplate.hra_type || !salaryTemplate.ta_type) {
+        messageEmission(socket, "failed", "invalid salaryTemplate, some values are missing.");
+        return false;
+    }
+    if (salaryTemplate.hra_type === "percentage" && (salaryTemplate.hra < 0 || salaryTemplate.hra > 100)) {
+        messageEmission(socket, "failed", "HRA percentage must be between 0 and 100");
+        return false;
+    }
+    if (salaryTemplate.ta_type === "percentage" && (salaryTemplate.ta < 0 || salaryTemplate.ta > 100)) {
+        messageEmission(socket, "failed", "TA percentage must be between 0 and 100");
+        return false;
+    }
+    if (salaryTemplate.basic_percentage && (salaryTemplate.basic_percentage < 0 || salaryTemplate.basic_percentage > 100)) {
+        messageEmission(socket, "failed", "basic percentage must be between 0 and 100");
+        return false;
+    }
+    return true;
+}
 
-export {isNumber,isObject,isString,validateAuthCredentials,isValidMonthYear};
+export {isNumber,isObject,isString,validateAuthCredentials,isValidMonthYear,isValidSalaryTemplate};

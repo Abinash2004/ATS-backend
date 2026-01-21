@@ -6,6 +6,18 @@ const salarySchema = new mongoose.Schema<ISalary>({
         type: Number,
         required: true
     },
+    hra: {
+        type: Number,
+        required: true
+    },
+    ta: {
+        type: Number,
+        required: true
+    },
+    advance_salary: {
+      type: Number,
+      required: true
+    },
     over_time_wages: {
         type: Number,
         required: true
