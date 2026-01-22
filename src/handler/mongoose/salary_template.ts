@@ -19,7 +19,7 @@ async function updateSalaryTemplate(salaryTemplateId: string, salaryTemplate:ISa
 }
 async function readSalaryTemplate(employeeId: string): Promise<ISalaryTemplate | null> {
     try {
-        return await SalaryTemplate.findOne({employeeIds : employeeId});
+        return await SalaryTemplate.findOne({employeeIds : employeeId},{_id:0,employeeIds:0,__v:0,});
     } catch(error) {
         console.error(error);
         return null;
