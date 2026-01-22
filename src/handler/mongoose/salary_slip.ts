@@ -40,5 +40,13 @@ async function getTotalEPFAmount(employeeId: string): Promise<number> {
         return 0;
     }
 }
+async function resolveAdvancePayrollEPF(month: string, employeeId: string, epfAmount: number) {
+    try {
+        const salarySlip = await SalarySlip.findOne({month,employeeId});
+        if (salarySlip) await SalarySlip.updateOne({month,employeeId},{"salary.epf_amount": salarySlip.salary.epf_amount - epfAmount});
+    } catch(error) {
+        console.error(error);
+    }
+}
 
-export {createSalarySlip,getMonthlyEmployeeSalarySlip,getTotalEPFAmount};
+export {createSalarySlip,getMonthlyEmployeeSalarySlip,getTotalEPFAmount,resolveAdvancePayrollEPF};
