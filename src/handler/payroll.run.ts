@@ -9,13 +9,13 @@ import {getDepartment} from "./mongoose/department.ts";
 import {getBonusByDate} from "./mongoose/bonus.ts";
 import {getAllEmployeesList} from "./mongoose/employee.ts";
 import {createPayrollRecord} from "./mongoose/payroll_record.ts";
+import {getEPFCap,getEPFPercentage} from "./mongoose/policy.ts";
 import {createPenalty,getPenaltyByDate} from "./mongoose/penalty.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {createSalarySlip,resolveAdvancePayrollEPF} from "./mongoose/salary_slip.ts";
 import {createAdvancePayroll,resolveAdvancePayroll} from "./mongoose/advance_payroll.ts";
 import {dateToIST,dateToMonthYear,formatHoursMinutes,formatMonthYear,getDayName} from "../utils/date_time.ts";
 import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftHRA,calculateShiftSalary,calculateShiftDA,calculateTotalWorkingShift,getSalaryTemplateData,messageEmission} from "./helper.ts";
-import {getEPFCap, getEPFPercentage} from "./mongoose/policy.ts";
 
 const redisURI = "redis://localhost:6379/0";
 export const payrollQueue = new Queue("payroll", {connection: {url: redisURI}});
@@ -66,30 +66,32 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
             let advancePayrollAttendance = await getEmployeeAttendanceRecordDateWise(emp._id.toString(),pendingAdvancePayroll.start_date, pendingAdvancePayroll.end_date);
             let advanceBasic = 0;
             let advanceDA = 0;
+            let shiftEPF = (shiftSalary + shiftDA < epfCap) ? ((shiftSalary + shiftDA) * (epfPercentage/100)) : (epfCap * (epfPercentage/100));
             for (let att of advancePayrollAttendance) {
                 if (shiftId !== att.shiftId.toString()) {
                     shiftId = att.shiftId.toString();
                     shiftSalary = await calculateShiftSalary(shiftId,start,end, monthlyBasic);
                     shiftHRA = await calculateShiftHRA(shiftId,start, end, monthlyHRA);
                     shiftDA = await calculateShiftDA(shiftId,start, end, monthlyDA);
+                    shiftEPF = (shiftSalary + shiftDA < epfCap) ? ((shiftSalary + shiftDA) * (epfPercentage/100)) : (epfCap * (epfPercentage/100));
                 }
                 if (att.first_half === "absent") {
                     advanceBasic += shiftSalary;
                     advanceDA += shiftDA;
-                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100;
+                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100 - Math.round(shiftEPF*100)/100;
                     await createPenalty(emp._id.toString(),totalPenalty, `remain absent on first half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                 }
                 if (att.second_half === "absent") {
                     advanceBasic += shiftSalary;
                     advanceDA += shiftDA;
-                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100;
+                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100 - Math.round(shiftEPF*100)/100;
                     await createPenalty(emp._id.toString(),totalPenalty, `remain absent on second half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                 }
                 overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
                 overTimeWages += await calculateOvertimePay(att, emp._id.toString(), shiftSalary);
-                const advanceEPF = (advanceBasic + advanceDA < epfCap) ? ((advanceBasic + advanceDA) * (epfPercentage/100)) : (epfCap * (epfPercentage/100));
-                if ((advanceBasic + advanceDA) > 0) await resolveAdvancePayrollEPF(formatMonthYear(start),emp._id.toString(),advanceEPF);
             }
+            const advanceEPF = (advanceBasic + advanceDA < epfCap) ? ((advanceBasic + advanceDA) * (epfPercentage/100)) : (epfCap * (epfPercentage/100));
+            if ((advanceBasic + advanceDA) > 0) await resolveAdvancePayrollEPF(formatMonthYear(pendingAdvancePayroll.start_date),emp._id.toString(),advanceEPF);
         }
 
         let totalPenalties = await getPenaltyByDate(emp._id.toString(),start,end);
