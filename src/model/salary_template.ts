@@ -17,11 +17,11 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
         enum: ["fixed", "percentage"],
         default: "fixed"
     },
-    ta: {
+    da: {
         type: Number,
         required: true
     },
-    ta_type: {
+    da_type: {
         type: String,
         enum: ["fixed", "percentage"],
         default: "fixed"

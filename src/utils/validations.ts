@@ -42,7 +42,7 @@ function isValidMonthYear(value: string): boolean {
     return y >= 1900 && y <= 2100;
 }
 function isValidSalaryTemplate(socket: Socket, salaryTemplate: ISalaryTemplate) {
-    if (!salaryTemplate.hra || !salaryTemplate.ta || !salaryTemplate.hra_type || !salaryTemplate.ta_type) {
+    if (!salaryTemplate.hra || !salaryTemplate.da || !salaryTemplate.hra_type || !salaryTemplate.da_type) {
         messageEmission(socket, "failed", "invalid salaryTemplate, some values are missing.");
         return false;
     }
@@ -50,7 +50,7 @@ function isValidSalaryTemplate(socket: Socket, salaryTemplate: ISalaryTemplate) 
         messageEmission(socket, "failed", "HRA percentage must be between 0 and 100");
         return false;
     }
-    if (salaryTemplate.ta_type === "percentage" && (salaryTemplate.ta < 0 || salaryTemplate.ta > 100)) {
+    if (salaryTemplate.da_type === "percentage" && (salaryTemplate.da < 0 || salaryTemplate.da > 100)) {
         messageEmission(socket, "failed", "TA percentage must be between 0 and 100");
         return false;
     }

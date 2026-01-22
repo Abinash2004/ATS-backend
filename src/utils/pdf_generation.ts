@@ -69,7 +69,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
     [
         "Basic Salary",
         "House Rental Allowance",
-        "Travel Allowance",
+        "Dearness Allowance",
         "Advance Salary",
         "Overtime Wages",
         "Bonus Salary",

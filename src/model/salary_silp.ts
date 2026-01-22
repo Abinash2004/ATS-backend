@@ -10,7 +10,7 @@ const salarySchema = new mongoose.Schema<ISalary>({
         type: Number,
         required: true
     },
-    ta: {
+    da: {
         type: Number,
         required: true
     },

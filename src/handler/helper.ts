@@ -82,10 +82,10 @@ async function calculateShiftHRA(shiftId: string, start: Date, end: Date, hra: n
         return 0;
     }
 }
-async function calculateShiftTA(shiftId: string, start: Date, end: Date, ta: number): Promise<number> {
+async function calculateShiftDA(shiftId: string, start: Date, end: Date, da: number): Promise<number> {
     try {
         const shiftCount = await calculateWorkingShift(shiftId,start,end);
-        return ta/shiftCount;
+        return da/shiftCount;
     } catch(error) {
         console.log(error);
         return 0;
@@ -193,20 +193,20 @@ async function getSalaryTemplateData(employeeId: string, salary: number) {
     try {
         let monthlyBasic = salary;
         let monthlyHRA = 0;
-        let monthlyTA = 0;
+        let monthlyDA = 0;
         const salaryTemplate = await readSalaryTemplate(employeeId);
         if (salaryTemplate) {
             monthlyBasic = salary * (salaryTemplate.basic_percentage/100);
             monthlyHRA = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
-            monthlyTA = (salaryTemplate.ta_type === "percentage") ? salary * (salaryTemplate.ta/100) : salaryTemplate.ta;
+            monthlyDA = (salaryTemplate.da_type === "percentage") ? salary * (salaryTemplate.da/100) : salaryTemplate.da;
         }
-        return {monthlyBasic, monthlyHRA, monthlyTA};
+        return {monthlyBasic, monthlyHRA, monthlyDA};
     } catch(error) {
         let monthlyBasic = salary;
         let monthlyHRA = 0;
-        let monthlyTA = 0;
+        let monthlyDA = 0;
         console.log(error);
-        return {monthlyBasic, monthlyHRA, monthlyTA};
+        return {monthlyBasic, monthlyHRA, monthlyDA};
     }
 }
 
@@ -217,7 +217,7 @@ export {
     getShiftTimings,
     calculateShiftSalary,
     calculateShiftHRA,
-    calculateShiftTA,
+    calculateShiftDA,
     calculateOvertimePay,
     calculateWorkingShift,
     calculateOvertimeMinutes,

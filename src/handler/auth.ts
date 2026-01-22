@@ -25,7 +25,7 @@ async function authSignUp(socket: Socket, employee: IEmployee) {
 async function authSignIn(socket: Socket, employee: IEmployee) {
     const message = validateAuthCredentials(employee, false);
     if (!message.status) return socket.emit("sign_in_response", { status: "failed", message: message.message});
-    const employeeData: IEmployee | undefined = await getEmployeeDataByEmail(employee.email);
+    const employeeData: IEmployee | null = await getEmployeeDataByEmail(employee.email);
     if (!employeeData) return socket.emit("sign_in_response", { status: "failed", message: "employee not found with this email"});
     if (!await bcrypt.compare(employee.password, employeeData.password)) {
         return socket.emit("sign_in_response", { status: "failed", message: "invalid password."});
@@ -41,7 +41,7 @@ async function authVerification(socket: Socket, next: (err?: ExtendedError) => v
         if (!authHeader?.startsWith("Bearer ")) return next(new Error("Authentication token missing."));
         const token = authHeader?.split(" ")[1];
         const email = verifyToken(token);
-        const employee: IEmployee | undefined = await getEmployeeDataByEmail(email);
+        const employee: IEmployee | null = await getEmployeeDataByEmail(email);
         if (!employee) return next(new Error("Employee not found."));
 
         if(employee.role === "admin" && adminPassword) {

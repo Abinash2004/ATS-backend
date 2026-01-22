@@ -14,7 +14,7 @@ import {createPenalty,getPenaltyByDate} from "./mongoose/penalty.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {createAdvancePayroll,resolveAdvancePayroll} from "./mongoose/advance_payroll.ts";
 import {dateToIST,dateToMonthYear,formatHoursMinutes,formatMonthYear,getDayName} from "../utils/date_time.ts";
-import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftHRA,calculateShiftSalary,calculateShiftTA,calculateTotalWorkingShift,getSalaryTemplateData,messageEmission} from "./helper.ts";
+import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftHRA,calculateShiftSalary,calculateShiftDA,calculateTotalWorkingShift,getSalaryTemplateData,messageEmission} from "./helper.ts";
 
 const redisURI = "redis://localhost:6379/0";
 export const payrollQueue = new Queue("payroll", {connection: {url: redisURI}});
@@ -41,7 +41,7 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
     try {
         let basic = 0;
         let hra = 0;
-        let ta = 0;
+        let da = 0;
         let advanceSalary = 0;
         let overTimeWages = 0;
         let presentShift = 0;
@@ -53,10 +53,10 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
         let workingShift = await calculateTotalWorkingShift(emp._id.toString(), start,end);
         let shiftId: string = emp.shiftId.toString();
         if (attendance.length !== 0) shiftId = attendance[0].shiftId.toString();
-        const {monthlyBasic, monthlyHRA, monthlyTA} = await getSalaryTemplateData(emp._id.toString(),emp.salary);
+        const {monthlyBasic, monthlyHRA, monthlyDA} = await getSalaryTemplateData(emp._id.toString(),emp.salary);
         let shiftSalary = await calculateShiftSalary(shiftId,start,end, monthlyBasic);
         let shiftHRA = await calculateShiftHRA(shiftId,start, end, monthlyHRA);
-        let shiftTA = await calculateShiftTA(shiftId,start, end, monthlyTA);
+        let shiftDA = await calculateShiftDA(shiftId,start, end, monthlyDA);
 
         //resolve advance payroll
         if (isPendingAdvancePayroll && pendingAdvancePayroll) {
@@ -66,14 +66,14 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
                     shiftId = att.shiftId.toString();
                     shiftSalary = await calculateShiftSalary(shiftId,start,end, monthlyBasic);
                     shiftHRA = await calculateShiftHRA(shiftId,start, end, monthlyHRA);
-                    shiftTA = await calculateShiftTA(shiftId,start, end, monthlyTA);
+                    shiftDA = await calculateShiftDA(shiftId,start, end, monthlyDA);
                 }
                 if (att.first_half === "absent") {
-                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftTA*100)/100;
+                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100;
                     await createPenalty(emp._id.toString(),totalPenalty, `remain absent on first half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                 }
                 if (att.second_half === "absent") {
-                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftTA*100)/100;
+                    const totalPenalty = Math.round(shiftSalary*100)/100 + Math.round(shiftHRA*100)/100 + Math.round(shiftDA*100)/100;
                     await createPenalty(emp._id.toString(),totalPenalty, `remain absent on second half ${dateToIST(att.attendance_date)}, advance payment deducted.`);
                 }
                 overtimeMinutes += await calculateOvertimeMinutes(att,emp._id.toString());
@@ -87,28 +87,28 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
                 shiftId = att.shiftId.toString();
                 shiftSalary = await calculateShiftSalary(shiftId,start,end, monthlyBasic);
                 shiftHRA = await calculateShiftHRA(shiftId,start, end, monthlyHRA);
-                shiftTA = await calculateShiftTA(shiftId,start, end, monthlyTA);
+                shiftDA = await calculateShiftDA(shiftId,start, end, monthlyDA);
             }
             if (att.first_half === "present") {
                 basic += shiftSalary;
                 hra += shiftHRA;
-                ta += shiftTA;
+                da += shiftDA;
                 presentShift++;
 
             } if(att.first_half === "paid_leave") {
                 basic += shiftSalary;
                 hra += shiftHRA;
-                ta += shiftTA;
+                da += shiftDA;
                 paidLeave++;
             } if (att.second_half === "present") {
                 basic += shiftSalary;
                 hra += shiftHRA;
-                ta += shiftTA;
+                da += shiftDA;
                 presentShift++;
             } if (att.second_half === "paid_leave") {
                 basic += shiftSalary;
                 hra += shiftHRA;
-                ta += shiftTA;
+                da += shiftDA;
                 paidLeave++;
             }
             if (att.first_half === "absent") absentShift++;
@@ -136,12 +136,12 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
         const salaryObject: ISalary = {
             basic_salary: Math.round(basic*100)/100,
             hra: Math.round(hra*100)/100,
-            ta: Math.round(ta*100)/100,
+            da: Math.round(da*100)/100,
             advance_salary: Math.round(advanceSalary*100)/100,
             over_time_wages: Math.round(overTimeWages*100)/100,
             bonus_salary: Math.round(totalBonus*100)/100,
             penalty_amount: Math.round(totalPenalties*100)/100,
-            gross_salary: Math.round((basic + hra + ta + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100
+            gross_salary: Math.round((basic + hra + da + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100
         };
         const attendanceObject: ISalaryAttendance = {
             working_shifts: workingShift,
@@ -177,7 +177,7 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
             salary: {
                 basic: (Math.round(basic*100)/100).toString(),
                 hra: (Math.round(hra*100)/100).toString(),
-                ta: (Math.round(ta*100)/100).toString(),
+                da: (Math.round(da*100)/100).toString(),
                 advance: (Math.round(advanceSalary*100)/100).toString(),
                 over_time: (Math.round(overTimeWages*100)/100).toString(),
                 bonus: (Math.round(totalBonus*100)/100).toString(),
