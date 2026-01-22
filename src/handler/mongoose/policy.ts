@@ -41,6 +41,26 @@ async function getBreakLimitPenalty(): Promise<number> {
         return 500;
     }
 }
+async function getEPFPercentage(): Promise<number> {
+    try {
+        const policy = await Policy.findOne({});
+        if (!policy) return 0;
+        return policy.epf_percentage;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
+async function getEPFCap(): Promise<number> {
+    try {
+        const policy = await Policy.findOne({});
+        if (!policy) return 0;
+        return policy.epf_cap;
+    } catch(error) {
+        console.log(error);
+        return 0;
+    }
+}
 async function createPolicy(policy: IPolicy): Promise<void> {
     try {
         await Policy.create(policy);
@@ -50,12 +70,7 @@ async function createPolicy(policy: IPolicy): Promise<void> {
 }
 async function updatePolicy(policy: IPolicy): Promise<void> {
     try {
-        await Policy.updateOne({},{
-            late_in: policy.late_in,
-            early_out: policy.early_out,
-            break_per_hour: policy.break_per_hour,
-            break_limit: policy.break_limit
-        });
+        await Policy.updateOne({},policy);
     } catch(error) {
         console.log(error);
     }
@@ -69,4 +84,4 @@ async function readPolicy(): Promise<IPolicy | null> {
     }
 }
 
-export{getLateInPenalty,getEarlyOutPenalty,getBreakPerHourPenalty,getBreakLimitPenalty,createPolicy,updatePolicy,readPolicy};
+export{getLateInPenalty,getEarlyOutPenalty,getBreakPerHourPenalty,getBreakLimitPenalty,getEPFPercentage,getEPFCap,createPolicy,updatePolicy,readPolicy};

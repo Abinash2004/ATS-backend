@@ -18,6 +18,16 @@ const policySchema = new mongoose.Schema<IPolicy>({
         type: Number,
         required: true,
     },
+    epf_percentage: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 12
+    },
+    epf_cap: {
+        type: Number,
+        default: 15000
+    }
 });
 
 const Policy = mongoose.model<IPolicy>("policy", policySchema);
