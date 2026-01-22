@@ -15,6 +15,7 @@ import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.
 import {createAdvancePayroll,resolveAdvancePayroll} from "./mongoose/advance_payroll.ts";
 import {dateToIST,dateToMonthYear,formatHoursMinutes,formatMonthYear,getDayName} from "../utils/date_time.ts";
 import {calculateOvertimeMinutes,calculateOvertimePay,calculateShiftHRA,calculateShiftSalary,calculateShiftDA,calculateTotalWorkingShift,getSalaryTemplateData,messageEmission} from "./helper.ts";
+import {getEPFCap, getEPFPercentage} from "./mongoose/policy.ts";
 
 const redisURI = "redis://localhost:6379/0";
 export const payrollQueue = new Queue("payroll", {connection: {url: redisURI}});
@@ -133,6 +134,9 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
             advanceSalary = shiftSalary * shiftCount;
             end = actualEndDate;
         }
+        const epfCap = await getEPFCap();
+        const epfPercentage = await getEPFPercentage();
+        const epf = (basic + da < epfCap) ? ((basic + da) * (epfPercentage/100)) : (epfCap * (epfPercentage/100));
         const salaryObject: ISalary = {
             basic_salary: Math.round(basic*100)/100,
             hra: Math.round(hra*100)/100,
@@ -141,7 +145,8 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
             over_time_wages: Math.round(overTimeWages*100)/100,
             bonus_salary: Math.round(totalBonus*100)/100,
             penalty_amount: Math.round(totalPenalties*100)/100,
-            gross_salary: Math.round((basic + hra + da + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100
+            epf_amount: Math.round(epf*100)/100,
+            gross_salary: Math.round((basic + hra + da + advanceSalary + overTimeWages + totalBonus - totalPenalties - epf)*100)/100
         };
         const attendanceObject: ISalaryAttendance = {
             working_shifts: workingShift,
@@ -182,7 +187,8 @@ async function runEmployeePayroll(emp: IEmployee,start: Date,end: Date,isPending
                 over_time: (Math.round(overTimeWages*100)/100).toString(),
                 bonus: (Math.round(totalBonus*100)/100).toString(),
                 penalty: (Math.round(totalPenalties*100)/100).toString(),
-                gross: (Math.round((basic + advanceSalary + overTimeWages + totalBonus - totalPenalties)*100)/100).toString()
+                epf: (Math.round(epf*100)/100).toString(),
+                gross: (Math.round((basic + advanceSalary + overTimeWages + totalBonus - totalPenalties - epf)*100)/100).toString()
             }
         });
     } catch(error) {
