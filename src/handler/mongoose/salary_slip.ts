@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import {redisClient} from "../../config/redis.ts";
 import SalarySlip from "../../model/salary_silp.ts";
 import type {ISalary,ISalaryAttendance,ISalarySlip} from "../../interface/salary_slip.ts";
@@ -27,5 +28,17 @@ async function getMonthlyEmployeeSalarySlip(month: string, employeeId: string): 
         return [];
     }
 }
+async function getTotalEPFAmount(employeeId: string): Promise<number> {
+    try {
+        const result = await SalarySlip.aggregate([
+            {$match: {employeeId:new mongoose.Types.ObjectId(employeeId)}},
+            {$group: {_id: employeeId,totalEPF: {$sum: "$salary.epf_amount"}}}
+        ]);
+        return result[0].totalEPF;
+    } catch (error) {
+        console.error(error);
+        return 0;
+    }
+}
 
-export {createSalarySlip,getMonthlyEmployeeSalarySlip};
+export {createSalarySlip,getMonthlyEmployeeSalarySlip,getTotalEPFAmount};

@@ -9,9 +9,9 @@ import {getEmployeeBonus} from "../mongoose/bonus.ts";
 import {isValidMonthYear} from "../../utils/validations.ts";
 import {getEmployeePenalty} from "../mongoose/penalty.ts";
 import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
-import {getMonthlyEmployeeSalarySlip} from "../mongoose/salary_slip.ts";
 import {dateToIST,formatHoursMinutes} from "../../utils/date_time.ts";
 import {getShiftData,errorEmission,messageEmission} from "../helper.ts";
+import {getMonthlyEmployeeSalarySlip,getTotalEPFAmount} from "../mongoose/salary_slip.ts";
 import {addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak} from "../mongoose/attendance.ts";
 
 async function clockInHandler(socket: Socket,employee: IEmployee, reason: string): Promise<void> {
@@ -149,6 +149,14 @@ async function viewPenaltyHandler(socket:Socket, employeeId: string) {
         errorEmission(socket,error);
     }
 }
+async function viewEPFHandler(socket:Socket, employeeId: string) {
+    try {
+        const epfAmount = await getTotalEPFAmount(employeeId);
+        messageEmission(socket,"success",`total epf amount till now: ${epfAmount}`);
+    } catch(error) {
+        errorEmission(socket,error);
+    }
+}
 
 export {
     clockInHandler,
@@ -160,5 +168,6 @@ export {
     viewEmployeeAttendanceHandler,
     viewEmployeeSalaryHandler,
     viewBonusHandler,
-    viewPenaltyHandler
+    viewPenaltyHandler,
+    viewEPFHandler
 };

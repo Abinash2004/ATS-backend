@@ -11,18 +11,14 @@ import type { ExtendedError } from "socket.io/dist/namespace";
 import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import {runPayrollHandler,viewPayrollHistory} from "./events/admin.ts";
 import {authSignIn,authSignUp,authVerification} from "./auth.ts";
-import {
-    salaryTemplateCreateHandler,
-    salaryTemplateReadHandler,
-    salaryTemplateUpdateHandler
-} from "./crud/salary_template.ts";
 import {createPolicyHandler,readPolicyHandler,updatePolicyHandler} from "./crud/policy.ts";
 import {createShiftHandler,deleteShiftHandler,readShiftHandler,updateShiftHandler} from "./crud/shift.ts";
+import {salaryTemplateCreateHandler,salaryTemplateReadHandler,salaryTemplateUpdateHandler} from "./crud/salary_template.ts";
 import {createEmployeeHandler,deleteEmployeeHandler,readEmployeeHandler,updateEmployeeHandler} from "./crud/employee.ts";
 import {createLocationHandler,deleteLocationHandler,readLocationHandler,updateLocationHandler} from "./crud/location.ts";
 import {createDepartmentHandler,deleteDepartmentHandler,readDepartmentHandler,updateDepartmentHandler} from "./crud/department.ts";
 import {createAttendanceRecordHandler,generateAttendanceSheetHandler,giveBonusHandler,givePenaltyHandler,leaveResponseHandler,viewAllAttendanceRecordHandler} from "./events/hr.ts";
-import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,viewPenaltyHandler,viewBonusHandler} from "./events/employee.ts";
+import {breakHandler,clockInHandler,clockOutHandler,leaveRequestHandler,resolvePendingAttendanceHandler,statusHandler,viewEmployeeAttendanceHandler,viewEmployeeSalaryHandler,viewPenaltyHandler,viewBonusHandler,viewEPFHandler} from "./events/employee.ts";
 
 function startAuthSocketServer() {
     const authNamespace = io.of("/auth");
@@ -51,6 +47,7 @@ function startSocketServer() {
         socket.on("attendance.resolve",(attendanceId: string, clockOutTime: string) => resolvePendingAttendanceHandler(socket, attendanceId, clockOutTime));
         socket.on("attendance.employee.view",() => viewEmployeeAttendanceHandler(socket,employee._id.toString()));
         socket.on("salary_template.read", () => salaryTemplateReadHandler(socket, employee._id.toString()));
+        socket.on("epf.view",() => viewEPFHandler(socket,employee._id.toString()));
 
         //attendance + leave approval + bonus + penalty section - only HR / admin are permitted
         socket.on("attendance.generate",() => createAttendanceRecordHandler(socket));
