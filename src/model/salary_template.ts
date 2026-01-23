@@ -2,11 +2,14 @@ import mongoose, {Schema} from "mongoose";
 import type {ISalaryTemplate} from "../interface/salary_template.ts";
 
 const salaryTemplateSchema = new Schema<ISalaryTemplate>({
-    basic_percentage: {
+    basic: {
         type: Number,
-        default: 100,
-        min: 0,
-        max: 100
+        required: true
+    },
+    basic_type: {
+        type: String,
+        enum: ["fixed", "percentage"],
+        default: "fixed"
     },
     hra: {
         type: Number,

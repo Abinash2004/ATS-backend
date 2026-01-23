@@ -7,7 +7,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
     const dirPath = path.join("salary_slips", d.month);
     const filePath = path.join(dirPath, `${d.employee.email}.pdf`);
     fs.mkdirSync(dirPath, { recursive: true });
-    const doc = new PDFDocument({size: "A4",layout: "landscape",margin: 30});
+    const doc = new PDFDocument({size: "A4",layout: "landscape",margin: 15});
     doc.pipe(fs.createWriteStream(filePath));
 
     const BLACK = "#000000";
@@ -75,6 +75,7 @@ export function generatePDF(d: ISalarySlipPDF): void {
         "Bonus Salary",
         "Penalty Amount",
         "EPF Amount",
+        "Fixed Allowance",
         "Gross Salary"
     ].forEach((k, i) => row(40, k, salaryValues[i]));
     doc.moveDown(0.5);
@@ -82,6 +83,6 @@ export function generatePDF(d: ISalarySlipPDF): void {
 
     // FOOTER
     const year = new Date().getFullYear();
-    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,550,{ align: "center" });
+    text(12,BLACK,`Copyright 2020-${year} Superworks Company. All rights reserved.`,0,560,{align: "center"});
     doc.end();
 }

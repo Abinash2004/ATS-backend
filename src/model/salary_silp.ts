@@ -34,6 +34,10 @@ const salarySchema = new mongoose.Schema<ISalary>({
         type: Number,
         required: true
     },
+    fixed_allowance: {
+        type: Number,
+        required: true
+    },
     gross_salary: {
         type: Number,
         required: true

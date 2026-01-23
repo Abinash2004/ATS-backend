@@ -17,6 +17,7 @@ export interface ISalary {
     bonus_salary: number;
     penalty_amount: number;
     epf_amount: number;
+    fixed_allowance: number;
     gross_salary: number;
 }
 

@@ -1,7 +1,8 @@
 import type {Socket} from "socket.io";
 import type {ISingleShift} from "../interface/shift.ts";
-import type {IAttendance, IBreak} from "../interface/attendance.ts";
+import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
+import type {IAttendance,IBreak} from "../interface/attendance.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
 import {readSalaryTemplate} from "./mongoose/salary_template.ts";
@@ -9,6 +10,7 @@ import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
+import {getEmployeeById} from "./mongoose/employee.ts";
 
 function errorEmission(socket: Socket, error: unknown) :void {
     socket.emit("server_response",{
@@ -64,28 +66,10 @@ async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
         return [];
     }
 }
-async function calculateShiftSalary(shiftId: string, start: Date, end: Date, salary: number): Promise<number> {
+async function calculateShiftSalary(shiftId: string, start: Date, end: Date, amount: number): Promise<number> {
     try {
         const shiftCount = await calculateWorkingShift(shiftId,start,end);
-        return salary/shiftCount;
-    } catch(error) {
-        console.log(error);
-        return 0;
-    }
-}
-async function calculateShiftHRA(shiftId: string, start: Date, end: Date, hra: number): Promise<number> {
-    try {
-        const shiftCount = await calculateWorkingShift(shiftId,start,end);
-        return hra/shiftCount;
-    } catch(error) {
-        console.log(error);
-        return 0;
-    }
-}
-async function calculateShiftDA(shiftId: string, start: Date, end: Date, da: number): Promise<number> {
-    try {
-        const shiftCount = await calculateWorkingShift(shiftId,start,end);
-        return da/shiftCount;
+        return amount/shiftCount;
     } catch(error) {
         console.log(error);
         return 0;
@@ -196,7 +180,7 @@ async function getSalaryTemplateData(employeeId: string, salary: number) {
         let monthlyDA = 0;
         const salaryTemplate = await readSalaryTemplate(employeeId);
         if (salaryTemplate) {
-            monthlyBasic = salary * (salaryTemplate.basic_percentage/100);
+            monthlyBasic = (salaryTemplate.basic_type === "percentage") ? salary * (salaryTemplate.basic/100) : salaryTemplate.basic;
             monthlyHRA = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
             monthlyDA = (salaryTemplate.da_type === "percentage") ? salary * (salaryTemplate.da/100) : salaryTemplate.da;
         }
@@ -209,6 +193,29 @@ async function getSalaryTemplateData(employeeId: string, salary: number) {
         return {monthlyBasic, monthlyHRA, monthlyDA};
     }
 }
+async function validateSalaryTemplatePerEmployee(socket: Socket,salaryTemplate : ISalaryTemplate): Promise<boolean> {
+    try {
+        for (let empId of salaryTemplate.employeeIds) {
+            const emp = await getEmployeeById(empId.toString());
+            if (!emp) {
+                messageEmission(socket, "failed","employeeId is invalid");
+                return false;
+            }
+            const salary = emp.salary;
+            let basic = (salaryTemplate.basic_type === "percentage") ? salary * (salaryTemplate.basic/100) : salaryTemplate.basic;
+            let hra = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
+            let da = (salaryTemplate.da_type === "percentage") ? salary * (salaryTemplate.da/100) : salaryTemplate.da;
+            if ((basic + hra + da) > salary) {
+                messageEmission(socket, "failed","total amount is exceeding from employee monthly salary");
+                return false;
+            }
+        }
+        return true;
+    } catch(error) {
+        errorEmission(socket,error);
+        return false;
+    }
+}
 
 export {
     errorEmission,
@@ -216,13 +223,12 @@ export {
     getShiftData,
     getShiftTimings,
     calculateShiftSalary,
-    calculateShiftHRA,
-    calculateShiftDA,
     calculateOvertimePay,
     calculateWorkingShift,
     calculateOvertimeMinutes,
     calculateTotalWorkingShift,
     checkMonthValidationAndCurrentDate,
     checkBreakPenalty,
-    getSalaryTemplateData
+    getSalaryTemplateData,
+    validateSalaryTemplatePerEmployee
 };

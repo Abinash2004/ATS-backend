@@ -54,8 +54,8 @@ function isValidSalaryTemplate(socket: Socket, salaryTemplate: ISalaryTemplate) 
         messageEmission(socket, "failed", "TA percentage must be between 0 and 100");
         return false;
     }
-    if (salaryTemplate.basic_percentage && (salaryTemplate.basic_percentage < 0 || salaryTemplate.basic_percentage > 100)) {
-        messageEmission(socket, "failed", "basic percentage must be between 0 and 100");
+    if (salaryTemplate.basic_type === "percentage" && (salaryTemplate.basic < 0 || salaryTemplate.basic > 100)) {
+        messageEmission(socket, "failed", "Basic percentage must be between 0 and 100");
         return false;
     }
     return true;

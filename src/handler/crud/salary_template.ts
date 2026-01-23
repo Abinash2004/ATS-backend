@@ -1,7 +1,7 @@
 import type {Socket} from "socket.io";
 import type {ISalaryTemplate} from "../../interface/salary_template.ts";
 import {isValidSalaryTemplate} from "../../utils/validations.ts";
-import {errorEmission,messageEmission} from "../helper.ts";
+import {errorEmission,messageEmission,validateSalaryTemplatePerEmployee} from "../helper.ts";
 import {createSalaryTemplate,readSalaryTemplate,updateSalaryTemplate} from "../mongoose/salary_template.ts";
 
 async function salaryTemplateCreateHandler(socket: Socket, salaryTemplate: ISalaryTemplate) {
@@ -10,7 +10,7 @@ async function salaryTemplateCreateHandler(socket: Socket, salaryTemplate: ISala
             messageEmission(socket,"failed","only admin & HR are permitted.");
             return;
         }
-        if (!isValidSalaryTemplate(socket,salaryTemplate)) return;
+        if (!isValidSalaryTemplate(socket,salaryTemplate) || !await validateSalaryTemplatePerEmployee(socket,salaryTemplate)) return;
         await createSalaryTemplate(salaryTemplate);
         messageEmission(socket,"success","salary template created successfully.");
     } catch(error) {

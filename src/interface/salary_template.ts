@@ -1,7 +1,8 @@
 import {Types} from "mongoose";
 
 export interface ISalaryTemplate {
-    basic_percentage: number;
+    basic: number;
+    basic_type: "fixed" | "percentage";
     hra: number;
     hra_type: "fixed" | "percentage";
     da: number;

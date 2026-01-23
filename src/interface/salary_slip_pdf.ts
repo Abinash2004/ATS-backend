@@ -27,6 +27,7 @@ export interface ISalarySlipPDF {
         bonus: string;
         penalty: string;
         epf: string;
+        fixed_allowance: string;
         gross: string;
     }
 }
