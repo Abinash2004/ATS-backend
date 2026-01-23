@@ -23,9 +23,9 @@ async function salaryTemplateUpdateHandler(socket: Socket, salaryTemplateId: str
             messageEmission(socket,"failed","only admin & HR are permitted.");
             return;
         }
-        if (!isValidSalaryTemplate(socket, salaryTemplate)) return;
+        if (!isValidSalaryTemplate(socket, salaryTemplate) || !await validateSalaryTemplatePerEmployee(socket,salaryTemplate)) return;
         await updateSalaryTemplate(salaryTemplateId,salaryTemplate);
-        messageEmission(socket,"success","salary template created successfully.");
+        messageEmission(socket,"success","salary template updated successfully.");
     } catch(error) {
         errorEmission(socket,error);
     }

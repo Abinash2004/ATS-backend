@@ -3,30 +3,30 @@ import type {ISalaryTemplate} from "../interface/salary_template.ts";
 
 const salaryTemplateSchema = new Schema<ISalaryTemplate>({
     basic: {
-        type: Number,
+        type: String,
         required: true
     },
     basic_type: {
         type: String,
-        enum: ["fixed", "percentage"],
+        enum: ["fixed", "percentage","formula"],
         default: "fixed"
     },
     hra: {
-        type: Number,
+        type: String,
         required: true
     },
     hra_type: {
         type: String,
-        enum: ["fixed", "percentage"],
+        enum: ["fixed", "percentage","formula"],
         default: "fixed"
     },
     da: {
-        type: Number,
+        type: String,
         required: true
     },
     da_type: {
         type: String,
-        enum: ["fixed", "percentage"],
+        enum: ["fixed", "percentage","formula"],
         default: "fixed"
     },
     employeeIds: [{

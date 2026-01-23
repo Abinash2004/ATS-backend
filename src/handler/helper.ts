@@ -1,16 +1,21 @@
+import {parse} from "mathjs";
 import type {Socket} from "socket.io";
 import type {ISingleShift} from "../interface/shift.ts";
+import type {SymbolNodeLike} from "../interface/symbol_node_like.ts";
 import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
 import type {IAttendance,IBreak} from "../interface/attendance.ts";
 import {getShift} from "./mongoose/shift.ts";
+import {getEmployeeById} from "./mongoose/employee.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
 import {readSalaryTemplate} from "./mongoose/salary_template.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
 import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
-import {getEmployeeById} from "./mongoose/employee.ts";
+
+type AllowedVar = "salary" | "basic" | "hra" | "da";
+type Formulas = Partial<Record<AllowedVar, string>>;
 
 function errorEmission(socket: Socket, error: unknown) :void {
     socket.emit("server_response",{
@@ -175,16 +180,10 @@ async function checkBreakPenalty(breaks: IBreak[], currentTime: Date): Promise<n
 }
 async function getSalaryTemplateData(employeeId: string, salary: number) {
     try {
-        let monthlyBasic = salary;
-        let monthlyHRA = 0;
-        let monthlyDA = 0;
         const salaryTemplate = await readSalaryTemplate(employeeId);
-        if (salaryTemplate) {
-            monthlyBasic = (salaryTemplate.basic_type === "percentage") ? salary * (salaryTemplate.basic/100) : salaryTemplate.basic;
-            monthlyHRA = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
-            monthlyDA = (salaryTemplate.da_type === "percentage") ? salary * (salaryTemplate.da/100) : salaryTemplate.da;
-        }
-        return {monthlyBasic, monthlyHRA, monthlyDA};
+        if (!salaryTemplate) return {monthlyBasic:salary,monthlyHRA:0,monthlyDA:0};
+        const {basic, hra, da} = evaluateSalaryTemplate(salary, salaryTemplate);
+        return {monthlyBasic:basic, monthlyHRA:hra, monthlyDA:da};
     } catch(error) {
         let monthlyBasic = salary;
         let monthlyHRA = 0;
@@ -198,15 +197,16 @@ async function validateSalaryTemplatePerEmployee(socket: Socket,salaryTemplate :
         for (let empId of salaryTemplate.employeeIds) {
             const emp = await getEmployeeById(empId.toString());
             if (!emp) {
-                messageEmission(socket, "failed","employeeId is invalid");
+                messageEmission(socket, "failed", "employeeId is invalid");
                 return false;
             }
             const salary = emp.salary;
-            let basic = (salaryTemplate.basic_type === "percentage") ? salary * (salaryTemplate.basic/100) : salaryTemplate.basic;
-            let hra = (salaryTemplate.hra_type === "percentage") ? salary * (salaryTemplate.hra/100) : salaryTemplate.hra;
-            let da = (salaryTemplate.da_type === "percentage") ? salary * (salaryTemplate.da/100) : salaryTemplate.da;
+            const {basic, hra, da} = evaluateSalaryTemplate(salary, salaryTemplate);
+            console.log(`basic: ${basic}`);
+            console.log(`da: ${da}`);
+            console.log(`hra: ${hra}`);
             if ((basic + hra + da) > salary) {
-                messageEmission(socket, "failed","total amount is exceeding from employee monthly salary");
+                messageEmission(socket, "failed",`total amount is exceeding from employee ID ${empId} monthly salary`);
                 return false;
             }
         }
@@ -215,6 +215,78 @@ async function validateSalaryTemplatePerEmployee(socket: Socket,salaryTemplate :
         errorEmission(socket,error);
         return false;
     }
+}
+
+function buildDependencyGraph(formulas: Formulas): Record<AllowedVar, AllowedVar[]> {
+    const graph: Record<AllowedVar, AllowedVar[]> = { salary: [], basic: [], hra: [], da: [] };
+
+    for (const key of ["basic", "hra", "da"] as AllowedVar[]) {
+        const expr = formulas[key];
+        if (!expr) continue;
+
+        const parsed: { filter: (cb: (node: SymbolNodeLike) => boolean) => SymbolNodeLike[] } = parse(expr) as any;
+
+        const deps: AllowedVar[] = parsed
+            .filter((node) => node.type === "SymbolNode" && typeof node.name === "string")
+            .map((node) => node.name!)
+            .filter((v: string): v is AllowedVar => ["salary", "basic", "hra", "da"].includes(v));
+
+        graph[key] = deps;
+    }
+
+    return graph;
+}
+function topologicalSort(graph: Record<AllowedVar, AllowedVar[]>): AllowedVar[] {
+    const visited = new Set<AllowedVar>();
+    const stack = new Set<AllowedVar>();
+    const order: AllowedVar[] = [];
+
+    function dfs(node: AllowedVar) {
+        if (stack.has(node)) throw new Error("Circular dependency detected");
+        if (visited.has(node)) return;
+
+        stack.add(node);
+        for (const dep of graph[node]) dfs(dep);
+        stack.delete(node);
+        visited.add(node);
+        order.push(node);
+    }
+
+    for (const node of Object.keys(graph) as AllowedVar[]) {
+        if (node === "salary") continue; // salary is root
+        dfs(node);
+    }
+
+    return ["salary", ...order];
+}
+function evaluateSalaryTemplate(salary: number,template: ISalaryTemplate): Record<AllowedVar, number> {
+    const values: Record<AllowedVar, number> = { salary, basic: 0, hra: 0, da: 0 };
+    const formulas: Formulas = {};
+
+    if (template.basic_type === "formula") formulas.basic = template.basic.toLowerCase();
+    if (template.hra_type === "formula") formulas.hra = template.hra.toLowerCase();
+    if (template.da_type === "formula") formulas.da = template.da.toLowerCase();
+
+    const graph = buildDependencyGraph(formulas);
+    const order = topologicalSort(graph);
+
+    for (const field of order) {
+        if (field === "salary") continue;
+
+        const typeKey = `${field}_type` as keyof ISalaryTemplate;
+        const valKey = field as keyof ISalaryTemplate;
+        const type = template[typeKey];
+        const expr = template[valKey];
+
+        if (type === "fixed") values[field] = Number(expr);
+        else if (type === "percentage") values[field] = (Number(expr) / 100) * values.salary;
+        else if (type === "formula") {
+            if (typeof expr !== "string") throw new Error(`Invalid formula for ${field}`);
+            const parsed = parse(expr);
+            values[field] = parsed.evaluate(values);
+        }
+    }
+    return values;
 }
 
 export {
@@ -230,5 +302,6 @@ export {
     checkMonthValidationAndCurrentDate,
     checkBreakPenalty,
     getSalaryTemplateData,
-    validateSalaryTemplatePerEmployee
+    validateSalaryTemplatePerEmployee,
+    evaluateSalaryTemplate
 };

@@ -1,11 +1,11 @@
 import {Types} from "mongoose";
 
 export interface ISalaryTemplate {
-    basic: number;
-    basic_type: "fixed" | "percentage";
-    hra: number;
-    hra_type: "fixed" | "percentage";
-    da: number;
-    da_type: "fixed" | "percentage";
+    basic: string;
+    basic_type: "fixed" | "percentage" | "formula";
+    hra: string;
+    hra_type: "fixed" | "percentage" | "formula";
+    da: string;
+    da_type: "fixed" | "percentage" | "formula";
     employeeIds: Types.ObjectId[];
 }
