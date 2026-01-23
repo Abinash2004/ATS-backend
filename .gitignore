@@ -1,0 +1,7 @@
+gitignore
+.idea
+.env
+tsconfig.json
+node_modules
+salary_slips
+attendance_sheet
