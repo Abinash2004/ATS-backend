@@ -1,33 +1,41 @@
-import mongoose, {Schema} from "mongoose";
-import type {ISalaryTemplate} from "../interface/salary_template.ts";
+import { Schema, model } from "mongoose";
+import type {
+    ISalaryTemplateComponent,
+    ISalaryTemplate
+} from "../interface/salary_template.ts";
+
+
+const salaryTemplateComponentSchema = new Schema<ISalaryTemplateComponent>(
+    {
+        code: {
+            type: String,
+            required: true
+        },
+        name: {
+            type: String,
+            required: true
+        },
+        component_type: {
+            type: Number,
+            required: true,
+            enum: [1, 2, 3] // FIXED, PERCENTAGE, FORMULA
+        },
+        expression: {
+            type: String,
+            required: true
+        }
+    },
+    { _id: false }
+);
 
 const salaryTemplateSchema = new Schema<ISalaryTemplate>({
-    basic: {
+    name: {
         type: String,
         required: true
     },
-    basic_type: {
-        type: String,
-        enum: ["fixed", "percentage","formula"],
-        default: "fixed"
-    },
-    hra: {
-        type: String,
-        required: true
-    },
-    hra_type: {
-        type: String,
-        enum: ["fixed", "percentage","formula"],
-        default: "fixed"
-    },
-    da: {
-        type: String,
-        required: true
-    },
-    da_type: {
-        type: String,
-        enum: ["fixed", "percentage","formula"],
-        default: "fixed"
+    components: {
+        type: [salaryTemplateComponentSchema],
+        default: []
     },
     employeeIds: [{
         type: Schema.Types.ObjectId,
@@ -35,5 +43,7 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
     }]
 });
 
-const SalaryTemplate = mongoose.model<ISalaryTemplate>("Salary_Template", salaryTemplateSchema);
-export default SalaryTemplate;
+export const SalaryTemplate = model<ISalaryTemplate>(
+    "Salary_Template",
+    salaryTemplateSchema
+);

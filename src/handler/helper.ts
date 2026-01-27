@@ -4,7 +4,7 @@ import type {ISingleShift} from "../interface/shift.ts";
 import type {SymbolNodeLike} from "../interface/symbol_node_like.ts";
 import type {ISalaryTemplate} from "../interface/salary_template.ts";
 import type {IAttendanceRecord} from "../interface/attendance_record.ts";
-import type {IAttendance,IBreak} from "../interface/attendance.ts";
+import type {IAttendance, IBreak} from "../interface/attendance.ts";
 import {getShift} from "./mongoose/shift.ts";
 import {getEmployeeById} from "./mongoose/employee.ts";
 import {isValidMonthYear} from "../utils/validations.ts";
@@ -12,7 +12,7 @@ import {readSalaryTemplate} from "./mongoose/salary_template.ts";
 import {getAttendanceByDate} from "./mongoose/attendance.ts";
 import {getBreakPerHourPenalty} from "./mongoose/policy.ts";
 import {getEmployeeAttendanceRecordDateWise} from "./mongoose/attendance_record.ts";
-import {calculateMinutes,getDayName,getLastDayUtc,stringToDate} from "../utils/date_time.ts";
+import {calculateMinutes, getDayName, getLastDayUtc, stringToDate} from "../utils/date_time.ts";
 
 type AllowedVar = "salary" | "basic" | "hra" | "da";
 type Formulas = Partial<Record<AllowedVar, string>>;
@@ -202,9 +202,6 @@ async function validateSalaryTemplatePerEmployee(socket: Socket,salaryTemplate :
             }
             const salary = emp.salary;
             const {basic, hra, da} = evaluateSalaryTemplate(salary, salaryTemplate);
-            console.log(`basic: ${basic}`);
-            console.log(`da: ${da}`);
-            console.log(`hra: ${hra}`);
             if ((basic + hra + da) > salary) {
                 messageEmission(socket, "failed",`total amount is exceeding from employee ID ${empId} monthly salary`);
                 return false;
@@ -226,14 +223,11 @@ function buildDependencyGraph(formulas: Formulas): Record<AllowedVar, AllowedVar
 
         const parsed: { filter: (cb: (node: SymbolNodeLike) => boolean) => SymbolNodeLike[] } = parse(expr) as any;
 
-        const deps: AllowedVar[] = parsed
+        graph[key] = parsed
             .filter((node) => node.type === "SymbolNode" && typeof node.name === "string")
             .map((node) => node.name!)
             .filter((v: string): v is AllowedVar => ["salary", "basic", "hra", "da"].includes(v));
-
-        graph[key] = deps;
     }
-
     return graph;
 }
 function topologicalSort(graph: Record<AllowedVar, AllowedVar[]>): AllowedVar[] {
@@ -263,9 +257,9 @@ function evaluateSalaryTemplate(salary: number,template: ISalaryTemplate): Recor
     const values: Record<AllowedVar, number> = { salary, basic: 0, hra: 0, da: 0 };
     const formulas: Formulas = {};
 
-    if (template.basic_type === "formula") formulas.basic = template.basic.toLowerCase();
-    if (template.hra_type === "formula") formulas.hra = template.hra.toLowerCase();
-    if (template.da_type === "formula") formulas.da = template.da.toLowerCase();
+    // if (template.basic_type === "formula") formulas.basic = template.basic.toLowerCase();
+    // if (template.hra_type === "formula") formulas.hra = template.hra.toLowerCase();
+    // if (template.da_type === "formula") formulas.da = template.da.toLowerCase();
 
     const graph = buildDependencyGraph(formulas);
     const order = topologicalSort(graph);

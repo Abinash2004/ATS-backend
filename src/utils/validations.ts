@@ -1,86 +1,19 @@
-import {parse} from "mathjs";
-import {Types} from "mongoose";
-import {messageEmission} from "../handler/helper.ts";
-import type {Socket} from "socket.io";
-import type {IEmployee} from "../interface/employee.ts";
-import type {SymbolNodeLike} from "../interface/symbol_node_like.ts";
-import type {ISalaryTemplate} from "../interface/salary_template.ts";
-import type {ICredentialsValidationResponse} from "../interface/auth.ts";
+import { parse } from "mathjs";
+import { Types } from "mongoose";
+import { messageEmission } from "../handler/helper.ts";
+import { getEmployeeById } from "../handler/mongoose/employee.ts";
+import type { Socket } from "socket.io";
+import type { IEmployee } from "../interface/employee.ts";
+import type { SymbolNodeLike } from "../interface/symbol_node_like.ts";
+import type { ICredentialsValidationResponse } from "../interface/auth.ts";
+import type {
+    ISalaryTemplate,
+    ISalaryTemplateComponent
+} from "../interface/salary_template.ts";
 
-const ALLOWED_VARS = ["salary", "basic", "hra", "da"] as const;
-type AllowedVar = typeof ALLOWED_VARS[number];
-type Formulas = Partial<Record<AllowedVar, string>>;
-
-function checkSyntax(key: string, expr: string): any {
-    try {
-        return parse(expr);
-    } catch (e: any) {
-        throw new Error(`Syntax error in "${key}": ${e.message}`);
-    }
-}
-function checkAllowedVariables(key: string, parsed: { filter: (cb: (node: SymbolNodeLike) => boolean) => SymbolNodeLike[] }) {
-    const vars: string[] = parsed
-        .filter((node) => node.type === "SymbolNode" && typeof node.name === "string")
-        .map((node) => node.name!);
-
-    const illegalVars = vars.filter((v) => !ALLOWED_VARS.includes(v as AllowedVar));
-    if (illegalVars.length > 0) {
-        throw new Error(`Illegal variables in "${key}": ${illegalVars.join(", ")}`);
-    }
-
-    return vars;
-}
-function checkSelfReference(key: string, vars: string[]) {
-    if (vars.includes(key)) {
-        throw new Error(`Self-reference detected in "${key}"`);
-    }
-}
-function buildGraph(formulas: Formulas): Record<string, string[]> {
-    const graph: Record<string, string[]> = {};
-
-    for (const key in formulas) {
-        const exprStr = formulas[key as AllowedVar];
-        if (!exprStr) continue;
-
-        const parsed = checkSyntax(key, exprStr);
-        const vars = checkAllowedVariables(key, parsed);
-        checkSelfReference(key, vars);
-
-        graph[key] = vars;
-    }
-
-    return graph;
-}
-function hasCycle(graph: Record<string, string[]>): boolean {
-    const visited = new Set<string>();
-    const stack = new Set<string>();
-
-    function dfs(node: string): boolean {
-        if (stack.has(node)) return true;
-        if (visited.has(node)) return false;
-
-        visited.add(node);
-        stack.add(node);
-
-        for (const dep of graph[node] || []) {
-            if (graph[dep] && dfs(dep)) return true;
-        }
-
-        stack.delete(node);
-        return false;
-    }
-
-    return Object.keys(graph).some(dfs);
-}
-function validateFormulas(formulas: Formulas): true {
-    const graph = buildGraph(formulas);
-
-    if (hasCycle(graph)) {
-        throw new Error("Circular dependency detected");
-    }
-
-    return true;
-}
+const FIXED = 1;
+const PERCENTAGE = 2;
+const FORMULA = 3;
 
 function isString(str: unknown): boolean {
     return typeof str === "string" && str.trim().length > 0;
@@ -94,19 +27,6 @@ function toNumber(value: string): number {
 function isValidObjectId(value: unknown): boolean {
     return typeof value === "string" && Types.ObjectId.isValid(value);
 }
-
-function validateAuthCredentials(employee: Partial<IEmployee>,isSignUp: boolean): ICredentialsValidationResponse {
-    const { name, email, password, salary, departmentId, locationId, shiftId } = employee;
-    if (isSignUp && !isString(name)) return { status: false, message: "invalid name." };
-    if (!isString(email)) return { status: false, message: "invalid email." };
-    if (!isString(password)) return { status: false, message: "invalid password." };
-    if (isSignUp && !isNumber(salary)) return { status: false, message: "invalid salary." };
-    if (isSignUp && !isValidObjectId(departmentId)) return { status: false, message: "invalid departmentId." };
-    if (isSignUp && !isValidObjectId(locationId)) return { status: false, message: "invalid locationId." };
-    if (isSignUp && !isValidObjectId(shiftId)) return { status: false, message: "invalid shiftId." };
-
-    return { status: true, message: isSignUp ? "successfully signed up." : "successfully signed in." };
-}
 function isValidMonthYear(value: string): boolean {
     const match = /^(0[1-9]|1[0-2])\/\d{4}$/.exec(value);
     if (!match) return false;
@@ -114,50 +34,182 @@ function isValidMonthYear(value: string): boolean {
     const y = Number(year);
     return y >= 1900 && y <= 2100;
 }
-function isValidSalaryTemplate(socket: Socket, salaryTemplate: ISalaryTemplate): boolean {
-    const { basic, hra, da, basic_type, hra_type, da_type } = salaryTemplate;
 
-    if (!basic || !hra || !da || !basic_type || !hra_type || !da_type) {
-        messageEmission(socket, "failed", "invalid salaryTemplate, some values are missing.");
-        return false;
+function validateAuthCredentials(
+    employee: Partial<IEmployee>,
+    isSignUp: boolean
+): ICredentialsValidationResponse {
+    const {
+        name,
+        email,
+        password,
+        salary,
+        departmentId,
+        locationId,
+        shiftId
+    } = employee;
+
+    if (isSignUp && !isString(name)) {
+        return { status: false, message: "invalid name." };
+    } if (!isString(email)) {
+        return { status: false, message: "invalid email." };
+    } if (!isString(password)) {
+        return { status: false, message: "invalid password." };
+    } if (isSignUp && !isNumber(salary)) {
+        return { status: false, message: "invalid salary." };
+    } if (isSignUp && !isValidObjectId(departmentId)) {
+        return { status: false, message: "invalid departmentId." };
+    } if (isSignUp && !isValidObjectId(locationId)) {
+        return { status: false, message: "invalid locationId." };
+    } if (isSignUp && !isValidObjectId(shiftId)) {
+        return { status: false, message: "invalid shiftId." };
     }
-    if (basic_type === "fixed" && !isNumber(basic)) {
-        messageEmission(socket, "failed", "If basic type is fixed, value must be a number");
-        return false;
-    }
-    if (hra_type === "fixed" && !isNumber(hra)) {
-        messageEmission(socket, "failed", "If HRA type is fixed, value must be a number");
-        return false;
-    }
-    if (da_type === "fixed" && !isNumber(da)) {
-        messageEmission(socket, "failed", "If DA type is fixed, value must be a number");
-        return false;
-    }
-    if (basic_type === "percentage" && (!isNumber(basic) || toNumber(basic) < 0 || toNumber(basic) > 100)) {
-        messageEmission(socket, "failed", "Basic percentage must be between 0 and 100");
-        return false;
-    }
-    if (hra_type === "percentage" && (!isNumber(hra) || toNumber(hra) < 0 || toNumber(hra) > 100)) {
-        messageEmission(socket, "failed", "HRA percentage must be between 0 and 100");
-        return false;
-    }
-    if (da_type === "percentage" && (!isNumber(da) || toNumber(da) < 0 || toNumber(da) > 100)) {
-        messageEmission(socket, "failed", "DA percentage must be between 0 and 100");
-        return false;
+    return {
+        status: true,
+        message: isSignUp ? "successfully signed up." : "successfully signed in."
+    };
+}
+
+function buildDependencyGraph(
+    components: ISalaryTemplateComponent[]
+): Record<string, string[]> {
+    const graph: Record<string, string[]> = {};
+    for (const c of components) {
+        graph[c.code] = [];
     }
 
-    const formulas: Formulas = {};
-    if (basic_type === "formula") formulas["basic"] = basic.toLowerCase();
-    if (hra_type === "formula") formulas["hra"] = hra.toLowerCase();
-    if (da_type === "formula") formulas["da"] = da.toLowerCase();
+    for (const c of components) {
+        if (c.component_type !== FORMULA) continue;
+        const parsed: {
+            filter: (cb: (node: SymbolNodeLike) => boolean) => SymbolNodeLike[];
+        } = parse(c.expression) as any;
 
-    try {
-        validateFormulas(formulas);
-        return true;
-    } catch (e: any) {
-        messageEmission(socket, "failed", e.message);
+        const deps = parsed
+            .filter((node) =>
+                node.type === "SymbolNode" &&
+                typeof node.name === "string"
+            )
+            .map((node) => node.name!)
+            .filter((v) => v === "salary" || graph[v] !== undefined);
+
+        graph[c.code] = deps;
+    }
+    return graph;
+}
+
+function topologicalSort(
+    graph: Record<string, string[]>
+): string[] {
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+    const order: string[] = [];
+
+    function dfs(node: string) {
+        if (stack.has(node)) {
+            throw new Error("Circular dependency detected");
+        }
+        if (visited.has(node)) return;
+        stack.add(node);
+        for (const dep of graph[node] || []) {
+            if (dep !== "salary") dfs(dep);
+        }
+        stack.delete(node);
+        visited.add(node);
+        order.push(node);
+    }
+    for (const node of Object.keys(graph)) {
+        dfs(node);
+    }
+    return order;
+}
+
+function evaluateSalaryTemplate(
+    salary: number,
+    template: ISalaryTemplate
+): Record<string, number> {
+    const values: Record<string, number> = { salary };
+    const graph = buildDependencyGraph(template.components);
+    const order = topologicalSort(graph);
+
+    const componentMap = new Map<string, ISalaryTemplateComponent>(
+        template.components.map((c) => [c.code, c])
+    );
+
+    for (const code of order) {
+        const component = componentMap.get(code);
+        if (!component) continue;
+
+        const expr = component.expression;
+
+        if (component.component_type === FIXED) {
+            values[code] = Number(expr);
+        } else if (component.component_type === PERCENTAGE) {
+            values[code] = (Number(expr) / 100) * values.salary;
+        } else if (component.component_type === FORMULA) {
+            const parsed = parse(expr);
+            values[code] = parsed.evaluate(values);
+        }
+    }
+    return values;
+}
+
+async function isValidSalaryTemplate(
+    socket: Socket,
+    salaryTemplate: ISalaryTemplate
+): Promise<boolean> {
+    if (!salaryTemplate.name) {
+        messageEmission(
+            socket,
+            "failed",
+            "name is missing"
+        );
         return false;
     }
+    if (salaryTemplate.components.length > 0) {
+        for (const component of salaryTemplate.components) {
+            if (
+                !component.name ||
+                !component.code ||
+                !component.component_type ||
+                !component.expression
+            ) {
+                messageEmission(
+                    socket,
+                    "failed",
+                    "invalid componenet"
+                );
+                return false;
+            }
+        }
+    }
+    if (salaryTemplate.employeeIds.length > 0) {
+        for (const empId of salaryTemplate.employeeIds) {
+            const employee = await getEmployeeById(empId.toString());
+            if (!employee) {
+                messageEmission(
+                    socket,
+                    "failed",
+                    "employeeId is invalid"
+                );
+                return false;
+            }
+            let summation = 0;
+            const result = evaluateSalaryTemplate(employee.salary, salaryTemplate);
+            console.log(result);
+            for (const component of salaryTemplate.components) {
+                summation += result[component.code];
+            }
+            if (summation > employee.salary) {
+                messageEmission(
+                    socket,
+                    "failed",
+                    "summation of salary component is greater than monthly salary."
+                )
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 export {
@@ -165,7 +217,8 @@ export {
     isNumber,
     isString,
     isValidObjectId,
-    validateAuthCredentials,
     isValidMonthYear,
     isValidSalaryTemplate,
+    evaluateSalaryTemplate,
+    validateAuthCredentials
 };

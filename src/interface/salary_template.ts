@@ -1,11 +1,16 @@
-import {Types} from "mongoose";
+import { Types } from "mongoose";
+
+export type ComponentType = 1 | 2 | 3;
+
+export interface ISalaryTemplateComponent {
+    code: string;
+    name: string;
+    component_type: 1 | 2 | 3;
+    expression: string;
+}
 
 export interface ISalaryTemplate {
-    basic: string;
-    basic_type: "fixed" | "percentage" | "formula";
-    hra: string;
-    hra_type: "fixed" | "percentage" | "formula";
-    da: string;
-    da_type: "fixed" | "percentage" | "formula";
+    name: string;
+    components: ISalaryTemplateComponent[];
     employeeIds: Types.ObjectId[];
 }
