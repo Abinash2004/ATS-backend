@@ -1,5 +1,10 @@
 import {Types} from "mongoose";
 
+export interface ISalaryTemplateAmount {
+    name: string;
+    amount: number;
+}
+
 export interface ISalaryAttendance {
     working_shifts: number;
     present_shifts: number;
@@ -9,14 +14,11 @@ export interface ISalaryAttendance {
 }
 
 export interface ISalary {
-    basic_salary: number;
-    hra: number,
-    da: number,
+    salaryTemplateAmount: ISalaryTemplateAmount[];
     advance_salary: number;
     over_time_wages: number;
     bonus_salary: number;
     penalty_amount: number;
-    epf_amount: number;
     fixed_allowance: number;
     gross_salary: number;
 }

@@ -42,8 +42,8 @@ async function getTotalEPFAmount(employeeId: string): Promise<number> {
 }
 async function resolveAdvancePayrollEPF(month: string, employeeId: string, epfAmount: number) {
     try {
-        const salarySlip = await SalarySlip.findOne({month,employeeId});
-        if (salarySlip) await SalarySlip.updateOne({month,employeeId},{"salary.epf_amount": salarySlip.salary.epf_amount - epfAmount});
+        // const salarySlip = await SalarySlip.findOne({month,employeeId});
+        // if (salarySlip) await SalarySlip.updateOne({month,employeeId},{"salary.epf_amount": salarySlip.salary.epf_amount - epfAmount});
     } catch(error) {
         console.error(error);
     }

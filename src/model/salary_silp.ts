@@ -1,22 +1,28 @@
 import mongoose from "mongoose";
-import type {ISalary, ISalaryAttendance, ISalarySlip} from "../interface/salary_slip.ts";
+import type {
+    ISalary,
+    ISalaryAttendance,
+    ISalarySlip,
+    ISalaryTemplateAmount
+} from "../interface/salary_slip.ts";
+
+const salaryTemplateAmount = new mongoose.Schema<ISalaryTemplateAmount>(
+    {
+        name: String,
+        amount: Number
+    },
+    { _id: false }
+);
 
 const salarySchema = new mongoose.Schema<ISalary>({
-    basic_salary: {
-        type: Number,
-        required: true
-    },
-    hra: {
-        type: Number,
-        required: true
-    },
-    da: {
-        type: Number,
-        required: true
+
+    salaryTemplateAmount: {
+        type: [salaryTemplateAmount],
+        default: []
     },
     advance_salary: {
-      type: Number,
-      required: true
+        type: Number,
+        default: 0
     },
     over_time_wages: {
         type: Number,
@@ -27,10 +33,6 @@ const salarySchema = new mongoose.Schema<ISalary>({
         required: true
     },
     penalty_amount: {
-        type: Number,
-        required: true
-    },
-    epf_amount: {
         type: Number,
         required: true
     },

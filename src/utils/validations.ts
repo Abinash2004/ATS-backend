@@ -128,6 +128,7 @@ function evaluateSalaryTemplate(
     template: ISalaryTemplate
 ): Record<string, number> {
     const values: Record<string, number> = { salary };
+    const returnValues: Record<string, number> = {};
     const graph = buildDependencyGraph(template.components);
     const order = topologicalSort(graph);
 
@@ -143,14 +144,17 @@ function evaluateSalaryTemplate(
 
         if (component.component_type === FIXED) {
             values[code] = Number(expr);
+            returnValues[component.name] = values[code];
         } else if (component.component_type === PERCENTAGE) {
             values[code] = (Number(expr) / 100) * values.salary;
+            returnValues[component.name] = values[code];
         } else if (component.component_type === FORMULA) {
             const parsed = parse(expr);
             values[code] = parsed.evaluate(values);
+            returnValues[component.name] = values[code];
         }
     }
-    return values;
+    return returnValues;
 }
 
 async function isValidSalaryTemplate(
@@ -195,9 +199,8 @@ async function isValidSalaryTemplate(
             }
             let summation = 0;
             const result = evaluateSalaryTemplate(employee.salary, salaryTemplate);
-            console.log(result);
             for (const component of salaryTemplate.components) {
-                summation += result[component.code];
+                summation += result[component.name];
             }
             if (summation > employee.salary) {
                 messageEmission(
