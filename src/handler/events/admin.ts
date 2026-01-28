@@ -1,12 +1,12 @@
-import type {Socket} from "socket.io";
-import type {IAdvancePayroll} from "../../interface/advance_payroll.ts";
-import {runPayroll} from "../payroll.run.ts";
-import {getPendingAdvancePayroll} from "../mongoose/advance_payroll.ts";
-import {createAttendanceRecordHandler} from "./hr.ts";
-import {errorEmission,messageEmission} from "../helper.ts";
-import {getRecentAttendanceRecordDate} from "../mongoose/attendance_record.ts";
-import {countDays,dateToIST,parseDateDMY} from "../../utils/date_time.ts";
-import {getLastPayrollDate,getPayrollHistory} from "../mongoose/payroll_record.ts";
+import type { Socket } from "socket.io";
+import type { IAdvancePayroll } from "../../interface/advance_payroll.ts";
+import { runPayroll } from "../payroll.run.ts";
+import { getPendingAdvancePayroll } from "../mongoose/advance_payroll.ts";
+import { createAttendanceRecordHandler } from "./hr.ts";
+import { errorEmission, messageEmission } from "../helper.ts";
+import { getRecentAttendanceRecordDate } from "../mongoose/attendance_record.ts";
+import { countDays, dateToIST, parseDateDMY } from "../../utils/date_time.ts";
+import { getLastPayrollDate, getPayrollHistory } from "../mongoose/payroll_record.ts";
 
 async function runPayrollHandler(socket:Socket,startDate: string, endDate: string) {
     try {
@@ -14,12 +14,15 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
             messageEmission(socket,"failed","only admin are permitted.")
             return;
         }
+
         let start: Date;
         let end: Date;
+
         if (!endDate) {
             messageEmission(socket,"failed","ending date is required.");
             return;
         }
+
         const tempDate: Date|null = await getLastPayrollDate();
         if (tempDate) {
             start = new Date(tempDate.setDate(tempDate.getDate()+1));
@@ -44,7 +47,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
         let actualEndDate: Date = end;
         const recentAttendanceDate: Date|null = await getRecentAttendanceRecordDate();
         if (!recentAttendanceDate) {
-            messageEmission(socket,"failed",`attendance record is empty.`);
+            messageEmission(socket, "failed", `attendance record is empty.`);
             return;
         }
         if (recentAttendanceDate < end) {
@@ -53,7 +56,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
         }
 
         if (recentAttendanceDate < start) {
-            messageEmission(socket,"failed",`attendance record after ${dateToIST(recentAttendanceDate)} do not exists.`);
+            messageEmission(socket, "failed", `attendance record do not exists.`);
             return;
         }
 
@@ -62,12 +65,25 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
         const pendingAdvancePayroll: IAdvancePayroll | null = await getPendingAdvancePayroll();
         if (pendingAdvancePayroll) {
             if (recentAttendanceDate < pendingAdvancePayroll.end_date) {
-                messageEmission(socket, "failed", `payroll can't be run before ${dateToIST(pendingAdvancePayroll.end_date)} (to resolve the advance payment).`);
+                messageEmission(
+                    socket,
+                    "failed",
+                    `payroll blocked till ${dateToIST(pendingAdvancePayroll.end_date)}.`
+                );
                 return;
             }
             isPendingAdvancePayroll = true;
         }
-        await runPayroll(socket,start,end,isPendingAdvancePayroll,pendingAdvancePayroll,isAdvancePayroll,recentAttendanceDate,actualEndDate);
+        await runPayroll(
+            socket,
+            start,
+            end,
+            isPendingAdvancePayroll,
+            pendingAdvancePayroll,
+            isAdvancePayroll,
+            recentAttendanceDate,
+            actualEndDate
+        );
     } catch(error) {
         errorEmission(socket,error);
     }
@@ -75,7 +91,7 @@ async function runPayrollHandler(socket:Socket,startDate: string, endDate: strin
 async function viewPayrollHistory(socket:Socket) {
     try {
         if (socket.data.role !== "admin") {
-            messageEmission(socket,"failed","only admin are permitted.")
+            messageEmission(socket,"failed","only admin are permitted.");
             return;
         }
         const payrollHistory = await getPayrollHistory();
@@ -85,4 +101,7 @@ async function viewPayrollHistory(socket:Socket) {
     }
 }
 
-export {runPayrollHandler,viewPayrollHistory}
+export {
+    runPayrollHandler,
+    viewPayrollHistory
+}

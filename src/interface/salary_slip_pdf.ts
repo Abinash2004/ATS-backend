@@ -19,14 +19,10 @@ export interface ISalarySlipPDF {
         over_time: string;
     },
     salary: {
-        basic: string;
-        hra: string;
-        da: string;
         advance: string;
         over_time: string;
         bonus: string;
         penalty: string;
-        epf: string;
         fixed_allowance: string;
         gross: string;
     }
