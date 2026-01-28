@@ -1,8 +1,8 @@
-import {Types} from "mongoose";
+import { Types } from "mongoose";
 
 export interface IPenalty {
-    employeeId: Types.ObjectId;
-    penalty_date: Date;
-    amount: Number;
-    reason: String;
+	employeeId: Types.ObjectId;
+	penalty_date: Date;
+	amount: Number;
+	reason: String;
 }

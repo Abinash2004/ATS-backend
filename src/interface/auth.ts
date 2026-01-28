@@ -1,10 +1,10 @@
 interface jwtPayload {
-    email: string;
+	email: string;
 }
 
 interface ICredentialsValidationResponse {
-    status: boolean;
-    message: string;
+	status: boolean;
+	message: string;
 }
 
-export {jwtPayload,ICredentialsValidationResponse};
+export { jwtPayload, ICredentialsValidationResponse };

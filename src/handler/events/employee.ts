@@ -1,173 +1,308 @@
-import type {Socket} from "socket.io";
-import type {IBonus} from "../../interface/bonus.ts";
-import type {IPenalty} from "../../interface/penalty.ts";
-import type {DayStatus} from "../../type/day_status.ts";
-import type {IEmployee} from "../../interface/employee.ts";
-import type {IAttendance} from "../../interface/attendance.ts";
-import {createLeave} from "../mongoose/leave.ts";
-import {getEmployeeBonus} from "../mongoose/bonus.ts";
-import {isValidMonthYear} from "../../utils/validations.ts";
-import {getEmployeePenalty} from "../mongoose/penalty.ts";
-import {getEmployeeAttendanceRecord} from "../mongoose/attendance_record.ts";
-import {dateToIST,formatHoursMinutes} from "../../utils/date_time.ts";
-import {getShiftData,errorEmission,messageEmission} from "../helper.ts";
-import {getMonthlyEmployeeSalarySlip,getTotalEPFAmount} from "../mongoose/salary_slip.ts";
-import {addNewAttendance,addNewBreak,getAttendance,getAttendanceRecord,getTodayAttendance,isShiftTimeCompleted,resolveAttendance,updateClockOutTime,updateOngoingBreak} from "../mongoose/attendance.ts";
+import type { Socket } from "socket.io";
+import type { IBonus } from "../../interface/bonus";
+import type { IPenalty } from "../../interface/penalty";
+import type { DayStatus } from "../../type/day_status";
+import type { IEmployee } from "../../interface/employee";
+import type { IAttendance } from "../../interface/attendance";
+import { createLeave } from "../mongoose/leave";
+import { getEmployeeBonus } from "../mongoose/bonus";
+import { isValidMonthYear } from "../../utils/validations";
+import { getEmployeePenalty } from "../mongoose/penalty";
+import { getEmployeeAttendanceRecord } from "../mongoose/attendance_record";
+import { dateToIST, formatHoursMinutes } from "../../utils/date_time";
+import { getShiftData, errorEmission, messageEmission } from "../helper";
+import {
+	getMonthlyEmployeeSalarySlip,
+	getTotalEPFAmount,
+} from "../mongoose/salary_slip";
+import {
+	addNewAttendance,
+	addNewBreak,
+	getAttendance,
+	getAttendanceRecord,
+	getTodayAttendance,
+	isShiftTimeCompleted,
+	resolveAttendance,
+	updateClockOutTime,
+	updateOngoingBreak,
+} from "../mongoose/attendance";
 
-async function clockInHandler(socket: Socket,employee: IEmployee, reason: string): Promise<void> {
-    try {
-        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
-        if(!attendance) {
-            await addNewAttendance(socket, employee._id, employee.shiftId.toString(), reason);
-        } else if (attendance.status === "in" || attendance.status === "out") {
-            messageEmission(socket, "failed","can't clock in if already clocked in or clocked out.");
-        } else {
-            await updateOngoingBreak(socket, employee._id.toString(), attendance);
-        }
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+async function clockInHandler(
+	socket: Socket,
+	employee: IEmployee,
+	reason: string,
+): Promise<void> {
+	try {
+		const attendance: IAttendance | null = await getTodayAttendance(
+			socket,
+			employee._id,
+			employee.shiftId.toString(),
+		);
+
+		if (!attendance) {
+			await addNewAttendance(
+				socket,
+				employee._id,
+				employee.shiftId.toString(),
+				reason,
+			);
+		} else if (attendance.status === "in" || attendance.status === "out") {
+			messageEmission(
+				socket,
+				"failed",
+				"can't clock in if already clocked in or clocked out.",
+			);
+		} else {
+			await updateOngoingBreak(socket, employee._id.toString(), attendance);
+		}
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function clockOutHandler(socket: Socket,employee: IEmployee, reason: string) {
-    try {
-        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
-        if(!attendance) {
-            messageEmission(socket, "failed","not clocked in yet.");
-        } else if (attendance.status === "break" || attendance.status === "out") {
-            messageEmission(socket, "failed","can't clock out if already clocked out or in break.");
-        } else if (!await isShiftTimeCompleted(attendance) && !reason) {
-            messageEmission(socket, "failed","shift hours are pending, provide reason for early clock out.");
-        } else {
-            await updateClockOutTime(socket, employee._id.toString(), attendance, reason);
-        }
-    } catch (error) {
-        errorEmission(socket,error);
-    }
+
+async function clockOutHandler(
+	socket: Socket,
+	employee: IEmployee,
+	reason: string,
+): Promise<void> {
+	try {
+		const attendance: IAttendance | null = await getTodayAttendance(
+			socket,
+			employee._id,
+			employee.shiftId.toString(),
+		);
+
+		if (!attendance) {
+			messageEmission(socket, "failed", "not clocked in yet.");
+		} else if (attendance.status === "break" || attendance.status === "out") {
+			messageEmission(
+				socket,
+				"failed",
+				"can't clock out if already clocked out or in break.",
+			);
+		} else if (!(await isShiftTimeCompleted(attendance)) && !reason) {
+			messageEmission(
+				socket,
+				"failed",
+				"shift hours are pending, provide reason for early clock out.",
+			);
+		} else {
+			await updateClockOutTime(
+				socket,
+				employee._id.toString(),
+				attendance,
+				reason,
+			);
+		}
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function breakHandler(reason: string, socket: Socket,employee: IEmployee) {
-    try {
-        const attendance: IAttendance | null = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
-        if(!attendance || attendance.status === "break" || attendance.status === "out") {
-            messageEmission(socket, "failed","not clocked in yet.");
-        } else if (!reason) {
-            messageEmission(socket, "failed","give reason for the break.");
-        } else {
-            await addNewBreak(socket, employee._id.toString(),attendance, reason);
-        }
-    } catch (error) {
-        errorEmission(socket,error);
-    }
+
+async function breakHandler(
+	reason: string,
+	socket: Socket,
+	employee: IEmployee,
+): Promise<void> {
+	try {
+		const attendance: IAttendance | null = await getTodayAttendance(
+			socket,
+			employee._id,
+			employee.shiftId.toString(),
+		);
+
+		if (
+			!attendance ||
+			attendance.status === "break" ||
+			attendance.status === "out"
+		) {
+			messageEmission(socket, "failed", "not clocked in yet.");
+		} else if (!reason) {
+			messageEmission(socket, "failed", "give reason for the break.");
+		} else {
+			await addNewBreak(socket, employee._id.toString(), attendance, reason);
+		}
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function statusHandler(socket:Socket, employee: IEmployee) {
-    try {
-        let status;
-        const attendance = await getTodayAttendance(socket,employee._id, employee.shiftId.toString());
-        const attendanceRecord = await getAttendanceRecord(employee._id);
-        if(!attendance) status = "not clocked in yet.";
-        else {
-            const currentTime = attendance.clock_out || new Date();
-            const {shiftStartTime,shiftEndTime,breakMinutes,workedMinutes,pendingTimeMinutes,overTimeMinutes} =
-                await getShiftData(attendance,currentTime);
-            status = {
-                status: attendance.status,
-                "clocked in": dateToIST(attendance.clock_in),
-                "break time": formatHoursMinutes(breakMinutes),
-                "working time": formatHoursMinutes( workedMinutes),
-                "pending time": formatHoursMinutes(pendingTimeMinutes),
-                "over time": formatHoursMinutes(overTimeMinutes),
-                "shift": {from: dateToIST(shiftStartTime),to: dateToIST(shiftEndTime)},
-            };
-        }
-        messageEmission(socket, "success",{
-            "current status": status,
-            "attendance record": attendanceRecord
-        });
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function statusHandler(
+	socket: Socket,
+	employee: IEmployee,
+): Promise<void> {
+	try {
+		let status;
+		const attendance = await getTodayAttendance(
+			socket,
+			employee._id,
+			employee.shiftId.toString(),
+		);
+
+		const attendanceRecord = await getAttendanceRecord(employee._id);
+		if (!attendance) status = "not clocked in yet.";
+		else {
+			const currentTime = attendance.clock_out || new Date();
+			const {
+				shiftStartTime,
+				shiftEndTime,
+				breakMinutes,
+				workedMinutes,
+				pendingTimeMinutes,
+				overTimeMinutes,
+			} = await getShiftData(attendance, currentTime);
+
+			status = {
+				status: attendance.status,
+				"clocked in": dateToIST(attendance.clock_in),
+				"break time": formatHoursMinutes(breakMinutes),
+				"working time": formatHoursMinutes(workedMinutes),
+				"pending time": formatHoursMinutes(pendingTimeMinutes),
+				"over time": formatHoursMinutes(overTimeMinutes),
+				shift: { from: dateToIST(shiftStartTime), to: dateToIST(shiftEndTime) },
+			};
+		}
+
+		messageEmission(socket, "success", {
+			"current status": status,
+			"attendance record": attendanceRecord,
+		});
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function resolvePendingAttendanceHandler(socket: Socket, attendanceId: string, clockOutTime: string) {
-    try {
-        const attendance: IAttendance | null = await getAttendance(attendanceId);
-        if(!attendance) {
-            messageEmission(socket, "failed",`${attendanceId} is an invalid attendance id.`);
-            return;
-        }
-        await resolveAttendance(socket,attendance, clockOutTime);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function resolvePendingAttendanceHandler(
+	socket: Socket,
+	attendanceId: string,
+	clockOutTime: string,
+): Promise<void> {
+	try {
+		const attendance: IAttendance | null = await getAttendance(attendanceId);
+		if (!attendance) {
+			messageEmission(
+				socket,
+				"failed",
+				`${attendanceId} is an invalid attendance id.`,
+			);
+			return;
+		}
+		await resolveAttendance(socket, attendance, clockOutTime);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function leaveRequestHandler(socket: Socket, employeeId: string, shiftId: string, leave_date: string, day_status: DayStatus, reason: string) {
-    try {
-        if (!leave_date || !day_status || !reason) {
-            messageEmission(socket, "failed","incomplete / invalid credentials.");
-            return;
-        }
-        await createLeave(socket, leave_date, day_status, reason, employeeId, shiftId);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function leaveRequestHandler(
+	socket: Socket,
+	employeeId: string,
+	shiftId: string,
+	leave_date: string,
+	day_status: DayStatus,
+	reason: string,
+): Promise<void> {
+	try {
+		if (!leave_date || !day_status || !reason) {
+			messageEmission(socket, "failed", "incomplete / invalid credentials.");
+			return;
+		}
+
+		await createLeave(
+			socket,
+			leave_date,
+			day_status,
+			reason,
+			employeeId,
+			shiftId,
+		);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function viewEmployeeAttendanceHandler(socket: Socket, employeeId: string) {
-    try {
-        const attendanceRecord = await getEmployeeAttendanceRecord(employeeId);
-        messageEmission(socket, "success",attendanceRecord);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function viewEmployeeAttendanceHandler(
+	socket: Socket,
+	employeeId: string,
+): Promise<void> {
+	try {
+		const attendanceRecord = await getEmployeeAttendanceRecord(employeeId);
+		messageEmission(socket, "success", attendanceRecord);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function viewEmployeeSalaryHandler(socket:Socket, month: string, employeeId: string) {
-    try {
-        if (!month) {
-            messageEmission(socket,"failed","month is missing.");
-            return;
-        }
-        if (!isValidMonthYear(month)) {
-            messageEmission(socket,"failed","invalid month format [mm/yyyy].");
-            return;
-        }
-        const salarySlip = await getMonthlyEmployeeSalarySlip(month,employeeId);
-        messageEmission(socket,"success",salarySlip);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function viewEmployeeSalaryHandler(
+	socket: Socket,
+	month: string,
+	employeeId: string,
+): Promise<void> {
+	try {
+		if (!month) {
+			messageEmission(socket, "failed", "month is missing.");
+			return;
+		}
+		if (!isValidMonthYear(month)) {
+			messageEmission(socket, "failed", "invalid month format [mm/yyyy].");
+			return;
+		}
+		const salarySlip = await getMonthlyEmployeeSalarySlip(month, employeeId);
+		messageEmission(socket, "success", salarySlip);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function viewBonusHandler(socket:Socket, employeeId: string) {
-    try {
-        const bonus: IBonus[] = await getEmployeeBonus(employeeId);
-        messageEmission(socket,"success",bonus);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function viewBonusHandler(
+	socket: Socket,
+	employeeId: string,
+): Promise<void> {
+	try {
+		const bonus: IBonus[] = await getEmployeeBonus(employeeId);
+		messageEmission(socket, "success", bonus);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function viewPenaltyHandler(socket:Socket, employeeId: string) {
-    try {
-        const penalty: IPenalty[] = await getEmployeePenalty(employeeId);
-        messageEmission(socket,"success",penalty);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function viewPenaltyHandler(
+	socket: Socket,
+	employeeId: string,
+): Promise<void> {
+	try {
+		const penalty: IPenalty[] = await getEmployeePenalty(employeeId);
+		messageEmission(socket, "success", penalty);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
-async function viewEPFHandler(socket:Socket, employeeId: string) {
-    try {
-        const epfAmount = await getTotalEPFAmount(employeeId);
-        messageEmission(socket,"success",`total epf amount till now: ${epfAmount}`);
-    } catch(error) {
-        errorEmission(socket,error);
-    }
+
+async function viewEPFHandler(
+	socket: Socket,
+	employeeId: string,
+): Promise<void> {
+	try {
+		const epfAmount = await getTotalEPFAmount(employeeId);
+		messageEmission(
+			socket,
+			"success",
+			`total epf amount till now: ${epfAmount}`,
+		);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
 }
 
 export {
-    clockInHandler,
-    breakHandler,
-    clockOutHandler,
-    statusHandler,
-    resolvePendingAttendanceHandler,
-    leaveRequestHandler,
-    viewEmployeeAttendanceHandler,
-    viewEmployeeSalaryHandler,
-    viewBonusHandler,
-    viewPenaltyHandler,
-    viewEPFHandler
+	clockInHandler,
+	breakHandler,
+	clockOutHandler,
+	statusHandler,
+	resolvePendingAttendanceHandler,
+	leaveRequestHandler,
+	viewEmployeeAttendanceHandler,
+	viewEmployeeSalaryHandler,
+	viewBonusHandler,
+	viewPenaltyHandler,
+	viewEPFHandler,
 };

@@ -1,5 +1,5 @@
 export interface SymbolNodeLike {
-    type: string;
-    name?: string;
-    [key: string]: any;
+	type: string;
+	name?: string;
+	[key: string]: any;
 }

@@ -1,3 +1,3 @@
 export interface IDepartment {
-    name: string;
+	name: string;
 }

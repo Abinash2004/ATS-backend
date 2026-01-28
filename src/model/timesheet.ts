@@ -1,21 +1,21 @@
-import {Schema,model} from "mongoose";
-import type {ITimesheet} from "../interface/timesheet.ts";
+import { Schema, model } from "mongoose";
+import type { ITimesheet } from "../interface/timesheet";
 
 const timesheetSchema = new Schema<ITimesheet>({
-    time: {
-        type: Date,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ["in","out"],
-        required: true
-    },
-    employeeId: {
-        type: Schema.Types.ObjectId,
-        ref: "Employee",
-        required: true
-    }
+	time: {
+		type: Date,
+		required: true,
+	},
+	status: {
+		type: String,
+		enum: ["in", "out"],
+		required: true,
+	},
+	employeeId: {
+		type: Schema.Types.ObjectId,
+		ref: "Employee",
+		required: true,
+	},
 });
 
 const Timesheet = model<ITimesheet>("Timesheet", timesheetSchema);

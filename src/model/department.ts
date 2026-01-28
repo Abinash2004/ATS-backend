@@ -1,11 +1,11 @@
-import {Schema,model} from "mongoose";
-import type {IDepartment} from "../interface/department.ts";
+import { Schema, model } from "mongoose";
+import type { IDepartment } from "../interface/department";
 
 const departmentSchema = new Schema<IDepartment>({
-   name: {
-       type: String,
-       required: true
-   }
+	name: {
+		type: String,
+		required: true,
+	},
 });
 
 const Department = model<IDepartment>("Department", departmentSchema);

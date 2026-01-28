@@ -1,5 +1,5 @@
 export interface ILocation {
-    street?: string;
-    city: string;
-    state: string;
+	street?: string;
+	city: string;
+	state: string;
 }

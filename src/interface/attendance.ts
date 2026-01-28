@@ -1,5 +1,5 @@
 import {Types} from "mongoose";
-import type {ISingleShift} from "./shift.ts";
+import type {ISingleShift} from "./shift";
 
 export interface IBreak {
     break_in: Date;

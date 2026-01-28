@@ -1,11 +1,11 @@
-import {Types} from "mongoose";
-import type {DayStatus} from "../type/day_status.ts";
+import { Types } from "mongoose";
+import type { DayStatus } from "../type/day_status";
 
 export interface ILeave {
-    date: Date;
-    day_status: DayStatus;
-    leave_status: "pending" | "approved" | "rejected";
-    reason: string;
-    employeeId: Types.ObjectId;
-    shiftId: Types.ObjectId;
+	date: Date;
+	day_status: DayStatus;
+	leave_status: "pending" | "approved" | "rejected";
+	reason: string;
+	employeeId: Types.ObjectId;
+	shiftId: Types.ObjectId;
 }
