@@ -1,32 +1,39 @@
 import type { Socket } from "socket.io";
-import type { ISingleShift } from "../interface/shift";
-import type { IAttendanceRecord } from "../interface/attendance_record";
-import type { IAttendance, IBreak } from "../interface/attendance";
-import { getShift } from "./mongoose/shift";
-import { evaluateSalaryTemplate, isValidMonthYear } from "../utils/validations";
-import { readSalaryTemplate } from "./mongoose/salary_template";
-import { getAttendanceByDate } from "./mongoose/attendance";
-import { getBreakPerHourPenalty } from "./mongoose/policy";
-import { getEmployeeAttendanceRecordDateWise } from "./mongoose/attendance_record";
+import type { ISingleShift } from "../../interface/shift";
+import type { IAttendanceRecord } from "../../interface/attendance_record";
+import type { IAttendance, IBreak } from "../../interface/attendance";
+import { getShift } from "../mongoose/shift";
+import {
+	evaluateSalaryTemplate,
+	isValidMonthYear,
+} from "../../utils/validations";
+import { readSalaryTemplate } from "../mongoose/salary_template";
+import { getAttendanceByDate } from "../mongoose/attendance";
+import { getBreakPerHourPenalty } from "../mongoose/policy";
+import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
 	calculateMinutes,
 	getDayName,
 	getLastDayUtc,
 	stringToDate,
-} from "../utils/date_time";
+} from "../../utils/date_time";
 
-function errorEmission(socket: Socket, error: unknown): void {
+export function errorEmission(socket: Socket, error: unknown): void {
 	socket.emit("server_response", {
 		status: "failed",
 		message: error instanceof Error ? error.message : error,
 	});
 }
 
-function messageEmission(socket: Socket, status: string, message: any): void {
+export function messageEmission(
+	socket: Socket,
+	status: string,
+	message: any,
+): void {
 	socket.emit("server_response", { status, message });
 }
 
-async function getShiftData(attendance: IAttendance, currentTime: Date) {
+export async function getShiftData(attendance: IAttendance, currentTime: Date) {
 	let shiftStartTime = stringToDate(attendance.shift.start_time);
 	let shiftEndTime = stringToDate(attendance.shift.end_time);
 
@@ -70,7 +77,7 @@ async function getShiftData(attendance: IAttendance, currentTime: Date) {
 	};
 }
 
-async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
+export async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
 	try {
 		let shiftInitialTime: Date = stringToDate(shift.start_time);
 		let shiftExitTime: Date = stringToDate(shift.end_time);
@@ -91,7 +98,7 @@ async function getShiftTimings(shift: ISingleShift): Promise<Date[]> {
 	}
 }
 
-async function calculateShiftSalary(
+export async function calculateShiftSalary(
 	shiftId: string,
 	start: Date,
 	end: Date,
@@ -106,7 +113,7 @@ async function calculateShiftSalary(
 	}
 }
 
-async function calculateWorkingShift(
+export async function calculateWorkingShift(
 	shiftId: string,
 	start: Date,
 	end: Date,
@@ -141,7 +148,7 @@ async function calculateWorkingShift(
 	}
 }
 
-async function calculateTotalWorkingShift(
+export async function calculateTotalWorkingShift(
 	employeeId: string,
 	start: Date,
 	end: Date,
@@ -182,7 +189,7 @@ async function calculateTotalWorkingShift(
 	}
 }
 
-async function calculateOvertimePay(
+export async function calculateOvertimePay(
 	attendance: IAttendanceRecord,
 	employeeId: string,
 	shiftSalary: number,
@@ -208,7 +215,7 @@ async function calculateOvertimePay(
 	}
 }
 
-async function calculateOvertimeMinutes(
+export async function calculateOvertimeMinutes(
 	attendance: IAttendanceRecord,
 	employeeId: string,
 ): Promise<number> {
@@ -232,7 +239,7 @@ async function calculateOvertimeMinutes(
 	}
 }
 
-function checkMonthValidationAndCurrentDate(
+export function checkMonthValidationAndCurrentDate(
 	month: string,
 	socket: Socket,
 ): boolean {
@@ -253,7 +260,7 @@ function checkMonthValidationAndCurrentDate(
 	return true;
 }
 
-async function checkBreakPenalty(
+export async function checkBreakPenalty(
 	breaks: IBreak[],
 	currentTime: Date,
 ): Promise<number> {
@@ -273,7 +280,7 @@ async function checkBreakPenalty(
 	return penalty;
 }
 
-async function getSalaryTemplateData(
+export async function getSalaryTemplateData(
 	employeeId: string,
 	salary: number,
 ): Promise<Record<string, number>> {
@@ -286,18 +293,3 @@ async function getSalaryTemplateData(
 		return {};
 	}
 }
-
-export {
-	errorEmission,
-	messageEmission,
-	getShiftData,
-	getShiftTimings,
-	calculateShiftSalary,
-	calculateOvertimePay,
-	calculateWorkingShift,
-	calculateOvertimeMinutes,
-	calculateTotalWorkingShift,
-	checkMonthValidationAndCurrentDate,
-	checkBreakPenalty,
-	getSalaryTemplateData,
-};

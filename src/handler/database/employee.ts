@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { IEmployee } from "../../interface/employee";
-import { errorEmission, messageEmission } from "../helper";
+import { errorEmission, messageEmission } from "../helper/reusable";
 import {
 	addNewEmployee,
 	deleteEmployee,
@@ -9,7 +9,7 @@ import {
 	updateEmployee,
 } from "../mongoose/employee";
 
-async function createEmployeeHandler(
+export async function createEmployeeHandler(
 	socket: Socket,
 	employee: IEmployee,
 ): Promise<void> {
@@ -34,7 +34,7 @@ async function createEmployeeHandler(
 	}
 }
 
-async function readEmployeeHandler(
+export async function readEmployeeHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -58,7 +58,7 @@ async function readEmployeeHandler(
 	}
 }
 
-async function updateEmployeeHandler(
+export async function updateEmployeeHandler(
 	socket: Socket,
 	employeeId: string,
 	employee: IEmployee,
@@ -83,7 +83,7 @@ async function updateEmployeeHandler(
 	}
 }
 
-async function deleteEmployeeHandler(
+export async function deleteEmployeeHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -102,10 +102,3 @@ async function deleteEmployeeHandler(
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	createEmployeeHandler,
-	readEmployeeHandler,
-	updateEmployeeHandler,
-	deleteEmployeeHandler,
-};

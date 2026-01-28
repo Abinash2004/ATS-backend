@@ -1,7 +1,7 @@
 import type { Socket } from "socket.io";
 import type { ISalaryTemplate } from "../../interface/salary_template";
 import { isValidSalaryTemplate } from "../../utils/validations";
-import { errorEmission, messageEmission } from "../helper";
+import { errorEmission, messageEmission } from "../helper/reusable";
 import {
 	readSalaryTemplate,
 	createSalaryTemplate,

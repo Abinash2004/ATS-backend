@@ -5,7 +5,7 @@ import { redisClient } from "../../config/redis";
 const SHIFT_CACHE_TTL = 60 * 60;
 const shiftKey = (id: string) => `shift:${id}`;
 
-async function getShift(shiftId: string): Promise<IShift | null> {
+export async function getShift(shiftId: string): Promise<IShift | null> {
 	try {
 		const shiftCache = await redisClient.get(shiftKey(shiftId));
 		if (shiftCache) return JSON.parse(shiftCache) as IShift;
@@ -21,7 +21,7 @@ async function getShift(shiftId: string): Promise<IShift | null> {
 	}
 }
 
-async function createShift(shift: IShift): Promise<void> {
+export async function createShift(shift: IShift): Promise<void> {
 	try {
 		await Shift.create(shift);
 	} catch (error) {
@@ -29,7 +29,7 @@ async function createShift(shift: IShift): Promise<void> {
 	}
 }
 
-async function deleteShift(shiftId: string): Promise<void> {
+export async function deleteShift(shiftId: string): Promise<void> {
 	try {
 		await Shift.deleteOne({ _id: shiftId });
 		await redisClient.del(shiftKey(shiftId));
@@ -38,7 +38,10 @@ async function deleteShift(shiftId: string): Promise<void> {
 	}
 }
 
-async function updateShift(shiftId: string, shift: IShift): Promise<void> {
+export async function updateShift(
+	shiftId: string,
+	shift: IShift,
+): Promise<void> {
 	try {
 		await Shift.updateOne(
 			{ _id: shiftId },
@@ -59,5 +62,3 @@ async function updateShift(shiftId: string, shift: IShift): Promise<void> {
 		console.error(error);
 	}
 }
-
-export { getShift, createShift, deleteShift, updateShift };

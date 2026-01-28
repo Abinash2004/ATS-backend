@@ -10,7 +10,11 @@ import { isValidMonthYear } from "../../utils/validations";
 import { getEmployeePenalty } from "../mongoose/penalty";
 import { getEmployeeAttendanceRecord } from "../mongoose/attendance_record";
 import { dateToIST, formatHoursMinutes } from "../../utils/date_time";
-import { getShiftData, errorEmission, messageEmission } from "../helper";
+import {
+	getShiftData,
+	errorEmission,
+	messageEmission,
+} from "../helper/reusable";
 import {
 	getMonthlyEmployeeSalarySlip,
 	getTotalEPFAmount,
@@ -27,7 +31,7 @@ import {
 	updateOngoingBreak,
 } from "../mongoose/attendance";
 
-async function clockInHandler(
+export async function clockInHandler(
 	socket: Socket,
 	employee: IEmployee,
 	reason: string,
@@ -60,7 +64,7 @@ async function clockInHandler(
 	}
 }
 
-async function clockOutHandler(
+export async function clockOutHandler(
 	socket: Socket,
 	employee: IEmployee,
 	reason: string,
@@ -99,7 +103,7 @@ async function clockOutHandler(
 	}
 }
 
-async function breakHandler(
+export async function breakHandler(
 	reason: string,
 	socket: Socket,
 	employee: IEmployee,
@@ -127,7 +131,7 @@ async function breakHandler(
 	}
 }
 
-async function statusHandler(
+export async function statusHandler(
 	socket: Socket,
 	employee: IEmployee,
 ): Promise<void> {
@@ -172,7 +176,7 @@ async function statusHandler(
 	}
 }
 
-async function resolvePendingAttendanceHandler(
+export async function resolvePendingAttendanceHandler(
 	socket: Socket,
 	attendanceId: string,
 	clockOutTime: string,
@@ -193,7 +197,7 @@ async function resolvePendingAttendanceHandler(
 	}
 }
 
-async function leaveRequestHandler(
+export async function leaveRequestHandler(
 	socket: Socket,
 	employeeId: string,
 	shiftId: string,
@@ -220,7 +224,7 @@ async function leaveRequestHandler(
 	}
 }
 
-async function viewEmployeeAttendanceHandler(
+export async function viewEmployeeAttendanceHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -232,7 +236,7 @@ async function viewEmployeeAttendanceHandler(
 	}
 }
 
-async function viewEmployeeSalaryHandler(
+export async function viewEmployeeSalaryHandler(
 	socket: Socket,
 	month: string,
 	employeeId: string,
@@ -253,7 +257,7 @@ async function viewEmployeeSalaryHandler(
 	}
 }
 
-async function viewBonusHandler(
+export async function viewBonusHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -265,7 +269,7 @@ async function viewBonusHandler(
 	}
 }
 
-async function viewPenaltyHandler(
+export async function viewPenaltyHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -277,7 +281,7 @@ async function viewPenaltyHandler(
 	}
 }
 
-async function viewEPFHandler(
+export async function viewEPFHandler(
 	socket: Socket,
 	employeeId: string,
 ): Promise<void> {
@@ -292,17 +296,3 @@ async function viewEPFHandler(
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	clockInHandler,
-	breakHandler,
-	clockOutHandler,
-	statusHandler,
-	resolvePendingAttendanceHandler,
-	leaveRequestHandler,
-	viewEmployeeAttendanceHandler,
-	viewEmployeeSalaryHandler,
-	viewBonusHandler,
-	viewPenaltyHandler,
-	viewEPFHandler,
-};

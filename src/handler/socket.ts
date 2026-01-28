@@ -10,41 +10,41 @@ import type { leave_response } from "../type/leave_response";
 import type { ExtendedError } from "socket.io/dist/namespace";
 import type { ISalaryTemplate } from "../interface/salary_template";
 import { runPayrollHandler, viewPayrollHistory } from "./events/admin";
-import { authSignIn, authSignUp, authVerification } from "./auth";
+import { authSignIn, authSignUp, authVerification } from "./helper/auth";
 import {
 	createPolicyHandler,
 	readPolicyHandler,
 	updatePolicyHandler,
-} from "./crud/policy";
+} from "./database/policy";
 import {
 	createShiftHandler,
 	deleteShiftHandler,
 	readShiftHandler,
 	updateShiftHandler,
-} from "./crud/shift";
+} from "./database/shift";
 import {
 	salaryTemplateCreateHandler,
 	salaryTemplateReadHandler,
 	salaryTemplateUpdateHandler,
-} from "./crud/salary_template";
+} from "./database/salary_template";
 import {
 	createEmployeeHandler,
 	deleteEmployeeHandler,
 	readEmployeeHandler,
 	updateEmployeeHandler,
-} from "./crud/employee";
+} from "./database/employee";
 import {
 	createLocationHandler,
 	deleteLocationHandler,
 	readLocationHandler,
 	updateLocationHandler,
-} from "./crud/location";
+} from "./database/location";
 import {
 	createDepartmentHandler,
 	deleteDepartmentHandler,
 	readDepartmentHandler,
 	updateDepartmentHandler,
-} from "./crud/department";
+} from "./database/department";
 import {
 	createAttendanceRecordHandler,
 	generateAttendanceSheetHandler,
@@ -67,7 +67,7 @@ import {
 	viewEPFHandler,
 } from "./events/employee";
 
-function startAuthSocketServer() {
+export function startAuthSocketServer() {
 	const authNamespace = io.of("/auth");
 	authNamespace.on("connection", (socket) => {
 		console.log(`${socket.id} connected to auth server.`);
@@ -76,7 +76,7 @@ function startAuthSocketServer() {
 	});
 }
 
-function startSocketServer() {
+export function startSocketServer() {
 	const appNamespace = io.of("/app");
 	appNamespace.use((socket: Socket, next: (err?: ExtendedError) => void) =>
 		authVerification(socket, next),
@@ -278,5 +278,3 @@ function startSocketServer() {
 		);
 	});
 }
-
-export { startSocketServer, startAuthSocketServer };

@@ -5,7 +5,7 @@ import type { IPayrollRecord } from "../../interface/payroll_record";
 const PAYROLL_LAST_DATE_TTL = 60 * 60;
 const payrollLastDateKey = `payroll:last_date`;
 
-async function getLastPayrollDate(): Promise<Date | null> {
+export async function getLastPayrollDate(): Promise<Date | null> {
 	try {
 		const payrollLastDateCache = await redisClient.get(payrollLastDateKey);
 		if (payrollLastDateCache) return new Date(payrollLastDateCache);
@@ -23,7 +23,7 @@ async function getLastPayrollDate(): Promise<Date | null> {
 	}
 }
 
-async function createPayrollRecord(
+export async function createPayrollRecord(
 	start: Date,
 	end: Date,
 	year: string,
@@ -66,7 +66,7 @@ async function createPayrollRecord(
 	}
 }
 
-async function getPayrollHistory(): Promise<IPayrollRecord[]> {
+export async function getPayrollHistory(): Promise<IPayrollRecord[]> {
 	try {
 		return await PayrollRecord.find();
 	} catch (error) {
@@ -74,5 +74,3 @@ async function getPayrollHistory(): Promise<IPayrollRecord[]> {
 		return [];
 	}
 }
-
-export { getLastPayrollDate, createPayrollRecord, getPayrollHistory };

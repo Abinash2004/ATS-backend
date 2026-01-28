@@ -1,7 +1,7 @@
 import Employee from "../../model/employee";
 import type { IEmployee } from "../../interface/employee";
 
-async function isEmployeeExists(email: string): Promise<boolean> {
+export async function isEmployeeExists(email: string): Promise<boolean> {
 	try {
 		const emp = await Employee.findOne({ email });
 		return !!emp;
@@ -11,7 +11,7 @@ async function isEmployeeExists(email: string): Promise<boolean> {
 	}
 }
 
-async function addNewEmployee(employee: IEmployee): Promise<void> {
+export async function addNewEmployee(employee: IEmployee): Promise<void> {
 	try {
 		await Employee.create(employee);
 	} catch (error) {
@@ -19,7 +19,7 @@ async function addNewEmployee(employee: IEmployee): Promise<void> {
 	}
 }
 
-async function getEmployeeDataByEmail(
+export async function getEmployeeDataByEmail(
 	email: string,
 ): Promise<IEmployee | null> {
 	try {
@@ -30,7 +30,7 @@ async function getEmployeeDataByEmail(
 	}
 }
 
-async function getEmployeeById(id: string): Promise<IEmployee | null> {
+export async function getEmployeeById(id: string): Promise<IEmployee | null> {
 	try {
 		return await Employee.findOne({ _id: id });
 	} catch (error) {
@@ -39,7 +39,7 @@ async function getEmployeeById(id: string): Promise<IEmployee | null> {
 	}
 }
 
-async function updateEmployee(
+export async function updateEmployee(
 	employeeId: string,
 	employee: IEmployee,
 ): Promise<void> {
@@ -63,7 +63,7 @@ async function updateEmployee(
 	}
 }
 
-async function deleteEmployee(employeeId: string): Promise<void> {
+export async function deleteEmployee(employeeId: string): Promise<void> {
 	try {
 		await Employee.deleteOne({ _id: employeeId });
 	} catch (error) {
@@ -71,7 +71,7 @@ async function deleteEmployee(employeeId: string): Promise<void> {
 	}
 }
 
-async function getAllEmployeesList(): Promise<IEmployee[]> {
+export async function getAllEmployeesList(): Promise<IEmployee[]> {
 	try {
 		return await Employee.find();
 	} catch (error) {
@@ -79,13 +79,3 @@ async function getAllEmployeesList(): Promise<IEmployee[]> {
 		return [];
 	}
 }
-
-export {
-	isEmployeeExists,
-	addNewEmployee,
-	getEmployeeDataByEmail,
-	getEmployeeById,
-	updateEmployee,
-	deleteEmployee,
-	getAllEmployeesList,
-};

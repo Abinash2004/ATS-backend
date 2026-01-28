@@ -11,7 +11,7 @@ const SALARY_SLIP_CACHE_TTL = 60 * 60;
 const salarySlipKey = (employeeId: string, month: string) =>
 	`salarySlip:${employeeId}:${month}`;
 
-async function createSalarySlip(
+export async function createSalarySlip(
 	salary: ISalary,
 	attendance: ISalaryAttendance,
 	employeeId: string,
@@ -27,7 +27,7 @@ async function createSalarySlip(
 	}
 }
 
-async function getMonthlyEmployeeSalarySlip(
+export async function getMonthlyEmployeeSalarySlip(
 	month: string,
 	employeeId: string,
 ): Promise<ISalarySlip[] | null> {
@@ -54,7 +54,7 @@ async function getMonthlyEmployeeSalarySlip(
 	}
 }
 
-async function getTotalEPFAmount(employeeId: string): Promise<number> {
+export async function getTotalEPFAmount(employeeId: string): Promise<number> {
 	try {
 		const result = await SalarySlip.aggregate([
 			{ $match: { employeeId: new mongoose.Types.ObjectId(employeeId) } },
@@ -66,5 +66,3 @@ async function getTotalEPFAmount(employeeId: string): Promise<number> {
 		return 0;
 	}
 }
-
-export { createSalarySlip, getMonthlyEmployeeSalarySlip, getTotalEPFAmount };

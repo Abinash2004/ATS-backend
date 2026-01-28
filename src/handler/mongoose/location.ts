@@ -1,7 +1,7 @@
 import Location from "../../model/location";
 import type { ILocation } from "../../interface/location";
 
-async function createLocation(location: ILocation): Promise<void> {
+export async function createLocation(location: ILocation): Promise<void> {
 	try {
 		await Location.create(location);
 	} catch (error) {
@@ -9,7 +9,9 @@ async function createLocation(location: ILocation): Promise<void> {
 	}
 }
 
-async function getLocation(locationId: string): Promise<ILocation | null> {
+export async function getLocation(
+	locationId: string,
+): Promise<ILocation | null> {
 	try {
 		return await Location.findOne({ _id: locationId });
 	} catch (error) {
@@ -18,7 +20,7 @@ async function getLocation(locationId: string): Promise<ILocation | null> {
 	}
 }
 
-async function updateLocation(
+export async function updateLocation(
 	locationId: string,
 	location: ILocation,
 ): Promise<void> {
@@ -38,12 +40,10 @@ async function updateLocation(
 	}
 }
 
-async function deleteLocation(locationId: string): Promise<void> {
+export async function deleteLocation(locationId: string): Promise<void> {
 	try {
 		await Location.deleteOne({ _id: locationId });
 	} catch (error) {
 		console.error(error);
 	}
 }
-
-export { createLocation, getLocation, updateLocation, deleteLocation };

@@ -1,5 +1,5 @@
-import type { ISalaryTemplate } from "../../interface/salary_template";
 import { SalaryTemplate } from "../../model/salary_template";
+import type { ISalaryTemplate } from "../../interface/salary_template";
 
 export async function createSalaryTemplate(
 	salaryTemplate: ISalaryTemplate,

@@ -1,7 +1,7 @@
 import AdvancePayroll from "../../model/advance_payroll";
 import type { IAdvancePayroll } from "../../interface/advance_payroll";
 
-async function createAdvancePayroll(
+export async function createAdvancePayroll(
 	start_date: Date,
 	end_date: Date,
 ): Promise<void> {
@@ -11,7 +11,7 @@ async function createAdvancePayroll(
 		console.log(error);
 	}
 }
-async function getPendingAdvancePayroll(): Promise<IAdvancePayroll | null> {
+export async function getPendingAdvancePayroll(): Promise<IAdvancePayroll | null> {
 	try {
 		return await AdvancePayroll.findOne({ status: "pending" });
 	} catch (error) {
@@ -19,7 +19,7 @@ async function getPendingAdvancePayroll(): Promise<IAdvancePayroll | null> {
 		return null;
 	}
 }
-async function resolveAdvancePayroll(): Promise<void> {
+export async function resolveAdvancePayroll(): Promise<void> {
 	try {
 		await AdvancePayroll.updateOne(
 			{ status: "pending" },
@@ -29,9 +29,3 @@ async function resolveAdvancePayroll(): Promise<void> {
 		console.log(error);
 	}
 }
-
-export {
-	createAdvancePayroll,
-	getPendingAdvancePayroll,
-	resolveAdvancePayroll,
-};

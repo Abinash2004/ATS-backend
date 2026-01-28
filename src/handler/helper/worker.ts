@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
-import { runEmployeePayroll } from "./payroll.run";
-import { getEmployeeById } from "./mongoose/employee";
+import { getEmployeeById } from "../mongoose/employee";
+import { runEmployeePayroll } from "./payroll";
 
 export function startPayrollWorker() {
 	const worker = new Worker(

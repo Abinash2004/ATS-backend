@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { ILocation } from "../../interface/location";
-import { errorEmission, messageEmission } from "../helper";
+import { errorEmission, messageEmission } from "../helper/reusable";
 import {
 	createLocation,
 	deleteLocation,
@@ -8,7 +8,10 @@ import {
 	updateLocation,
 } from "../mongoose/location";
 
-async function createLocationHandler(socket: Socket, location: ILocation) {
+export async function createLocationHandler(
+	socket: Socket,
+	location: ILocation,
+) {
 	try {
 		if (socket.data.role !== "admin") {
 			messageEmission(socket, "failed", "only admin are permitted.");
@@ -25,7 +28,7 @@ async function createLocationHandler(socket: Socket, location: ILocation) {
 	}
 }
 
-async function readLocationHandler(socket: Socket, locationId: string) {
+export async function readLocationHandler(socket: Socket, locationId: string) {
 	try {
 		if (socket.data.role !== "admin") {
 			messageEmission(socket, "failed", "only admin are permitted.");
@@ -46,7 +49,7 @@ async function readLocationHandler(socket: Socket, locationId: string) {
 	}
 }
 
-async function updateLocationHandler(
+export async function updateLocationHandler(
 	socket: Socket,
 	locationId: string,
 	location: ILocation,
@@ -71,7 +74,10 @@ async function updateLocationHandler(
 	}
 }
 
-async function deleteLocationHandler(socket: Socket, locationId: string) {
+export async function deleteLocationHandler(
+	socket: Socket,
+	locationId: string,
+) {
 	try {
 		if (socket.data.role !== "admin") {
 			messageEmission(socket, "failed", "only admin are permitted.");
@@ -87,10 +93,3 @@ async function deleteLocationHandler(socket: Socket, locationId: string) {
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	createLocationHandler,
-	readLocationHandler,
-	updateLocationHandler,
-	deleteLocationHandler,
-};

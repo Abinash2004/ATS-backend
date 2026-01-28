@@ -1,11 +1,188 @@
+import type { Day } from "../../type/day";
+import type { IShift } from "../../interface/shift";
 import type { Socket } from "socket.io";
-import type { AttendanceStatus } from "../type/attendance";
-import { getApprovedLeave } from "./mongoose/leave";
-import { getAttendanceByDate } from "./mongoose/attendance";
-import { setAttendanceRecord } from "./mongoose/attendance_record";
-import { errorEmission, getShiftData } from "./helper";
+import type { AttendanceStatus } from "../../type/attendance";
+import { getApprovedLeave } from "../mongoose/leave";
+import { getAttendanceByDate } from "../mongoose/attendance";
+import { setAttendanceRecord } from "../mongoose/attendance_record";
+import { errorEmission, getShiftData, messageEmission } from "./reusable";
+import { calculateMinutes, dateToIST } from "../../utils/date_time";
+import { getLateInPenalty } from "../mongoose/policy";
+import { createPenalty } from "../mongoose/penalty";
+import Attendance from "../../model/attendance";
+import Timesheet from "../../model/timesheet";
 
-async function attendanceHolidayHandler(
+export async function newAttendanceRegularHandler(
+	socket: Socket,
+	shiftInitialTime: Date,
+	shiftExitTime: Date,
+	currentTime: Date,
+	reason: string,
+	employeeId: string,
+	shift: IShift,
+	shiftId: string,
+	late_in: number,
+	currentDay: Day,
+) {
+	try {
+		let clockInTime = new Date();
+		if (clockInTime < shiftInitialTime) clockInTime = shiftInitialTime;
+		if (clockInTime >= shiftExitTime) {
+			messageEmission(
+				socket,
+				"failed",
+				`your shift is completed on ${dateToIST(shiftExitTime)}`,
+			);
+			return;
+		}
+		if (currentTime > shiftInitialTime) {
+			if (!reason) {
+				messageEmission(socket, "failed", "clocking in late, provide reason");
+				return;
+			} else {
+				const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
+				if (lateMinutes >= 30) {
+					const lateInPenalty = await getLateInPenalty();
+					await createPenalty(
+						employeeId,
+						lateInPenalty,
+						`late clock-in on ${dateToIST(currentTime)}`,
+					);
+				}
+				await Attendance.create({
+					clock_in: clockInTime,
+					employeeId: employeeId,
+					shift: shift[currentDay],
+					shiftId: shiftId,
+					status: "in",
+					late_in: late_in,
+					late_clock_in_reason: reason,
+				});
+				await Timesheet.create({
+					time: clockInTime,
+					status: "in",
+					employeeId: employeeId,
+				});
+				messageEmission(
+					socket,
+					"success",
+					`late clocked in on ${dateToIST(clockInTime)}`,
+				);
+				return;
+			}
+		}
+
+		await Attendance.create({
+			clock_in: clockInTime,
+			employeeId: employeeId,
+			shift: shift[currentDay],
+			shiftId: shiftId,
+			status: "in",
+			late_in: late_in,
+		});
+		await Timesheet.create({
+			time: clockInTime,
+			status: "in",
+			employeeId: employeeId,
+		});
+		messageEmission(
+			socket,
+			"success",
+			`clocked in on ${dateToIST(clockInTime)}`,
+		);
+	} catch (error) {
+		errorEmission(socket, error);
+	}
+}
+
+export async function newAttendanceMidNigthHandler(
+	socket: Socket,
+	currentTime: Date,
+	shiftInitialTime: Date,
+	shiftExitTime: Date,
+	reason: string,
+	employeeId: string,
+	shift: IShift,
+	shiftId: string,
+	late_in: number,
+	currentDay: Day,
+) {
+	try {
+		const midNightStart = new Date(Date.now());
+		midNightStart.setHours(0, 0, 0, 0);
+		const midNightEnd = new Date(Date.now());
+		midNightEnd.setDate(midNightStart.getDate() + 1);
+
+		if (currentTime >= midNightStart && currentTime <= shiftExitTime) {
+			messageEmission(
+				socket,
+				"success",
+				`clocked in on ${dateToIST(currentTime)}`,
+			);
+		} else if (currentTime > shiftExitTime && currentTime < shiftInitialTime) {
+			currentTime = shiftInitialTime;
+			messageEmission(
+				socket,
+				"success",
+				`you are clocking in early, timer will start on ${dateToIST(shiftInitialTime)}`,
+			);
+		} else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
+			messageEmission(
+				socket,
+				"success",
+				`clocked in on ${dateToIST(currentTime)}`,
+			);
+		}
+
+		if (currentTime > shiftInitialTime) {
+			if (!reason) {
+				messageEmission(socket, "failed", "clocking in late, provide reason");
+				return;
+			} else {
+				const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
+				if (lateMinutes >= 30) {
+					const lateInPenalty = await getLateInPenalty();
+					await createPenalty(
+						employeeId,
+						lateInPenalty,
+						`late clock-in on ${dateToIST(currentTime)}`,
+					);
+				}
+				await Attendance.create({
+					clock_in: currentTime,
+					employeeId: employeeId,
+					shift: shift[currentDay],
+					shiftId: shiftId,
+					status: "in",
+					late_in: late_in,
+					late_clock_in_reason: reason,
+				});
+				await Timesheet.create({
+					time: currentTime,
+					status: "in",
+					employeeId: employeeId,
+				});
+				return;
+			}
+		}
+		await Attendance.create({
+			clock_in: currentTime,
+			employeeId: employeeId,
+			shift: shift[currentDay],
+			shiftId: shiftId,
+			late_in: late_in,
+		});
+		await Timesheet.create({
+			time: currentTime,
+			status: "in",
+			employeeId: employeeId,
+		});
+	} catch (error) {
+		errorEmission(socket, error);
+	}
+}
+
+export async function attendanceHolidayHandler(
 	socket: Socket,
 	attendance_date: Date,
 	employeeId: string,
@@ -23,7 +200,8 @@ async function attendanceHolidayHandler(
 		errorEmission(socket, error);
 	}
 }
-async function attendanceFirstHalfHandler(
+
+export async function attendanceFirstHalfHandler(
 	socket: Socket,
 	attendance_date: Date,
 	employeeId: string,
@@ -81,7 +259,8 @@ async function attendanceFirstHalfHandler(
 		errorEmission(socket, error);
 	}
 }
-async function attendanceSecondHalfHandler(
+
+export async function attendanceSecondHalfHandler(
 	socket: Socket,
 	attendance_date: Date,
 	employeeId: string,
@@ -139,7 +318,8 @@ async function attendanceSecondHalfHandler(
 		errorEmission(socket, error);
 	}
 }
-async function attendanceFullDayHandler(
+
+export async function attendanceFullDayHandler(
 	socket: Socket,
 	attendance_date: Date,
 	employeeId: string,
@@ -284,10 +464,3 @@ async function attendanceFullDayHandler(
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	attendanceHolidayHandler,
-	attendanceFirstHalfHandler,
-	attendanceSecondHalfHandler,
-	attendanceFullDayHandler,
-};

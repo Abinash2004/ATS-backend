@@ -3,7 +3,7 @@ import type { IAttendanceRecord } from "../../interface/attendance_record";
 import AttendanceRecord from "../../model/attendance_record";
 import { getFirstDayUtc, getLastDayUtc } from "../../utils/date_time";
 
-async function getRecentAttendanceRecordDate(): Promise<Date | null> {
+export async function getRecentAttendanceRecordDate(): Promise<Date | null> {
 	try {
 		const recentAttendance = await AttendanceRecord.findOne()
 			.sort({ attendance_date: -1 })
@@ -16,7 +16,7 @@ async function getRecentAttendanceRecordDate(): Promise<Date | null> {
 	}
 }
 
-async function setAttendanceRecord(
+export async function setAttendanceRecord(
 	attendance_date: Date,
 	first_half: AttendanceStatus,
 	second_half: AttendanceStatus,
@@ -36,7 +36,7 @@ async function setAttendanceRecord(
 	}
 }
 
-async function getAllAttendanceRecord(): Promise<IAttendanceRecord[]> {
+export async function getAllAttendanceRecord(): Promise<IAttendanceRecord[]> {
 	try {
 		return await AttendanceRecord.find({}, { _id: 0, __v: 0 });
 	} catch (error) {
@@ -45,7 +45,7 @@ async function getAllAttendanceRecord(): Promise<IAttendanceRecord[]> {
 	}
 }
 
-async function getEmployeeAttendanceRecord(
+export async function getEmployeeAttendanceRecord(
 	employeeId: string,
 ): Promise<IAttendanceRecord[]> {
 	try {
@@ -59,7 +59,7 @@ async function getEmployeeAttendanceRecord(
 	}
 }
 
-async function getEmployeeAttendanceRecordDateWise(
+export async function getEmployeeAttendanceRecordDateWise(
 	employeeId: string,
 	start: Date,
 	end: Date,
@@ -75,7 +75,7 @@ async function getEmployeeAttendanceRecordDateWise(
 	}
 }
 
-async function getEmployeeAttendanceRecordMonthWise(
+export async function getEmployeeAttendanceRecordMonthWise(
 	employeeId: string,
 	month: string,
 ): Promise<IAttendanceRecord[]> {
@@ -91,12 +91,3 @@ async function getEmployeeAttendanceRecordMonthWise(
 		return [];
 	}
 }
-
-export {
-	getRecentAttendanceRecordDate,
-	setAttendanceRecord,
-	getAllAttendanceRecord,
-	getEmployeeAttendanceRecord,
-	getEmployeeAttendanceRecordDateWise,
-	getEmployeeAttendanceRecordMonthWise,
-};

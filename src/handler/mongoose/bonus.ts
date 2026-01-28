@@ -6,7 +6,7 @@ import type { IBonus } from "../../interface/bonus";
 const BONUS_TTL = 60 * 60;
 const bonusKey = (employeeId: string) => `bonus:${employeeId}`;
 
-async function createBonus(
+export async function createBonus(
 	employeeId: string,
 	amount: Number,
 	reason: string,
@@ -24,7 +24,7 @@ async function createBonus(
 	}
 }
 
-async function getBonusByDate(
+export async function getBonusByDate(
 	employeeId: string,
 	startDate: Date,
 	endDate: Date,
@@ -46,7 +46,7 @@ async function getBonusByDate(
 	}
 }
 
-async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
+export async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
 	try {
 		const bonusCache = await redisClient.get(bonusKey(employeeId));
 		if (bonusCache) return JSON.parse(bonusCache);
@@ -60,5 +60,3 @@ async function getEmployeeBonus(employeeId: string): Promise<IBonus[]> {
 		return [];
 	}
 }
-
-export { createBonus, getBonusByDate, getEmployeeBonus };

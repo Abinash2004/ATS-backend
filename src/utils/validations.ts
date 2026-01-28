@@ -1,6 +1,6 @@
 import { parse } from "mathjs";
 import { Types } from "mongoose";
-import { messageEmission } from "../handler/helper";
+import { messageEmission } from "../handler/helper/reusable";
 import { getEmployeeById } from "../handler/mongoose/employee";
 import type { Socket } from "socket.io";
 import type { IEmployee } from "../interface/employee";
@@ -15,19 +15,19 @@ const FIXED = 1;
 const PERCENTAGE = 2;
 const FORMULA = 3;
 
-function isString(str: unknown): boolean {
+export function isString(str: unknown): boolean {
 	return typeof str === "string" && str.trim().length > 0;
 }
-function isNumber(value: unknown): boolean {
+export function isNumber(value: unknown): boolean {
 	return typeof value === "string" && !isNaN(Number(value));
 }
-function toNumber(value: string): number {
+export function toNumber(value: string): number {
 	return Number(value);
 }
-function isValidObjectId(value: unknown): boolean {
+export function isValidObjectId(value: unknown): boolean {
 	return typeof value === "string" && Types.ObjectId.isValid(value);
 }
-function isValidMonthYear(value: string): boolean {
+export function isValidMonthYear(value: string): boolean {
 	const match = /^(0[1-9]|1[0-2])\/\d{4}$/.exec(value);
 	if (!match) return false;
 	const [, month, year] = value.match(/^(0[1-9]|1[0-2])\/(\d{4})$/)!;
@@ -35,7 +35,7 @@ function isValidMonthYear(value: string): boolean {
 	return y >= 1900 && y <= 2100;
 }
 
-function validateAuthCredentials(
+export function validateAuthCredentials(
 	employee: Partial<IEmployee>,
 	isSignUp: boolean,
 ): ICredentialsValidationResponse {
@@ -69,7 +69,7 @@ function validateAuthCredentials(
 	};
 }
 
-function buildDependencyGraph(
+export function buildDependencyGraph(
 	components: ISalaryTemplateComponent[],
 ): Record<string, string[]> {
 	const graph: Record<string, string[]> = {};
@@ -95,7 +95,7 @@ function buildDependencyGraph(
 	return graph;
 }
 
-function topologicalSort(graph: Record<string, string[]>): string[] {
+export function topologicalSort(graph: Record<string, string[]>): string[] {
 	const visited = new Set<string>();
 	const stack = new Set<string>();
 	const order: string[] = [];
@@ -119,7 +119,7 @@ function topologicalSort(graph: Record<string, string[]>): string[] {
 	return order;
 }
 
-function evaluateSalaryTemplate(
+export function evaluateSalaryTemplate(
 	salary: number,
 	template: ISalaryTemplate,
 ): Record<string, number> {
@@ -153,7 +153,7 @@ function evaluateSalaryTemplate(
 	return returnValues;
 }
 
-async function isValidSalaryTemplate(
+export async function isValidSalaryTemplate(
 	socket: Socket,
 	salaryTemplate: ISalaryTemplate,
 ): Promise<boolean> {
@@ -198,14 +198,3 @@ async function isValidSalaryTemplate(
 	}
 	return true;
 }
-
-export {
-	toNumber,
-	isNumber,
-	isString,
-	isValidObjectId,
-	isValidMonthYear,
-	isValidSalaryTemplate,
-	evaluateSalaryTemplate,
-	validateAuthCredentials,
-};

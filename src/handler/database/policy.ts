@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { IPolicy } from "../../interface/policy";
-import { errorEmission, messageEmission } from "../helper";
+import { errorEmission, messageEmission } from "../helper/reusable";
 import {
 	createPolicy,
 	getLateInPenalty,
@@ -8,7 +8,7 @@ import {
 	updatePolicy,
 } from "../mongoose/policy";
 
-async function createPolicyHandler(
+export async function createPolicyHandler(
 	socket: Socket,
 	policy: IPolicy,
 ): Promise<void> {
@@ -37,7 +37,7 @@ async function createPolicyHandler(
 	}
 }
 
-async function updatePolicyHandler(
+export async function updatePolicyHandler(
 	socket: Socket,
 	policy: IPolicy,
 ): Promise<void> {
@@ -66,7 +66,7 @@ async function updatePolicyHandler(
 	}
 }
 
-async function readPolicyHandler(socket: Socket): Promise<void> {
+export async function readPolicyHandler(socket: Socket): Promise<void> {
 	try {
 		if (socket.data.role !== "admin" && socket.data.role !== "HR") {
 			messageEmission(socket, "failed", "only admin & HR are permitted.");
@@ -82,5 +82,3 @@ async function readPolicyHandler(socket: Socket): Promise<void> {
 		errorEmission(socket, error);
 	}
 }
-
-export { createPolicyHandler, updatePolicyHandler, readPolicyHandler };

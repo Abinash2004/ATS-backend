@@ -1,7 +1,7 @@
 import Department from "../../model/department";
 import type { IDepartment } from "../../interface/department";
 
-async function createDepartment(department: IDepartment): Promise<void> {
+export async function createDepartment(department: IDepartment): Promise<void> {
 	try {
 		await Department.create(department);
 	} catch (error) {
@@ -9,7 +9,7 @@ async function createDepartment(department: IDepartment): Promise<void> {
 	}
 }
 
-async function getDepartment(
+export async function getDepartment(
 	departmentId: string,
 ): Promise<IDepartment | null> {
 	try {
@@ -20,7 +20,7 @@ async function getDepartment(
 	}
 }
 
-async function updateDepartment(
+export async function updateDepartment(
 	departmentId: string,
 	department: IDepartment,
 ): Promise<void> {
@@ -36,12 +36,10 @@ async function updateDepartment(
 	}
 }
 
-async function deleteDepartment(departmentId: string): Promise<void> {
+export async function deleteDepartment(departmentId: string): Promise<void> {
 	try {
 		await Department.deleteOne({ _id: departmentId });
 	} catch (error) {
 		console.error(error);
 	}
 }
-
-export { createDepartment, getDepartment, updateDepartment, deleteDepartment };

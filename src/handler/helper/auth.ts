@@ -1,18 +1,18 @@
 import bcrypt from "bcrypt";
 import type { Socket } from "socket.io";
-import type { IEmployee } from "../interface/employee";
-import type { IDepartment } from "../interface/department";
+import type { IEmployee } from "../../interface/employee";
+import type { IDepartment } from "../../interface/department";
 import type { ExtendedError } from "socket.io/dist/namespace";
-import { getDepartment } from "./mongoose/department";
-import { signToken, verifyToken } from "../config/jwt";
-import { validateAuthCredentials } from "../utils/validations";
+import { getDepartment } from "../mongoose/department";
+import { signToken, verifyToken } from "../../config/jwt";
+import { validateAuthCredentials } from "../../utils/validations";
 import {
 	addNewEmployee,
 	getEmployeeDataByEmail,
 	isEmployeeExists,
-} from "./mongoose/employee";
+} from "../mongoose/employee";
 
-async function authSignUp(socket: Socket, employee: IEmployee) {
+export async function authSignUp(socket: Socket, employee: IEmployee) {
 	const message = validateAuthCredentials(employee, true);
 	if (!message.status) {
 		return socket.emit("sign_up_response", {
@@ -37,7 +37,7 @@ async function authSignUp(socket: Socket, employee: IEmployee) {
 	});
 }
 
-async function authSignIn(socket: Socket, employee: IEmployee) {
+export async function authSignIn(socket: Socket, employee: IEmployee) {
 	const message = validateAuthCredentials(employee, false);
 	if (!message.status)
 		return socket.emit("sign_in_response", {
@@ -66,7 +66,7 @@ async function authSignIn(socket: Socket, employee: IEmployee) {
 	});
 }
 
-async function authVerification(
+export async function authVerification(
 	socket: Socket,
 	next: (err?: ExtendedError) => void,
 ) {
@@ -99,5 +99,3 @@ async function authVerification(
 		return next(new Error("invalid or expired token"));
 	}
 }
-
-export { authSignUp, authSignIn, authVerification };

@@ -6,7 +6,7 @@ import type { IPenalty } from "../../interface/penalty";
 const PENALTY_LIST_TTL = 15 * 60;
 const penaltyListKey = (empId: string) => `penalty:list:${empId}`;
 
-async function createPenalty(
+export async function createPenalty(
 	employeeId: string,
 	amount: Number,
 	reason: string,
@@ -24,7 +24,7 @@ async function createPenalty(
 	}
 }
 
-async function getPenaltyByDate(
+export async function getPenaltyByDate(
 	employeeId: string,
 	startDate: Date,
 	endDate: Date,
@@ -46,7 +46,9 @@ async function getPenaltyByDate(
 	}
 }
 
-async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
+export async function getEmployeePenalty(
+	employeeId: string,
+): Promise<IPenalty[]> {
 	try {
 		const employeePenaltyCache = await redisClient.get(
 			penaltyListKey(employeeId),
@@ -66,5 +68,3 @@ async function getEmployeePenalty(employeeId: string): Promise<IPenalty[]> {
 		return [];
 	}
 }
-
-export { createPenalty, getPenaltyByDate, getEmployeePenalty };

@@ -1,7 +1,7 @@
 import Policy from "../../model/policy";
 import type { IPolicy } from "../../interface/policy";
 
-async function getLateInPenalty(): Promise<number> {
+export async function getLateInPenalty(): Promise<number> {
 	try {
 		const policy: IPolicy | null = await Policy.findOne();
 		if (!policy) return 0;
@@ -12,7 +12,7 @@ async function getLateInPenalty(): Promise<number> {
 	}
 }
 
-async function getEarlyOutPenalty(): Promise<number> {
+export async function getEarlyOutPenalty(): Promise<number> {
 	try {
 		const policy: IPolicy | null = await Policy.findOne();
 		if (!policy) return 0;
@@ -23,7 +23,7 @@ async function getEarlyOutPenalty(): Promise<number> {
 	}
 }
 
-async function getBreakPerHourPenalty(): Promise<number> {
+export async function getBreakPerHourPenalty(): Promise<number> {
 	try {
 		const policy: IPolicy | null = await Policy.findOne();
 		if (!policy) return 0;
@@ -34,7 +34,7 @@ async function getBreakPerHourPenalty(): Promise<number> {
 	}
 }
 
-async function getBreakLimitPenalty(): Promise<number> {
+export async function getBreakLimitPenalty(): Promise<number> {
 	try {
 		const policy: IPolicy | null = await Policy.findOne();
 		if (!policy) return 0;
@@ -45,7 +45,7 @@ async function getBreakLimitPenalty(): Promise<number> {
 	}
 }
 
-async function getEPFPercentage(): Promise<number> {
+export async function getEPFPercentage(): Promise<number> {
 	try {
 		const policy = await Policy.findOne({});
 		if (!policy) return 0;
@@ -56,7 +56,7 @@ async function getEPFPercentage(): Promise<number> {
 	}
 }
 
-async function getEPFCap(): Promise<number> {
+export async function getEPFCap(): Promise<number> {
 	try {
 		const policy = await Policy.findOne({});
 		if (!policy) return 0;
@@ -67,7 +67,7 @@ async function getEPFCap(): Promise<number> {
 	}
 }
 
-async function createPolicy(policy: IPolicy): Promise<void> {
+export async function createPolicy(policy: IPolicy): Promise<void> {
 	try {
 		await Policy.create(policy);
 	} catch (error) {
@@ -75,7 +75,7 @@ async function createPolicy(policy: IPolicy): Promise<void> {
 	}
 }
 
-async function updatePolicy(policy: IPolicy): Promise<void> {
+export async function updatePolicy(policy: IPolicy): Promise<void> {
 	try {
 		await Policy.updateOne({}, policy);
 	} catch (error) {
@@ -83,7 +83,7 @@ async function updatePolicy(policy: IPolicy): Promise<void> {
 	}
 }
 
-async function readPolicy(): Promise<IPolicy | null> {
+export async function readPolicy(): Promise<IPolicy | null> {
 	try {
 		return await Policy.findOne();
 	} catch (error) {
@@ -91,15 +91,3 @@ async function readPolicy(): Promise<IPolicy | null> {
 		return null;
 	}
 }
-
-export {
-	getLateInPenalty,
-	getEarlyOutPenalty,
-	getBreakPerHourPenalty,
-	getBreakLimitPenalty,
-	getEPFPercentage,
-	getEPFCap,
-	createPolicy,
-	updatePolicy,
-	readPolicy,
-};

@@ -1,23 +1,23 @@
-import {Types} from "mongoose";
-import type {ISingleShift} from "./shift";
+import { Types } from "mongoose";
+import type { ISingleShift } from "./shift";
 
 export interface IBreak {
-    break_in: Date;
-    break_out?: Date;
-    reason: string;
+	break_in: Date;
+	break_out?: Date;
+	reason: string;
 }
 
 export interface IAttendance {
-    _id: string;
-    clock_in: Date;
-    clock_out?: Date;
-    late_in: number;
-    early_out: number;
-    late_clock_in_reason?: string;
-    early_clock_out_reason?: string;
-    breaks: IBreak[];
-    status: "in" | "out" | "break";
-    employeeId: Types.ObjectId;
-    shift: ISingleShift;
-    shiftId: Types.ObjectId;
+	_id: string;
+	clock_in: Date;
+	clock_out?: Date;
+	late_in: number;
+	early_out: number;
+	late_clock_in_reason?: string;
+	early_clock_out_reason?: string;
+	breaks: IBreak[];
+	status: "in" | "out" | "break";
+	employeeId: Types.ObjectId;
+	shift: ISingleShift;
+	shiftId: Types.ObjectId;
 }

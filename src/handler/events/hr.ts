@@ -28,7 +28,7 @@ import {
 	attendanceFullDayHandler,
 	attendanceHolidayHandler,
 	attendanceSecondHalfHandler,
-} from "../attendance";
+} from "../helper/attendance";
 import {
 	calculateOvertimeMinutes,
 	calculateOvertimePay,
@@ -36,9 +36,11 @@ import {
 	checkMonthValidationAndCurrentDate,
 	errorEmission,
 	messageEmission,
-} from "../helper";
+} from "../helper/reusable";
 
-async function createAttendanceRecordHandler(socket: Socket): Promise<void> {
+export async function createAttendanceRecordHandler(
+	socket: Socket,
+): Promise<void> {
 	try {
 		if (socket.data.role !== "admin" && socket.data.role !== "HR") {
 			messageEmission(socket, "failed", "only admin & HR are permitted.");
@@ -113,7 +115,9 @@ async function createAttendanceRecordHandler(socket: Socket): Promise<void> {
 	}
 }
 
-async function viewAllAttendanceRecordHandler(socket: Socket): Promise<void> {
+export async function viewAllAttendanceRecordHandler(
+	socket: Socket,
+): Promise<void> {
 	try {
 		if (socket.data.role !== "admin" && socket.data.role !== "HR") {
 			messageEmission(socket, "failed", "only admin & HR are permitted.");
@@ -126,7 +130,7 @@ async function viewAllAttendanceRecordHandler(socket: Socket): Promise<void> {
 	}
 }
 
-async function generateAttendanceSheetHandler(
+export async function generateAttendanceSheetHandler(
 	socket: Socket,
 	month: string,
 ): Promise<void> {
@@ -226,7 +230,7 @@ async function generateAttendanceSheetHandler(
 	}
 }
 
-async function leaveResponseHandler(
+export async function leaveResponseHandler(
 	socket: Socket,
 	leaveId: string,
 	response: leave_response,
@@ -258,7 +262,7 @@ async function leaveResponseHandler(
 	}
 }
 
-async function giveBonusHandler(
+export async function giveBonusHandler(
 	socket: Socket,
 	currEmpId: string,
 	employeeId: string,
@@ -285,7 +289,7 @@ async function giveBonusHandler(
 	}
 }
 
-async function givePenaltyHandler(
+export async function givePenaltyHandler(
 	socket: Socket,
 	currEmpId: string,
 	employeeId: string,
@@ -311,12 +315,3 @@ async function givePenaltyHandler(
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	createAttendanceRecordHandler,
-	viewAllAttendanceRecordHandler,
-	generateAttendanceSheetHandler,
-	leaveResponseHandler,
-	giveBonusHandler,
-	givePenaltyHandler,
-};

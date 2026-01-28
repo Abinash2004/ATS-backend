@@ -1,6 +1,6 @@
 import type { Socket } from "socket.io";
 import type { IDepartment } from "../../interface/department";
-import { errorEmission, messageEmission } from "../helper";
+import { errorEmission, messageEmission } from "../helper/reusable";
 import {
 	createDepartment,
 	deleteDepartment,
@@ -8,7 +8,7 @@ import {
 	updateDepartment,
 } from "../mongoose/department";
 
-async function createDepartmentHandler(
+export async function createDepartmentHandler(
 	socket: Socket,
 	department: IDepartment,
 ): Promise<void> {
@@ -28,7 +28,7 @@ async function createDepartmentHandler(
 	}
 }
 
-async function readDepartmentHandler(
+export async function readDepartmentHandler(
 	socket: Socket,
 	departmentId: string,
 ): Promise<void> {
@@ -52,7 +52,7 @@ async function readDepartmentHandler(
 	}
 }
 
-async function updateDepartmentHandler(
+export async function updateDepartmentHandler(
 	socket: Socket,
 	departmentId: string,
 	department: IDepartment,
@@ -77,7 +77,7 @@ async function updateDepartmentHandler(
 	}
 }
 
-async function deleteDepartmentHandler(
+export async function deleteDepartmentHandler(
 	socket: Socket,
 	departmentId: string,
 ): Promise<void> {
@@ -96,10 +96,3 @@ async function deleteDepartmentHandler(
 		errorEmission(socket, error);
 	}
 }
-
-export {
-	createDepartmentHandler,
-	readDepartmentHandler,
-	updateDepartmentHandler,
-	deleteDepartmentHandler,
-};

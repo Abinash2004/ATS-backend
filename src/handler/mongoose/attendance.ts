@@ -16,7 +16,7 @@ import {
 	messageEmission,
 	getShiftTimings,
 	checkBreakPenalty,
-} from "../helper";
+} from "../helper/reusable";
 import {
 	calculateMinutes,
 	dateToIST,
@@ -24,8 +24,12 @@ import {
 	getDayName,
 	stringToDate,
 } from "../../utils/date_time";
+import {
+	newAttendanceMidNigthHandler,
+	newAttendanceRegularHandler,
+} from "../helper/attendance";
 
-async function getTodayAttendance(
+export async function getTodayAttendance(
 	socket: Socket,
 	employeeId: string,
 	shiftId: string,
@@ -94,7 +98,7 @@ async function getTodayAttendance(
 	}
 }
 
-async function addNewAttendance(
+export async function addNewAttendance(
 	socket: Socket,
 	employeeId: string,
 	shiftId: string,
@@ -144,154 +148,41 @@ async function addNewAttendance(
 
 		//regular shift
 		if (shiftInitialTime < shiftExitTime) {
-			let clockInTime = new Date();
-			if (clockInTime < shiftInitialTime) clockInTime = shiftInitialTime;
-			if (clockInTime >= shiftExitTime) {
-				messageEmission(
-					socket,
-					"failed",
-					`your shift is completed on ${dateToIST(shiftExitTime)}`,
-				);
-				return;
-			}
-			if (currentTime > shiftInitialTime) {
-				if (!reason) {
-					messageEmission(socket, "failed", "clocking in late, provide reason");
-					return;
-				} else {
-					const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
-					if (lateMinutes >= 30) {
-						const lateInPenalty = await getLateInPenalty();
-						await createPenalty(
-							employeeId,
-							lateInPenalty,
-							`late clock-in on ${dateToIST(currentTime)}`,
-						);
-					}
-					await Attendance.create({
-						clock_in: clockInTime,
-						employeeId: employeeId,
-						shift: shift[currentDay],
-						shiftId: shiftId,
-						status: "in",
-						late_in: late_in,
-						late_clock_in_reason: reason,
-					});
-					await Timesheet.create({
-						time: clockInTime,
-						status: "in",
-						employeeId: employeeId,
-					});
-					messageEmission(
-						socket,
-						"success",
-						`late clocked in on ${dateToIST(clockInTime)}`,
-					);
-					return;
-				}
-			}
-
-			await Attendance.create({
-				clock_in: clockInTime,
-				employeeId: employeeId,
-				shift: shift[currentDay],
-				shiftId: shiftId,
-				status: "in",
-				late_in: late_in,
-			});
-			await Timesheet.create({
-				time: clockInTime,
-				status: "in",
-				employeeId: employeeId,
-			});
-			messageEmission(
+			await newAttendanceRegularHandler(
 				socket,
-				"success",
-				`clocked in on ${dateToIST(clockInTime)}`,
+				shiftInitialTime,
+				shiftExitTime,
+				currentTime,
+				reason,
+				employeeId,
+				shift,
+				shiftId,
+				late_in,
+				currentDay,
 			);
 		}
 
 		//midnight shift
 		else {
-			const midNightStart = new Date(Date.now());
-			midNightStart.setHours(0, 0, 0, 0);
-			const midNightEnd = new Date(Date.now());
-			midNightEnd.setDate(midNightStart.getDate() + 1);
-
-			if (currentTime >= midNightStart && currentTime <= shiftExitTime) {
-				messageEmission(
-					socket,
-					"success",
-					`clocked in on ${dateToIST(currentTime)}`,
-				);
-			} else if (
-				currentTime > shiftExitTime &&
-				currentTime < shiftInitialTime
-			) {
-				currentTime = shiftInitialTime;
-				messageEmission(
-					socket,
-					"success",
-					`you are clocking in early, timer will start on ${dateToIST(shiftInitialTime)}`,
-				);
-			} else if (currentTime >= shiftInitialTime && currentTime < midNightEnd) {
-				messageEmission(
-					socket,
-					"success",
-					`clocked in on ${dateToIST(currentTime)}`,
-				);
-			}
-
-			if (currentTime > shiftInitialTime) {
-				if (!reason) {
-					messageEmission(socket, "failed", "clocking in late, provide reason");
-					return;
-				} else {
-					const lateMinutes = calculateMinutes(shiftInitialTime, currentTime);
-					if (lateMinutes >= 30) {
-						const lateInPenalty = await getLateInPenalty();
-						await createPenalty(
-							employeeId,
-							lateInPenalty,
-							`late clock-in on ${dateToIST(currentTime)}`,
-						);
-					}
-					await Attendance.create({
-						clock_in: currentTime,
-						employeeId: employeeId,
-						shift: shift[currentDay],
-						shiftId: shiftId,
-						status: "in",
-						late_in: late_in,
-						late_clock_in_reason: reason,
-					});
-					await Timesheet.create({
-						time: currentTime,
-						status: "in",
-						employeeId: employeeId,
-					});
-					return;
-				}
-			}
-			await Attendance.create({
-				clock_in: currentTime,
-				employeeId: employeeId,
-				shift: shift[currentDay],
-				shiftId: shiftId,
-				late_in: late_in,
-			});
-			await Timesheet.create({
-				time: currentTime,
-				status: "in",
-				employeeId: employeeId,
-			});
+			await newAttendanceMidNigthHandler(
+				socket,
+				currentTime,
+				shiftInitialTime,
+				shiftExitTime,
+				reason,
+				employeeId,
+				shift,
+				shiftId,
+				late_in,
+				currentDay,
+			);
 		}
 	} catch (error) {
 		console.error(error);
 	}
 }
 
-async function addNewBreak(
+export async function addNewBreak(
 	socket: Socket,
 	employeeId: string,
 	attendance: IAttendance,
@@ -338,7 +229,8 @@ async function addNewBreak(
 		console.error(error);
 	}
 }
-async function updateOngoingBreak(
+
+export async function updateOngoingBreak(
 	socket: Socket,
 	employeeId: string,
 	attendance: IAttendance,
@@ -396,7 +288,9 @@ async function updateOngoingBreak(
 	}
 }
 
-async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
+export async function isShiftTimeCompleted(
+	attendance: IAttendance,
+): Promise<boolean> {
 	try {
 		const currentTime = new Date();
 		const { shiftMinutes, workedMinutes } = await getShiftData(
@@ -410,7 +304,7 @@ async function isShiftTimeCompleted(attendance: IAttendance): Promise<boolean> {
 	}
 }
 
-async function updateClockOutTime(
+export async function updateClockOutTime(
 	socket: Socket,
 	employeeId: string,
 	attendance: IAttendance,
@@ -488,7 +382,7 @@ async function updateClockOutTime(
 	}
 }
 
-async function getAttendanceRecord(employeeId: string): Promise<any> {
+export async function getAttendanceRecord(employeeId: string): Promise<any> {
 	try {
 		const attendance = await Attendance.find({ employeeId });
 		let attendanceRecord: any = [];
@@ -501,7 +395,7 @@ async function getAttendanceRecord(employeeId: string): Promise<any> {
 	}
 }
 
-async function getAttendance(
+export async function getAttendance(
 	attendanceId: string,
 ): Promise<IAttendance | null> {
 	try {
@@ -512,7 +406,7 @@ async function getAttendance(
 	}
 }
 
-async function resolveAttendance(
+export async function resolveAttendance(
 	socket: Socket,
 	attendance: IAttendance,
 	clockOutTime: string,
@@ -538,7 +432,7 @@ async function resolveAttendance(
 	}
 }
 
-async function getAttendanceByDate(
+export async function getAttendanceByDate(
 	inputDate: Date,
 	employeeId: string,
 ): Promise<IAttendance | null> {
@@ -557,7 +451,7 @@ async function getAttendanceByDate(
 	}
 }
 
-async function getEarlyOutCountPerMonth(
+export async function getEarlyOutCountPerMonth(
 	employeeId: string,
 	currDate: Date,
 ): Promise<number> {
@@ -579,16 +473,3 @@ async function getEarlyOutCountPerMonth(
 		return 0;
 	}
 }
-
-export {
-	getTodayAttendance,
-	addNewAttendance,
-	addNewBreak,
-	updateOngoingBreak,
-	updateClockOutTime,
-	isShiftTimeCompleted,
-	getAttendanceRecord,
-	getAttendance,
-	resolveAttendance,
-	getAttendanceByDate,
-};
