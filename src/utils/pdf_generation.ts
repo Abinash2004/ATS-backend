@@ -74,8 +74,7 @@ export function generatePDF(
 	HR();
 
 	// SALARY TEMPLATE AMOUNTS
-	y = doc.y + 25;
-	text(15, BLACK, "Salary Components", 40, y);
+	y = doc.y;
 	salaryTemplateAmountArray.forEach((item) => {
 		row(40, item.name, String(item.amount));
 	});

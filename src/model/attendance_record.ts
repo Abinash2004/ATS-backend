@@ -8,12 +8,10 @@ const attendanceRecordSchema = new mongoose.Schema<IAttendanceRecord>({
 	},
 	first_half: {
 		type: String,
-		enum: ["present", "absent", "paid_leave", "no_shift"],
 		required: true,
 	},
 	second_half: {
 		type: String,
-		enum: ["present", "absent", "paid_leave", "no_shift"],
 		required: true,
 	},
 	employeeId: {

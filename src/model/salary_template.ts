@@ -17,7 +17,7 @@ const salaryTemplateComponentSchema = new Schema<ISalaryTemplateComponent>(
 		component_type: {
 			type: Number,
 			required: true,
-			enum: [1, 2, 3], // FIXED, PERCENTAGE, FORMULA
+			enum: [1, 2, 3], // FIXED | PERCENTAGE | FORMULA
 		},
 		expression: {
 			type: String,
@@ -32,7 +32,11 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
 		type: String,
 		required: true,
 	},
-	components: {
+	earnings: {
+		type: [salaryTemplateComponentSchema],
+		default: [],
+	},
+	leaves: {
 		type: [salaryTemplateComponentSchema],
 		default: [],
 	},

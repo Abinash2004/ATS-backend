@@ -1,7 +1,6 @@
 import type { Day } from "../../type/day";
 import type { IShift } from "../../interface/shift";
 import type { Socket } from "socket.io";
-import type { AttendanceStatus } from "../../type/attendance";
 import { getApprovedLeave } from "../mongoose/leave";
 import { getAttendanceByDate } from "../mongoose/attendance";
 import { setAttendanceRecord } from "../mongoose/attendance_record";
@@ -208,7 +207,7 @@ export async function attendanceFirstHalfHandler(
 	shiftId: string,
 ): Promise<void> {
 	try {
-		const second_half: AttendanceStatus = "no_shift";
+		const second_half = "no_shift";
 		const leave = await getApprovedLeave(attendance_date, employeeId);
 		if (
 			leave &&
@@ -216,7 +215,7 @@ export async function attendanceFirstHalfHandler(
 		) {
 			await setAttendanceRecord(
 				attendance_date,
-				"paid_leave",
+				leave.category,
 				second_half,
 				employeeId,
 				shiftId,
@@ -267,7 +266,7 @@ export async function attendanceSecondHalfHandler(
 	shiftId: string,
 ): Promise<void> {
 	try {
-		const first_half: AttendanceStatus = "no_shift";
+		const first_half = "no_shift";
 		const leave = await getApprovedLeave(attendance_date, employeeId);
 		if (
 			leave &&
@@ -276,7 +275,7 @@ export async function attendanceSecondHalfHandler(
 			await setAttendanceRecord(
 				attendance_date,
 				first_half,
-				"paid_leave",
+				leave.category,
 				employeeId,
 				shiftId,
 			);
@@ -331,8 +330,8 @@ export async function attendanceFullDayHandler(
 			if (leave.day_status === "full_day") {
 				await setAttendanceRecord(
 					attendance_date,
-					"paid_leave",
-					"paid_leave",
+					leave.category,
+					leave.category,
 					employeeId,
 					shiftId,
 				);
@@ -344,7 +343,7 @@ export async function attendanceFullDayHandler(
 				if (!attendance)
 					await setAttendanceRecord(
 						attendance_date,
-						"paid_leave",
+						leave.category,
 						"absent",
 						employeeId,
 						shiftId,
@@ -358,7 +357,7 @@ export async function attendanceFullDayHandler(
 					if (workedMinutes < shiftMinutes / 2)
 						await setAttendanceRecord(
 							attendance_date,
-							"paid_leave",
+							leave.category,
 							"absent",
 							employeeId,
 							shiftId,
@@ -366,7 +365,7 @@ export async function attendanceFullDayHandler(
 					else
 						await setAttendanceRecord(
 							attendance_date,
-							"paid_leave",
+							leave.category,
 							"present",
 							employeeId,
 							shiftId,
@@ -381,7 +380,7 @@ export async function attendanceFullDayHandler(
 					await setAttendanceRecord(
 						attendance_date,
 						"absent",
-						"paid_leave",
+						leave.category,
 						employeeId,
 						shiftId,
 					);
@@ -395,7 +394,7 @@ export async function attendanceFullDayHandler(
 						await setAttendanceRecord(
 							attendance_date,
 							"absent",
-							"paid_leave",
+							leave.category,
 							employeeId,
 							shiftId,
 						);
@@ -403,7 +402,7 @@ export async function attendanceFullDayHandler(
 						await setAttendanceRecord(
 							attendance_date,
 							"present",
-							"paid_leave",
+							leave.category,
 							employeeId,
 							shiftId,
 						);

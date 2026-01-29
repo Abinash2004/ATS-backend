@@ -3,12 +3,13 @@ import { Types } from "mongoose";
 export interface ISalaryTemplateComponent {
 	code: string;
 	name: string;
-	component_type: 1 | 2 | 3;
+	component_type: 1 | 2 | 3; // FIXED | PERCENTAGE | FORMULA
 	expression: string;
 }
 
 export interface ISalaryTemplate {
 	name: string;
-	components: ISalaryTemplateComponent[];
+	earnings: ISalaryTemplateComponent[];
+	leaves: ISalaryTemplateComponent[];
 	employeeIds: Types.ObjectId[];
 }

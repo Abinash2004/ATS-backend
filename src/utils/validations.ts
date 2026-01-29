@@ -1,7 +1,13 @@
 import { parse } from "mathjs";
 import { Types } from "mongoose";
-import { messageEmission } from "../handler/helper/reusable";
+import { getFirstDayUtc, getLastDayUtc } from "./date_time";
 import { getEmployeeById } from "../handler/mongoose/employee";
+import {
+	calculateShiftSalary,
+	errorEmission,
+	messageEmission,
+} from "../handler/helper/reusable";
+
 import type { Socket } from "socket.io";
 import type { IEmployee } from "../interface/employee";
 import type { SymbolNodeLike } from "../interface/symbol_node_like";
@@ -121,15 +127,15 @@ export function topologicalSort(graph: Record<string, string[]>): string[] {
 
 export function evaluateSalaryTemplate(
 	salary: number,
-	template: ISalaryTemplate,
+	components: ISalaryTemplateComponent[],
 ): Record<string, number> {
 	const values: Record<string, number> = { salary };
 	const returnValues: Record<string, number> = {};
-	const graph = buildDependencyGraph(template.components);
+	const graph = buildDependencyGraph(components);
 	const order = topologicalSort(graph);
 
 	const componentMap = new Map<string, ISalaryTemplateComponent>(
-		template.components.map((c) => [c.code, c]),
+		components.map((c) => [c.code, c]),
 	);
 
 	for (const code of order) {
@@ -140,14 +146,14 @@ export function evaluateSalaryTemplate(
 
 		if (component.component_type === FIXED) {
 			values[code] = Number(expr);
-			returnValues[component.name] = values[code];
+			returnValues[component.code] = values[code];
 		} else if (component.component_type === PERCENTAGE) {
 			values[code] = (Number(expr) / 100) * values.salary;
-			returnValues[component.name] = values[code];
+			returnValues[component.code] = values[code];
 		} else if (component.component_type === FORMULA) {
 			const parsed = parse(expr);
 			values[code] = parsed.evaluate(values);
-			returnValues[component.name] = values[code];
+			returnValues[component.code] = values[code];
 		}
 	}
 	return returnValues;
@@ -161,8 +167,74 @@ export async function isValidSalaryTemplate(
 		messageEmission(socket, "failed", "name is missing");
 		return false;
 	}
-	if (salaryTemplate.components.length > 0) {
-		for (const component of salaryTemplate.components) {
+
+	if (
+		(salaryTemplate.earnings.length > 0 &&
+			!isValidSalaryTemplateComponent(socket, salaryTemplate.earnings)) ||
+		(salaryTemplate.leaves.length > 0 &&
+			!isValidSalaryTemplateComponent(socket, salaryTemplate.leaves))
+	) {
+		return false;
+	}
+
+	if (salaryTemplate.employeeIds.length > 0) {
+		for (const empId of salaryTemplate.employeeIds) {
+			const employee = await getEmployeeById(empId.toString());
+			if (!employee) {
+				messageEmission(socket, "failed", "employeeId is invalid");
+				return false;
+			}
+
+			// validate earnings
+			let summation = 0;
+			const earnings = evaluateSalaryTemplate(
+				employee.salary,
+				salaryTemplate.earnings,
+			);
+
+			for (const component of salaryTemplate.earnings) {
+				summation += earnings[component.name];
+			}
+
+			if (summation > employee.salary) {
+				messageEmission(
+					socket,
+					"failed",
+					"summation of salary component is greater than monthly salary.",
+				);
+				return false;
+			}
+
+			//vaildate leaves
+			const currentMonth =
+				String(new Date().getMonth() + 1).padStart(2, "0") +
+				"/" +
+				new Date().getFullYear();
+
+			const shiftSalary = await calculateShiftSalary(
+				employee.shiftId.toString(),
+				getFirstDayUtc(currentMonth),
+				getLastDayUtc(currentMonth),
+				employee.salary,
+			);
+
+			const perShiftComponents: ISalaryTemplateComponent[] = [
+				...salaryTemplate.earnings,
+				...salaryTemplate.leaves,
+			];
+
+			evaluateSalaryTemplate(shiftSalary, perShiftComponents);
+		}
+	}
+	return true;
+}
+
+export function isValidSalaryTemplateComponent(
+	socket: Socket,
+	components: ISalaryTemplateComponent[],
+): boolean {
+	try {
+		for (const component of components) {
 			if (
 				!component.name ||
 				!component.code ||
@@ -173,28 +245,9 @@ export async function isValidSalaryTemplate(
 				return false;
 			}
 		}
+		return true;
+	} catch (error) {
+		errorEmission(socket, error);
+		return false;
 	}
-	if (salaryTemplate.employeeIds.length > 0) {
-		for (const empId of salaryTemplate.employeeIds) {
-			const employee = await getEmployeeById(empId.toString());
-			if (!employee) {
-				messageEmission(socket, "failed", "employeeId is invalid");
-				return false;
-			}
-			let summation = 0;
-			const result = evaluateSalaryTemplate(employee.salary, salaryTemplate);
-			for (const component of salaryTemplate.components) {
-				summation += result[component.name];
-			}
-			if (summation > employee.salary) {
-				messageEmission(
-					socket,
-					"failed",
-					"summation of salary component is greater than monthly salary.",
-				);
-				return false;
-			}
-		}
-	}
-	return true;
 }

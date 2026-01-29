@@ -6,6 +6,10 @@ const leaveSchema = new Schema<ILeave>({
 		type: Date,
 		required: true,
 	},
+	category: {
+		type: String,
+		required: true,
+	},
 	day_status: {
 		type: String,
 		enum: ["full_day", "first_half", "second_half"],

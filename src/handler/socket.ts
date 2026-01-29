@@ -113,12 +113,18 @@ export function startSocketServer() {
 
 		socket.on(
 			"leave.request",
-			(leave_date: string, day_status: DayStatus, reason: string) =>
+			(
+				leave_date: string,
+				category: string,
+				day_status: DayStatus,
+				reason: string,
+			) =>
 				leaveRequestHandler(
 					socket,
 					employee._id.toString(),
 					employee.shiftId.toString(),
 					leave_date,
+					category,
 					day_status,
 					reason,
 				),

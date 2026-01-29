@@ -3,6 +3,7 @@ import type { DayStatus } from "../type/day_status";
 
 export interface ILeave {
 	date: Date;
+	category: string;
 	day_status: DayStatus;
 	leave_status: "pending" | "approved" | "rejected";
 	reason: string;

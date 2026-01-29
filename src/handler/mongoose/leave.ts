@@ -1,19 +1,16 @@
 import Leave from "../../model/leave";
-import { redisClient } from "../../config/redis";
 import type { Socket } from "socket.io";
 import type { ILeave } from "../../interface/leave";
 import type { DayStatus } from "../../type/day_status";
 import type { leave_response } from "../../type/leave_response";
 import { messageEmission } from "../helper/reusable";
-import { normalizeDate, parseDateDMY } from "../../utils/date_time";
-
-const LEAVE_TTL = 60 * 60 * 1000;
-const leaveKey = (date: string | Date, employeeId: string) =>
-	`leave:${normalizeDate(date)}:${employeeId}`;
+import { parseDateDMY } from "../../utils/date_time";
+import { readSalaryTemplate } from "./salary_template";
 
 export async function createLeave(
 	socket: Socket,
 	leave_date: string,
+	category: string,
 	day_status: DayStatus,
 	reason: string,
 	employeeId: string,
@@ -30,13 +27,12 @@ export async function createLeave(
 		await Leave.create({
 			date: leaveDate,
 			day_status,
+			category,
 			employeeId,
 			shiftId,
 			leave_status: "pending",
 			reason,
 		});
-		const normalizedDate = parseDateDMY(leave_date).toISOString().split("T")[0];
-		await redisClient.del(leaveKey(normalizedDate, employeeId));
 		messageEmission(socket, "success", "leave request sent successfully.");
 	} catch (error) {
 		console.log(error);
@@ -73,11 +69,6 @@ export async function getApprovedLeave(
 	employeeId: string,
 ): Promise<ILeave | null> {
 	try {
-		const normalizedDate = leaveDate.toISOString().split("T")[0];
-		const leaveCache = await redisClient.get(
-			leaveKey(normalizedDate, employeeId),
-		);
-		if (leaveCache) return JSON.parse(leaveCache);
 		const leaveData = await Leave.findOne({
 			date: leaveDate,
 			employeeId,
@@ -85,14 +76,27 @@ export async function getApprovedLeave(
 		})
 			.lean<ILeave>()
 			.exec();
-		await redisClient.set(
-			leaveKey(normalizedDate, employeeId),
-			JSON.stringify(leaveData),
-			{ EX: LEAVE_TTL },
-		);
+
 		return leaveData;
 	} catch (error) {
 		console.log(error);
 		return null;
+	}
+}
+
+export async function isValidCategory(
+	employeeId: string,
+	category: string,
+): Promise<boolean> {
+	try {
+		const salaryTemplate = await readSalaryTemplate(employeeId);
+		if (!salaryTemplate) return false;
+		for (let leave of salaryTemplate.leaves) {
+			if (leave.code === category) return true;
+		}
+		return false;
+	} catch (error) {
+		console.log(error);
+		return false;
 	}
 }

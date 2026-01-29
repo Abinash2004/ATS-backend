@@ -1,5 +1,8 @@
 import { SalaryTemplate } from "../../model/salary_template";
-import type { ISalaryTemplate } from "../../interface/salary_template";
+import type {
+	ISalaryTemplate,
+	ISalaryTemplateComponent,
+} from "../../interface/salary_template";
 
 export async function createSalaryTemplate(
 	salaryTemplate: ISalaryTemplate,
@@ -35,5 +38,32 @@ export async function readSalaryTemplate(
 	} catch (error) {
 		console.error(error);
 		return null;
+	}
+}
+
+export async function getComponentName(
+	employeeId: string,
+	code: string,
+): Promise<string> {
+	try {
+		const salaryTemplate = await SalaryTemplate.findOne({
+			employeeIds: employeeId,
+		});
+
+		if (salaryTemplate) {
+			const componentArray: ISalaryTemplateComponent[] = [
+				...salaryTemplate.earnings,
+				...salaryTemplate.leaves,
+			];
+			for (let comp of componentArray) {
+				if (comp.code === code) {
+					return comp.name;
+				}
+			}
+		}
+		return code;
+	} catch (error) {
+		console.log(error);
+		return code;
 	}
 }

@@ -1,4 +1,3 @@
-import type { AttendanceStatus } from "../../type/attendance";
 import type { IAttendanceRecord } from "../../interface/attendance_record";
 import AttendanceRecord from "../../model/attendance_record";
 import { getFirstDayUtc, getLastDayUtc } from "../../utils/date_time";
@@ -18,8 +17,8 @@ export async function getRecentAttendanceRecordDate(): Promise<Date | null> {
 
 export async function setAttendanceRecord(
 	attendance_date: Date,
-	first_half: AttendanceStatus,
-	second_half: AttendanceStatus,
+	first_half: string,
+	second_half: string,
 	employeeId: string,
 	shiftId: string,
 ): Promise<void> {

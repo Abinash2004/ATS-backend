@@ -287,7 +287,7 @@ export async function getSalaryTemplateData(
 	try {
 		const salaryTemplate = await readSalaryTemplate(employeeId);
 		if (!salaryTemplate) return {};
-		return evaluateSalaryTemplate(salary, salaryTemplate);
+		return evaluateSalaryTemplate(salary, salaryTemplate.earnings);
 	} catch (error) {
 		console.log(error);
 		return {};

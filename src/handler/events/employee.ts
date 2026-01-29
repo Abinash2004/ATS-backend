@@ -4,7 +4,7 @@ import type { IPenalty } from "../../interface/penalty";
 import type { DayStatus } from "../../type/day_status";
 import type { IEmployee } from "../../interface/employee";
 import type { IAttendance } from "../../interface/attendance";
-import { createLeave } from "../mongoose/leave";
+import { createLeave, isValidCategory } from "../mongoose/leave";
 import { getEmployeeBonus } from "../mongoose/bonus";
 import { isValidMonthYear } from "../../utils/validations";
 import { getEmployeePenalty } from "../mongoose/penalty";
@@ -202,18 +202,25 @@ export async function leaveRequestHandler(
 	employeeId: string,
 	shiftId: string,
 	leave_date: string,
+	category: string,
 	day_status: DayStatus,
 	reason: string,
 ): Promise<void> {
 	try {
-		if (!leave_date || !day_status || !reason) {
+		if (!leave_date || !category || !day_status || !reason) {
 			messageEmission(socket, "failed", "incomplete / invalid credentials.");
+			return;
+		}
+
+		if (!(await isValidCategory(employeeId, category))) {
+			messageEmission(socket, "failed", "invalid leave category.");
 			return;
 		}
 
 		await createLeave(
 			socket,
 			leave_date,
+			category,
 			day_status,
 			reason,
 			employeeId,

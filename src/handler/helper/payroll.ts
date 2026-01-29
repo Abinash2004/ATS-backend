@@ -7,6 +7,7 @@ import { generatePDF } from "../../utils/pdf_generation";
 import { getDepartment } from "../mongoose/department";
 import { getBonusByDate } from "../mongoose/bonus";
 import { createSalarySlip } from "../mongoose/salary_slip";
+import { getComponentName } from "../mongoose/salary_template";
 import { createPenalty, getPenaltyByDate } from "../mongoose/penalty";
 import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
@@ -410,11 +411,13 @@ async function saveEmployeePayrollHandler(
 		let salaryTemplateAmountArray: ISalaryTemplateAmount[] = [];
 		for (let key in result) {
 			salaryTemplateAmountArray.push({
-				name: key,
+				name: await getComponentName(emp._id.toString(), key),
 				amount: Math.round(salaryAmount[key] * 100) / 100,
 			});
 			salaryComponent += salaryAmount[key];
 		}
+
+		salaryComponent = Math.round(salaryComponent * 100) / 100;
 
 		const salaryObject: ISalary = {
 			salaryTemplateAmount: salaryTemplateAmountArray,
@@ -424,12 +427,14 @@ async function saveEmployeePayrollHandler(
 			penalty_amount: totalPenalties,
 			fixed_allowance: salary - salaryComponent,
 			gross_salary:
-				salaryComponent +
-				(salary - salaryComponent) +
-				advanceSalary +
-				overTimeWages +
-				totalBonus -
-				totalPenalties,
+				Math.round(
+					(salary +
+						advanceSalary +
+						overTimeWages +
+						totalBonus -
+						totalPenalties) *
+						100,
+				) / 100,
 		};
 
 		const attendanceObject: ISalaryAttendance = {
@@ -478,12 +483,14 @@ async function saveEmployeePayrollHandler(
 					penalty: totalPenalties.toString(),
 					fixed_allowance: (salary - salaryComponent).toString(),
 					gross: (
-						salaryComponent +
-						(salary - salaryComponent) +
-						advanceSalary +
-						overTimeWages +
-						totalBonus -
-						totalPenalties
+						Math.round(
+							(salary +
+								advanceSalary +
+								overTimeWages +
+								totalBonus -
+								totalPenalties) *
+								100,
+						) / 100
 					).toString(),
 				},
 			},
