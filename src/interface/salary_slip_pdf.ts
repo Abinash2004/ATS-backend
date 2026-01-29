@@ -15,7 +15,7 @@ export interface ISalarySlipPDF {
 		working_shift: string;
 		present_shift: string;
 		absent_shift: string;
-		paid_leave: string;
+		leave: string;
 		over_time: string;
 	};
 	salary: {

@@ -68,7 +68,7 @@ export function generatePDF(
 	row(575, "Working Shifts", d.attendance.working_shift);
 	row(575, "Present Shifts", d.attendance.present_shift);
 	row(575, "Absent Shifts", d.attendance.absent_shift);
-	row(575, "Paid Leave", d.attendance.paid_leave);
+	row(575, "On Leave Shifts", d.attendance.leave);
 	row(575, "Overtime Hours", d.attendance.over_time);
 	doc.moveDown(0.5);
 	HR();

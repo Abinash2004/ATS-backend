@@ -9,7 +9,7 @@ export interface ISalaryAttendance {
 	working_shifts: number;
 	present_shifts: number;
 	absent_shifts: number;
-	paid_leave: number;
+	leave: number;
 	over_time_hours: string;
 }
 

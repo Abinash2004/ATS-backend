@@ -2,6 +2,7 @@ import type { Socket } from "socket.io";
 import type { ISingleShift } from "../../interface/shift";
 import type { IAttendanceRecord } from "../../interface/attendance_record";
 import type { IAttendance, IBreak } from "../../interface/attendance";
+import type { ISalaryTemplateComponent } from "../../interface/salary_template";
 import { getShift } from "../mongoose/shift";
 import {
 	evaluateSalaryTemplate,
@@ -288,6 +289,24 @@ export async function getSalaryTemplateData(
 		const salaryTemplate = await readSalaryTemplate(employeeId);
 		if (!salaryTemplate) return {};
 		return evaluateSalaryTemplate(salary, salaryTemplate.earnings);
+	} catch (error) {
+		console.log(error);
+		return {};
+	}
+}
+
+export async function getSalaryTemplateLeaveData(
+	employeeId: string,
+	salary: number,
+): Promise<Record<string, number>> {
+	try {
+		const salaryTemplate = await readSalaryTemplate(employeeId);
+		if (!salaryTemplate) return {};
+		const perShiftComponents: ISalaryTemplateComponent[] = [
+			...salaryTemplate.earnings,
+			...salaryTemplate.leaves,
+		];
+		return evaluateSalaryTemplate(salary, perShiftComponents);
 	} catch (error) {
 		console.log(error);
 		return {};

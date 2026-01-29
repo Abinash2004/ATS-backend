@@ -39,6 +39,7 @@ import {
 	calculateTotalWorkingShift,
 	errorEmission,
 	getSalaryTemplateData,
+	getSalaryTemplateLeaveData,
 	messageEmission,
 } from "./reusable";
 
@@ -81,12 +82,18 @@ export async function runEmployeePayroll(
 			emp.salary,
 		);
 
-		const result: Record<string, number> = await getSalaryTemplateData(
+		const earnings: Record<string, number> = await getSalaryTemplateData(
 			emp._id.toString(),
 			emp.salary,
 		);
+
+		const leaves: Record<string, number> = await getSalaryTemplateLeaveData(
+			emp._id.toString(),
+			shiftSalary,
+		);
+
 		let salaryAmount: Record<string, number> = {};
-		for (let key in result) {
+		for (let key in earnings) {
 			salaryAmount[key] = 0;
 		}
 
@@ -95,7 +102,8 @@ export async function runEmployeePayroll(
 			const overtimeValues = await resolveAdvancePayrollHandler(
 				emp,
 				pendingAdvancePayroll,
-				result,
+				earnings,
+				leaves,
 				shiftId,
 				start,
 				end,
@@ -109,12 +117,12 @@ export async function runEmployeePayroll(
 
 		let totalPenalties = await getPenaltyByDate(emp._id.toString(), start, end);
 		let amountPerShift: Record<string, number> = {};
-		for (let key in result) {
+		for (let key in earnings) {
 			amountPerShift[key] = await calculateShiftSalary(
 				shiftId,
 				start,
 				end,
-				result[key],
+				earnings[key],
 			);
 		}
 
@@ -127,7 +135,8 @@ export async function runEmployeePayroll(
 			end,
 			emp,
 			amountPerShift,
-			result,
+			earnings,
+			leaves,
 			salaryAmount,
 		);
 		if (attendanceResult) {
@@ -174,7 +183,7 @@ export async function runEmployeePayroll(
 			paidLeave,
 			start,
 			emp,
-			result,
+			earnings,
 			salaryAmount,
 			salary,
 			advanceSalary,
@@ -190,7 +199,8 @@ export async function runEmployeePayroll(
 async function resolveAdvancePayrollHandler(
 	emp: IEmployee,
 	pendingAdvancePayroll: IAdvancePayroll,
-	result: Record<string, number>,
+	earnings: Record<string, number>,
+	leaves: Record<string, number>,
 	shiftId: string,
 	start: Date,
 	end: Date,
@@ -207,31 +217,31 @@ async function resolveAdvancePayrollHandler(
 		);
 
 		let amountPerShift: Record<string, number> = {};
-		for (let key in result) {
+		for (let key in earnings) {
 			amountPerShift[key] = await calculateShiftSalary(
 				shiftId,
 				start,
 				end,
-				result[key],
+				earnings[key],
 			);
 		}
 
 		for (let att of advancePayrollAttendance) {
 			if (shiftId !== att.shiftId.toString()) {
 				shiftId = att.shiftId.toString();
-				for (let key in result) {
+				for (let key in earnings) {
 					amountPerShift[key] = await calculateShiftSalary(
 						shiftId,
 						start,
 						end,
-						result[key],
+						earnings[key],
 					);
 				}
 			}
 
 			if (att.first_half === "absent") {
 				let penalty = 0;
-				for (let key in result) {
+				for (let key in earnings) {
 					penalty += amountPerShift[key];
 				}
 				await createPenalty(
@@ -239,11 +249,23 @@ async function resolveAdvancePayrollHandler(
 					penalty,
 					`advance deduction - ${dateToIST(att.attendance_date)} (first half).`,
 				);
+			} else if (leaves[att.first_half] !== undefined) {
+				let penalty = 0;
+				for (let key in earnings) {
+					penalty += amountPerShift[key];
+				}
+				if (penalty - leaves[att.first_half] > 0) {
+					await createPenalty(
+						emp._id.toString(),
+						penalty - leaves[att.first_half],
+						`advance leave deduction - ${dateToIST(att.attendance_date)} (first half).`,
+					);
+				}
 			}
 
 			if (att.second_half === "absent") {
 				let penalty = 0;
-				for (let key in result) {
+				for (let key in earnings) {
 					penalty += amountPerShift[key];
 				}
 				await createPenalty(
@@ -251,6 +273,18 @@ async function resolveAdvancePayrollHandler(
 					penalty,
 					`advance deduction - ${dateToIST(att.attendance_date)} (second half).`,
 				);
+			} else if (leaves[att.second_half] !== undefined) {
+				let penalty = 0;
+				for (let key in earnings) {
+					penalty += amountPerShift[key];
+				}
+				if (penalty - leaves[att.first_half] > 0) {
+					await createPenalty(
+						emp._id.toString(),
+						penalty - leaves[att.second_half],
+						`advance leave deduction - ${dateToIST(att.attendance_date)} (first half).`,
+					);
+				}
 			}
 
 			overTimeMinutes += await calculateOvertimeMinutes(
@@ -281,7 +315,8 @@ async function attendancePayrollHandler(
 	end: Date,
 	emp: IEmployee,
 	amountPerShift: Record<string, number>,
-	result: Record<string, number>,
+	earnings: Record<string, number>,
+	leaves: Record<string, number>,
 	salaryAmount: Record<string, number>,
 ): Promise<{
 	salaryAttendance: number;
@@ -308,45 +343,35 @@ async function attendancePayrollHandler(
 					end,
 					emp.salary,
 				);
-				for (let key in result) {
+				for (let key in earnings) {
 					amountPerShift[key] = await calculateShiftSalary(
 						shiftId,
 						start,
 						end,
-						result[key],
+						earnings[key],
 					);
 				}
 			}
 
 			if (att.first_half === "present") {
 				salary += shiftSalary;
-				for (let key in result) {
+				for (let key in earnings) {
 					salaryAmount[key] += amountPerShift[key];
 				}
 				presentShift++;
-			}
-
-			if (att.first_half === "paid_leave") {
-				salary += shiftSalary;
-				for (let key in result) {
-					salaryAmount[key] += amountPerShift[key];
-				}
+			} else if (leaves[att.first_half] !== undefined) {
+				salary += leaves[att.first_half];
 				paidLeave++;
 			}
 
 			if (att.second_half === "present") {
 				salary += shiftSalary;
-				for (let key in result) {
+				for (let key in earnings) {
 					salaryAmount[key] += amountPerShift[key];
 				}
 				presentShift++;
-			}
-
-			if (att.second_half === "paid_leave") {
-				salary += shiftSalary;
-				for (let key in result) {
-					salaryAmount[key] += amountPerShift[key];
-				}
+			} else if (leaves[att.second_half] !== undefined) {
+				salary += leaves[att.second_half];
 				paidLeave++;
 			}
 
@@ -392,7 +417,7 @@ async function saveEmployeePayrollHandler(
 	paidLeave: number,
 	start: Date,
 	emp: IEmployee,
-	result: Record<string, number>,
+	earnings: Record<string, number>,
 	salaryAmount: Record<string, number>,
 	salaryValue: number,
 	advanceSalaryValue: number,
@@ -409,7 +434,7 @@ async function saveEmployeePayrollHandler(
 
 		let salaryComponent = 0;
 		let salaryTemplateAmountArray: ISalaryTemplateAmount[] = [];
-		for (let key in result) {
+		for (let key in earnings) {
 			salaryTemplateAmountArray.push({
 				name: await getComponentName(emp._id.toString(), key),
 				amount: Math.round(salaryAmount[key] * 100) / 100,
@@ -425,7 +450,7 @@ async function saveEmployeePayrollHandler(
 			over_time_wages: overTimeWages,
 			bonus_salary: totalBonus,
 			penalty_amount: totalPenalties,
-			fixed_allowance: salary - salaryComponent,
+			fixed_allowance: Math.round((salary - salaryComponent) * 100) / 100,
 			gross_salary:
 				Math.round(
 					(salary +
@@ -442,7 +467,7 @@ async function saveEmployeePayrollHandler(
 			present_shifts: presentShift,
 			absent_shifts: absentShift,
 			over_time_hours: formatHoursMinutes(overtimeMinutes),
-			paid_leave: paidLeave,
+			leave: paidLeave,
 		};
 
 		await createSalarySlip(
@@ -473,7 +498,7 @@ async function saveEmployeePayrollHandler(
 					working_shift: workingShift.toString(),
 					present_shift: presentShift.toString(),
 					absent_shift: absentShift.toString(),
-					paid_leave: paidLeave.toString(),
+					leave: paidLeave.toString(),
 					over_time: formatHoursMinutes(overtimeMinutes),
 				},
 				salary: {
@@ -481,7 +506,9 @@ async function saveEmployeePayrollHandler(
 					over_time: overTimeWages.toString(),
 					bonus: totalBonus.toString(),
 					penalty: totalPenalties.toString(),
-					fixed_allowance: (salary - salaryComponent).toString(),
+					fixed_allowance: (
+						Math.round((salary - salaryComponent) * 100) / 100
+					).toString(),
 					gross: (
 						Math.round(
 							(salary +

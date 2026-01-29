@@ -66,7 +66,7 @@ const salaryAttendanceSchema = new mongoose.Schema<ISalaryAttendance>(
 			type: String,
 			required: true,
 		},
-		paid_leave: {
+		leave: {
 			type: Number,
 			required: true,
 		},
