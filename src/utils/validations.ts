@@ -218,12 +218,19 @@ export async function isValidSalaryTemplate(
 				employee.salary,
 			);
 
-			const perShiftComponents: ISalaryTemplateComponent[] = [
+			const leaveComponents: ISalaryTemplateComponent[] = [
 				...salaryTemplate.earnings,
 				...salaryTemplate.leaves,
 			];
 
-			evaluateSalaryTemplate(shiftSalary, perShiftComponents);
+			evaluateSalaryTemplate(shiftSalary, leaveComponents);
+
+			const overtimeComponents: ISalaryTemplateComponent[] = [
+				...salaryTemplate.earnings,
+				salaryTemplate.overtime,
+			];
+
+			evaluateSalaryTemplate(shiftSalary, overtimeComponents);
 		}
 	}
 	return true;
