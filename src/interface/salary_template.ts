@@ -11,5 +11,6 @@ export interface ISalaryTemplate {
 	name: string;
 	earnings: ISalaryTemplateComponent[];
 	leaves: ISalaryTemplateComponent[];
+	overtime: ISalaryTemplateComponent;
 	employeeIds: Types.ObjectId[];
 }

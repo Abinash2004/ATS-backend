@@ -40,6 +40,10 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
 		type: [salaryTemplateComponentSchema],
 		default: [],
 	},
+	overtime: {
+		type: salaryTemplateComponentSchema,
+		required: true,
+	},
 	employeeIds: [
 		{
 			type: Schema.Types.ObjectId,

@@ -209,7 +209,21 @@ export async function calculateOvertimePay(
 			fullAttendance.clock_out,
 		);
 
-		return (shiftSalary * overTimeMinutes) / (shiftMinutes / 2);
+		const salaryTemplate = await readSalaryTemplate(employeeId);
+		if (!salaryTemplate) {
+			return (shiftSalary * overTimeMinutes) / (shiftMinutes / 2);
+		}
+
+		const perShiftComponents: ISalaryTemplateComponent[] = [
+			...salaryTemplate.earnings,
+			salaryTemplate.overtime,
+		];
+
+		const hourlyPay = (shiftSalary * 60) / (shiftMinutes / 2);
+
+		const otResult = evaluateSalaryTemplate(hourlyPay, perShiftComponents);
+
+		return otResult[salaryTemplate.overtime.code];
 	} catch (error) {
 		console.log(error);
 		return 0;

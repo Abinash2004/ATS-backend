@@ -550,15 +550,15 @@ export async function getStartAndEndDate(
 			end = parseDateDMY(endDate);
 		}
 
-		// const days = countDays(start, end);
-		// if (days < 29 || days > 31) {
-		// 	messageEmission(
-		// 		socket,
-		// 		"failed",
-		// 		"number of payroll days must be between 29 and 31.",
-		// 	);
-		// 	return null;
-		// }
+		const days = countDays(start, end);
+		if (days < 29 || days > 31) {
+			messageEmission(
+				socket,
+				"failed",
+				"number of payroll days must be between 29 and 31.",
+			);
+			return null;
+		}
 
 		return { start, end };
 	} catch (error) {
