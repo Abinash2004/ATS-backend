@@ -281,7 +281,7 @@ export async function checkBreakPenalty(
 	return penalty;
 }
 
-export async function getSalaryTemplateData(
+export async function getSalaryTemplateEarningData(
 	employeeId: string,
 	salary: number,
 ): Promise<Record<string, number>> {

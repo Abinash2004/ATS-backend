@@ -38,7 +38,7 @@ import {
 	calculateShiftSalary,
 	calculateTotalWorkingShift,
 	errorEmission,
-	getSalaryTemplateData,
+	getSalaryTemplateEarningData,
 	getSalaryTemplateLeaveData,
 	messageEmission,
 } from "./reusable";
@@ -82,7 +82,7 @@ export async function runEmployeePayroll(
 			emp.salary,
 		);
 
-		const earnings: Record<string, number> = await getSalaryTemplateData(
+		const earnings: Record<string, number> = await getSalaryTemplateEarningData(
 			emp._id.toString(),
 			emp.salary,
 		);
@@ -199,7 +199,7 @@ export async function runEmployeePayroll(
 async function resolveAdvancePayrollHandler(
 	emp: IEmployee,
 	pendingAdvancePayroll: IAdvancePayroll,
-	earnings: Record<string, number>,
+	result: Record<string, number>,
 	leaves: Record<string, number>,
 	shiftId: string,
 	start: Date,
@@ -217,31 +217,31 @@ async function resolveAdvancePayrollHandler(
 		);
 
 		let amountPerShift: Record<string, number> = {};
-		for (let key in earnings) {
+		for (let key in result) {
 			amountPerShift[key] = await calculateShiftSalary(
 				shiftId,
 				start,
 				end,
-				earnings[key],
+				result[key],
 			);
 		}
 
 		for (let att of advancePayrollAttendance) {
 			if (shiftId !== att.shiftId.toString()) {
 				shiftId = att.shiftId.toString();
-				for (let key in earnings) {
+				for (let key in result) {
 					amountPerShift[key] = await calculateShiftSalary(
 						shiftId,
 						start,
 						end,
-						earnings[key],
+						result[key],
 					);
 				}
 			}
 
 			if (att.first_half === "absent") {
 				let penalty = 0;
-				for (let key in earnings) {
+				for (let key in result) {
 					penalty += amountPerShift[key];
 				}
 				await createPenalty(
@@ -251,7 +251,7 @@ async function resolveAdvancePayrollHandler(
 				);
 			} else if (leaves[att.first_half] !== undefined) {
 				let penalty = 0;
-				for (let key in earnings) {
+				for (let key in result) {
 					penalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
@@ -265,7 +265,7 @@ async function resolveAdvancePayrollHandler(
 
 			if (att.second_half === "absent") {
 				let penalty = 0;
-				for (let key in earnings) {
+				for (let key in result) {
 					penalty += amountPerShift[key];
 				}
 				await createPenalty(
@@ -275,7 +275,7 @@ async function resolveAdvancePayrollHandler(
 				);
 			} else if (leaves[att.second_half] !== undefined) {
 				let penalty = 0;
-				for (let key in earnings) {
+				for (let key in result) {
 					penalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
@@ -315,7 +315,7 @@ async function attendancePayrollHandler(
 	end: Date,
 	emp: IEmployee,
 	amountPerShift: Record<string, number>,
-	earnings: Record<string, number>,
+	result: Record<string, number>,
 	leaves: Record<string, number>,
 	salaryAmount: Record<string, number>,
 ): Promise<{
@@ -343,19 +343,19 @@ async function attendancePayrollHandler(
 					end,
 					emp.salary,
 				);
-				for (let key in earnings) {
+				for (let key in result) {
 					amountPerShift[key] = await calculateShiftSalary(
 						shiftId,
 						start,
 						end,
-						earnings[key],
+						result[key],
 					);
 				}
 			}
 
 			if (att.first_half === "present") {
 				salary += shiftSalary;
-				for (let key in earnings) {
+				for (let key in result) {
 					salaryAmount[key] += amountPerShift[key];
 				}
 				presentShift++;
@@ -366,7 +366,7 @@ async function attendancePayrollHandler(
 
 			if (att.second_half === "present") {
 				salary += shiftSalary;
-				for (let key in earnings) {
+				for (let key in result) {
 					salaryAmount[key] += amountPerShift[key];
 				}
 				presentShift++;
@@ -417,7 +417,7 @@ async function saveEmployeePayrollHandler(
 	paidLeave: number,
 	start: Date,
 	emp: IEmployee,
-	earnings: Record<string, number>,
+	result: Record<string, number>,
 	salaryAmount: Record<string, number>,
 	salaryValue: number,
 	advanceSalaryValue: number,
@@ -434,7 +434,7 @@ async function saveEmployeePayrollHandler(
 
 		let salaryComponent = 0;
 		let salaryTemplateAmountArray: ISalaryTemplateAmount[] = [];
-		for (let key in earnings) {
+		for (let key in result) {
 			salaryTemplateAmountArray.push({
 				name: await getComponentName(emp._id.toString(), key),
 				amount: Math.round(salaryAmount[key] * 100) / 100,
@@ -550,15 +550,15 @@ export async function getStartAndEndDate(
 			end = parseDateDMY(endDate);
 		}
 
-		const days = countDays(start, end);
-		if (days < 29 || days > 31) {
-			messageEmission(
-				socket,
-				"failed",
-				"number of payroll days must be between 29 and 31.",
-			);
-			return null;
-		}
+		// const days = countDays(start, end);
+		// if (days < 29 || days > 31) {
+		// 	messageEmission(
+		// 		socket,
+		// 		"failed",
+		// 		"number of payroll days must be between 29 and 31.",
+		// 	);
+		// 	return null;
+		// }
 
 		return { start, end };
 	} catch (error) {
