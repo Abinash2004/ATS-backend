@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import type { Socket } from "socket.io";
 import type { IAdvancePayroll } from "../../interface/advance_payroll";
 import { Queue } from "bullmq";
@@ -11,7 +12,9 @@ import { errorEmission, messageEmission } from "../helper/reusable";
 import { getRecentAttendanceRecordDate } from "../mongoose/attendance_record";
 import { getStartAndEndDate, postPayrollHandler } from "../helper/payroll";
 
-const redisURI = "redis://localhost:6379/0";
+dotenv.config({ quiet: true });
+const redisURI = process.env.REDIS_QUEUE_URL || "redis://localhost:6379/0";
+
 export const payrollQueue = new Queue("payroll", {
 	connection: { url: redisURI, skipVersionCheck: true },
 });

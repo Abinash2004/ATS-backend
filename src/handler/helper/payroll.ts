@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import type { Socket } from "socket.io";
 import type { IEmployee } from "../../interface/employee";
 import type { IAdvancePayroll } from "../../interface/advance_payroll";
@@ -42,6 +43,8 @@ import {
 	getSalaryTemplateLeaveData,
 	messageEmission,
 } from "./reusable";
+
+dotenv.config({ quiet: true });
 
 export async function runEmployeePayroll(
 	emp: IEmployee,
@@ -479,19 +482,23 @@ async function saveEmployeePayrollHandler(
 		const department = await getDepartment(emp.departmentId.toString());
 		if (!department) throw new Error("Department not found");
 
+		const companyName = process.env.COMPANY_NAME || "Company Name";
+		const companyAddress = process.env.COMPANY_ADDRESS || "Company Address";
+		const employeeAccount = process.env.EMPLOYEE_ACCOUNT || "Employee Account";
+		const employeeBank = process.env.EMPLOYEE_BANK || "Employee Bank";
+
 		generatePDF(
 			{
 				month: formatMonthYear(start),
 				company: {
-					name: "Ultimate Business Systems Pvt. Ltd.",
-					address:
-						"Diamond World 3rd floor C-301, Mini Bazaar, Varachha Road, Surat, Gujarat, India, 395006",
+					name: companyName,
+					address: companyAddress,
 				},
 				employee: {
 					name: emp.name,
 					email: emp.email,
-					account: "69066990666999",
-					bank: "Super Bank of Surat",
+					account: employeeAccount,
+					bank: employeeBank,
 					department: department.name,
 				},
 				attendance: {
@@ -550,15 +557,15 @@ export async function getStartAndEndDate(
 			end = parseDateDMY(endDate);
 		}
 
-		const days = countDays(start, end);
-		if (days < 29 || days > 31) {
-			messageEmission(
-				socket,
-				"failed",
-				"number of payroll days must be between 29 and 31.",
-			);
-			return null;
-		}
+		// const days = countDays(start, end);
+		// if (days < 29 || days > 31) {
+		// 	messageEmission(
+		// 		socket,
+		// 		"failed",
+		// 		"number of payroll days must be between 29 and 31.",
+		// 	);
+		// 	return null;
+		// }
 
 		return { start, end };
 	} catch (error) {

@@ -1,6 +1,10 @@
+import dotenv from "dotenv";
 import { Worker } from "bullmq";
 import { getEmployeeById } from "../mongoose/employee";
 import { runEmployeePayroll } from "./payroll";
+
+dotenv.config({ quiet: true });
+const redisURI = process.env.REDIS_QUEUE_URL || "redis://localhost:6379/0";
 
 export function startPayrollWorker() {
 	const worker = new Worker(
@@ -25,7 +29,7 @@ export function startPayrollWorker() {
 				);
 			console.log(`Payroll completed for employee ${data.employeeId}`);
 		},
-		{ connection: { url: "redis://localhost:6379/0", skipVersionCheck: true } },
+		{ connection: { url: redisURI, skipVersionCheck: true } },
 	);
 	worker.on("failed", (job, err) =>
 		console.error(`Payroll failed for employee ${job?.data.employeeId}:`, err),
