@@ -4,7 +4,11 @@ import type { IPenalty } from "../../interface/penalty";
 import type { DayStatus } from "../../type/day_status";
 import type { IEmployee } from "../../interface/employee";
 import type { IAttendance } from "../../interface/attendance";
-import { createLeave, isValidCategory } from "../mongoose/leave";
+import {
+	createLeave,
+	isLeaveAvailable,
+	isValidCategory,
+} from "../mongoose/leave";
 import { getEmployeeBonus } from "../mongoose/bonus";
 import { isValidMonthYear } from "../../utils/validations";
 import { getEmployeePenalty } from "../mongoose/penalty";
@@ -214,6 +218,10 @@ export async function leaveRequestHandler(
 
 		if (!(await isValidCategory(employeeId, category))) {
 			messageEmission(socket, "failed", "invalid leave category.");
+			return;
+		}
+		if (!(await isLeaveAvailable(employeeId, category))) {
+			messageEmission(socket, "failed", "your leave limit exceed.");
 			return;
 		}
 

@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
 import type {
 	ISalaryTemplateComponent,
+	ISalaryTemplateLeave,
 	ISalaryTemplate,
 } from "../interface/salary_template";
 
@@ -27,6 +28,38 @@ const salaryTemplateComponentSchema = new Schema<ISalaryTemplateComponent>(
 	{ _id: false },
 );
 
+const salaryTemplateLeaveSchema = new Schema<ISalaryTemplateLeave>(
+	{
+		code: {
+			type: String,
+			required: true,
+		},
+		name: {
+			type: String,
+			required: true,
+		},
+		component_type: {
+			type: Number,
+			required: true,
+			enum: [1, 2, 3], // FIXED | PERCENTAGE | FORMULA
+		},
+		expression: {
+			type: String,
+			required: true,
+		},
+		limit: {
+			type: Number,
+			required: true,
+		},
+		time_period: {
+			type: Number,
+			required: true,
+			enum: [1, 2, 3, 4, 5], // WEEKLY | MONTHLY | QUARTERLY | YEARLY | OVERALL
+		},
+	},
+	{ _id: false },
+);
+
 const salaryTemplateSchema = new Schema<ISalaryTemplate>({
 	name: {
 		type: String,
@@ -37,7 +70,7 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
 		default: [],
 	},
 	leaves: {
-		type: [salaryTemplateComponentSchema],
+		type: [salaryTemplateLeaveSchema],
 		default: [],
 	},
 	overtime: {

@@ -15,6 +15,7 @@ import type { ICredentialsValidationResponse } from "../interface/auth";
 import type {
 	ISalaryTemplate,
 	ISalaryTemplateComponent,
+	ISalaryTemplateLeave,
 } from "../interface/salary_template";
 
 const FIXED = 1;
@@ -172,7 +173,7 @@ export async function isValidSalaryTemplate(
 		(salaryTemplate.earnings.length > 0 &&
 			!isValidSalaryTemplateComponent(socket, salaryTemplate.earnings)) ||
 		(salaryTemplate.leaves.length > 0 &&
-			!isValidSalaryTemplateComponent(socket, salaryTemplate.leaves))
+			!isValidSalaryTemplateLeave(socket, salaryTemplate.leaves))
 	) {
 		return false;
 	}
@@ -250,6 +251,73 @@ export function isValidSalaryTemplateComponent(
 			) {
 				messageEmission(socket, "failed", "invalid componenet");
 				return false;
+			}
+		}
+		return true;
+	} catch (error) {
+		errorEmission(socket, error);
+		return false;
+	}
+}
+
+export function isValidSalaryTemplateLeave(
+	socket: Socket,
+	components: ISalaryTemplateLeave[],
+): boolean {
+	try {
+		for (const component of components) {
+			if (
+				!component.name ||
+				!component.code ||
+				!component.component_type ||
+				!component.expression ||
+				!component.time_period
+			) {
+				messageEmission(socket, "failed", "invalid leave componenet");
+				return false;
+			}
+			// switch case for time period to verify limit
+			switch (component.time_period) {
+				case 1: {
+					if (component.limit < 0 || component.limit > 7) {
+						messageEmission(
+							socket,
+							"failed",
+							`leave limit for ${component.name} must be between 0 - 7`,
+						);
+						return false;
+					}
+				}
+				case 2: {
+					if (component.limit < 0 || component.limit > 30) {
+						messageEmission(
+							socket,
+							"failed",
+							`leave limit for ${component.name} must be between 0 - 30`,
+						);
+						return false;
+					}
+				}
+				case 3: {
+					if (component.limit < 0 || component.limit > 180) {
+						messageEmission(
+							socket,
+							"failed",
+							`leave limit for ${component.name} must be between 0 - 180`,
+						);
+						return false;
+					}
+				}
+				case 4: {
+					if (component.limit < 0 || component.limit > 365) {
+						messageEmission(
+							socket,
+							"failed",
+							`leave limit for ${component.name} must be between 0 - 365`,
+						);
+						return false;
+					}
+				}
 			}
 		}
 		return true;

@@ -7,10 +7,19 @@ export interface ISalaryTemplateComponent {
 	expression: string;
 }
 
+export interface ISalaryTemplateLeave {
+	code: string;
+	name: string;
+	component_type: 1 | 2 | 3; // FIXED | PERCENTAGE | FORMULA
+	expression: string;
+	limit: number;
+	time_period: 1 | 2 | 3 | 4 | 5 | 6; // WEEKLY | MONTHLY | QUARTERLY | YEARLY | OVERALL | UNLIMITED
+}
+
 export interface ISalaryTemplate {
 	name: string;
 	earnings: ISalaryTemplateComponent[];
-	leaves: ISalaryTemplateComponent[];
+	leaves: ISalaryTemplateLeave[];
 	overtime: ISalaryTemplateComponent;
 	employeeIds: Types.ObjectId[];
 }

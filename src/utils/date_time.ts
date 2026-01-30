@@ -103,3 +103,54 @@ export function normalizeDate(date: string | Date) {
 	const d = typeof date === "string" ? parseDateDMY(date) : date;
 	return d.toISOString().split("T")[0]; // YYYY-MM-DD
 }
+
+export function getFirstDateOfCurrentWeek(): Date {
+	const today = new Date();
+	const day = today.getDay();
+	const diff = day === 0 ? -6 : 1 - day;
+	const monday = new Date(today);
+	monday.setDate(today.getDate() + diff);
+	monday.setHours(0, 0, 0, 0);
+
+	return monday;
+}
+
+export function getLastDateOfCurrentWeek(): Date {
+	const today = new Date();
+	const day = today.getDay();
+	const diff = day === 0 ? 0 : 7 - day;
+	const sunday = new Date(today);
+	sunday.setDate(today.getDate() + diff);
+	sunday.setHours(23, 59, 59, 999);
+
+	return sunday;
+}
+
+export function getFirstDateOfCurrentMonth(): Date {
+	const date = new Date();
+	return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+}
+
+export function getLastDateOfCurrentMonth(): Date {
+	const date = new Date();
+	return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+export function getCurrentSixMonthQuarterRange(): { start: Date; end: Date } {
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = now.getMonth();
+	const isFirstHalf = month < 6;
+	const startMonth = isFirstHalf ? 0 : 6;
+	const endMonth = isFirstHalf ? 5 : 11;
+	const start = new Date(year, startMonth, 1, 0, 0, 0, 0);
+	const end = new Date(year, endMonth + 1, 0, 23, 59, 59, 999);
+	return { start, end };
+}
+
+export function getFirstAndLastDateOfCurrentYear(): { start: Date; end: Date } {
+	const year = new Date().getFullYear();
+	const start = new Date(year, 0, 1, 0, 0, 0, 0); // Jan 1
+	const end = new Date(year, 11, 31, 23, 59, 59, 999); // Dec 31
+	return { start, end };
+}

@@ -4,7 +4,15 @@ import type { ILeave } from "../../interface/leave";
 import type { DayStatus } from "../../type/day_status";
 import type { leave_response } from "../../type/leave_response";
 import { messageEmission } from "../helper/reusable";
-import { parseDateDMY } from "../../utils/date_time";
+import {
+	getCurrentSixMonthQuarterRange,
+	getFirstAndLastDateOfCurrentYear,
+	getFirstDateOfCurrentMonth,
+	getFirstDateOfCurrentWeek,
+	getLastDateOfCurrentMonth,
+	getLastDateOfCurrentWeek,
+	parseDateDMY,
+} from "../../utils/date_time";
 import { readSalaryTemplate } from "./salary_template";
 
 export async function createLeave(
@@ -94,6 +102,82 @@ export async function isValidCategory(
 		for (let leave of salaryTemplate.leaves) {
 			if (leave.code === category) return true;
 		}
+		return false;
+	} catch (error) {
+		console.log(error);
+		return false;
+	}
+}
+
+export async function isLeaveAvailable(
+	employeeId: string,
+	category: string,
+): Promise<boolean> {
+	try {
+		let limit = 0;
+		let time_period = 1;
+		let start = new Date(Date.now());
+		let end = new Date(Date.now());
+
+		const salaryTemplate = await readSalaryTemplate(employeeId);
+		if (!salaryTemplate) return false;
+		for (let leave of salaryTemplate.leaves) {
+			if (leave.code === category) {
+				limit = leave.limit;
+				time_period = leave.time_period;
+			}
+		}
+
+		let isOverAll = false;
+
+		//set start and end with respect to time period
+		switch (time_period) {
+			case 1: {
+				start = getFirstDateOfCurrentWeek();
+				end = getLastDateOfCurrentWeek();
+				break;
+			}
+			case 2: {
+				start = getFirstDateOfCurrentMonth();
+				end = getLastDateOfCurrentMonth();
+				break;
+			}
+			case 3: {
+				const timeLine = getCurrentSixMonthQuarterRange();
+				start = timeLine.start;
+				end = timeLine.end;
+				break;
+			}
+			case 4: {
+				const timeLine = getFirstAndLastDateOfCurrentYear();
+				start = timeLine.start;
+				end = timeLine.end;
+				break;
+			}
+			case 5: {
+				isOverAll = true;
+				break;
+			}
+			case 6: {
+				return true;
+			}
+		}
+
+		if (isOverAll) {
+			const leaves = await Leave.find({
+				employeeId,
+				category,
+			});
+			if (leaves.length < limit) return true;
+		} else {
+			const leaves = await Leave.find({
+				employeeId,
+				category,
+				date: { $gte: start, $lt: end },
+			});
+			if (leaves.length < limit) return true;
+		}
+
 		return false;
 	} catch (error) {
 		console.log(error);
