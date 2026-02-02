@@ -2,16 +2,17 @@ import type { Socket } from "socket.io";
 import type { ISingleShift } from "../../interface/shift";
 import type { IAttendanceRecord } from "../../interface/attendance_record";
 import type { IAttendance, IBreak } from "../../interface/attendance";
-import type { ISalaryTemplateComponent } from "../../interface/salary_template";
+import type {
+	ISalaryTemplate,
+	ISalaryTemplateComponent,
+} from "../../interface/salary_template";
 import { getShift } from "../mongoose/shift";
+import { readSalaryTemplate } from "../mongoose/salary_template";
+import { getBreakPerHourPenalty } from "../mongoose/policy";
 import {
 	evaluateSalaryTemplate,
 	isValidMonthYear,
 } from "../../utils/validations";
-import { readSalaryTemplate } from "../mongoose/salary_template";
-import { getAttendanceByDate } from "../mongoose/attendance";
-import { getBreakPerHourPenalty } from "../mongoose/policy";
-import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
 	calculateMinutes,
 	getDayName,
@@ -150,17 +151,11 @@ export async function calculateWorkingShift(
 }
 
 export async function calculateTotalWorkingShift(
-	employeeId: string,
-	start: Date,
-	end: Date,
+	attendanceRecord: IAttendanceRecord[],
 ): Promise<number> {
 	try {
 		let shiftCount = 0;
-		const attendanceRecord = await getEmployeeAttendanceRecordDateWise(
-			employeeId,
-			start,
-			end,
-		);
+
 		if (!attendanceRecord[0]) return 0;
 
 		let shiftId: string = attendanceRecord[0].shiftId.toString();
@@ -191,25 +186,17 @@ export async function calculateTotalWorkingShift(
 }
 
 export async function calculateOvertimePay(
-	attendance: IAttendanceRecord,
-	employeeId: string,
+	fullAttendance: IAttendance,
 	shiftSalary: number,
+	salaryTemplate: ISalaryTemplate | null,
 ): Promise<number> {
 	try {
-		const fullAttendance = await getAttendanceByDate(
-			attendance.attendance_date,
-			employeeId,
-		);
-
-		if (!fullAttendance) return 0;
 		if (!fullAttendance.clock_out) return 0;
-
 		let { shiftMinutes, overTimeMinutes } = await getShiftData(
 			fullAttendance,
 			fullAttendance.clock_out,
 		);
 
-		const salaryTemplate = await readSalaryTemplate(employeeId);
 		if (!salaryTemplate) {
 			return (shiftSalary * overTimeMinutes) / (shiftMinutes / 2);
 		}
@@ -231,18 +218,10 @@ export async function calculateOvertimePay(
 }
 
 export async function calculateOvertimeMinutes(
-	attendance: IAttendanceRecord,
-	employeeId: string,
+	fullAttendance: IAttendance,
 ): Promise<number> {
 	try {
-		const fullAttendance = await getAttendanceByDate(
-			attendance.attendance_date,
-			employeeId,
-		);
-
-		if (!fullAttendance) return 0;
 		if (!fullAttendance.clock_out) return 0;
-
 		let { overTimeMinutes } = await getShiftData(
 			fullAttendance,
 			fullAttendance.clock_out,

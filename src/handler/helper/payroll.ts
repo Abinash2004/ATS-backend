@@ -8,7 +8,10 @@ import { generatePDF } from "../../utils/pdf_generation";
 import { getDepartment } from "../mongoose/department";
 import { getBonusByDate } from "../mongoose/bonus";
 import { createSalarySlip } from "../mongoose/salary_slip";
-import { getComponentName } from "../mongoose/salary_template";
+import {
+	getComponentName,
+	readSalaryTemplate,
+} from "../mongoose/salary_template";
 import { createPenalty, getPenaltyByDate } from "../mongoose/penalty";
 import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
@@ -36,13 +39,15 @@ import {
 import {
 	calculateOvertimeMinutes,
 	calculateOvertimePay,
-	calculateShiftSalary,
 	calculateTotalWorkingShift,
+	calculateWorkingShift,
 	errorEmission,
 	getSalaryTemplateEarningData,
 	getSalaryTemplateLeaveData,
 	messageEmission,
 } from "./reusable";
+import { getAttendanceByDate } from "../mongoose/attendance";
+import { ISalaryTemplate } from "../../interface/salary_template";
 
 dotenv.config({ quiet: true });
 
@@ -65,52 +70,60 @@ export async function runEmployeePayroll(
 		let overTimeWages = 0;
 		let overtimeMinutes = 0;
 
+		const [
+			totalBonus,
+			totalPenalties,
+			salaryTemplate,
+			attendanceRecord,
+			advanceAttendanceRecord,
+		] = await Promise.all([
+			getBonusByDate(emp._id.toString(), start, end),
+			getPenaltyByDate(emp._id.toString(), start, end),
+			readSalaryTemplate(emp._id.toString()),
+			getEmployeeAttendanceRecordDateWise(emp._id.toString(), start, end),
+			pendingAdvancePayroll
+				? getEmployeeAttendanceRecordDateWise(
+						emp._id.toString(),
+						pendingAdvancePayroll.start_date,
+						pendingAdvancePayroll.end_date,
+					)
+				: [],
+		]);
+
+		let workingShift = await calculateTotalWorkingShift(attendanceRecord);
+		let shiftSalary = emp.salary / workingShift;
 		let shiftId: string = emp.shiftId.toString();
-		let totalBonus = await getBonusByDate(emp._id.toString(), start, end);
-		let workingShift = await calculateTotalWorkingShift(
-			emp._id.toString(),
-			start,
-			end,
-		);
-		const attendance = await getEmployeeAttendanceRecordDateWise(
-			emp._id.toString(),
-			start,
-			end,
-		);
-		if (attendance.length !== 0) shiftId = attendance[0].shiftId.toString();
-		let shiftSalary = await calculateShiftSalary(
-			shiftId,
-			start,
-			end,
-			emp.salary,
-		);
+		if (attendanceRecord.length !== 0) {
+			shiftId = attendanceRecord[0].shiftId.toString();
+		}
 
-		const earnings: Record<string, number> = await getSalaryTemplateEarningData(
-			emp._id.toString(),
-			emp.salary,
-		);
+		const [earnings, leaves, shift] = await Promise.all([
+			getSalaryTemplateEarningData(emp._id.toString(), emp.salary),
+			getSalaryTemplateLeaveData(emp._id.toString(), shiftSalary),
+			getShift(shiftId),
+		]);
 
-		const leaves: Record<string, number> = await getSalaryTemplateLeaveData(
-			emp._id.toString(),
-			shiftSalary,
-		);
-
+		if (!shift) throw new Error("Shift not found");
 		let salaryAmount: Record<string, number> = {};
+		let amountPerShift: Record<string, number> = {};
 		for (let key in earnings) {
 			salaryAmount[key] = 0;
+			amountPerShift[key] = earnings[key] / workingShift;
 		}
 
 		//resolve advance payroll
 		if (isPendingAdvancePayroll && pendingAdvancePayroll) {
 			const overtimeValues = await resolveAdvancePayrollHandler(
+				advanceAttendanceRecord,
+				amountPerShift,
 				emp,
-				pendingAdvancePayroll,
 				earnings,
 				leaves,
 				shiftId,
 				start,
 				end,
 				shiftSalary,
+				salaryTemplate,
 			);
 			if (overtimeValues) {
 				overTimeWages += overtimeValues.overTimeWages;
@@ -118,20 +131,9 @@ export async function runEmployeePayroll(
 			}
 		}
 
-		let totalPenalties = await getPenaltyByDate(emp._id.toString(), start, end);
-		let amountPerShift: Record<string, number> = {};
-		for (let key in earnings) {
-			amountPerShift[key] = await calculateShiftSalary(
-				shiftId,
-				start,
-				end,
-				earnings[key],
-			);
-		}
-
 		// call attendance Payroll Handler
 		const attendanceResult = await attendancePayrollHandler(
-			attendance,
+			attendanceRecord,
 			shiftId,
 			shiftSalary,
 			start,
@@ -141,6 +143,7 @@ export async function runEmployeePayroll(
 			earnings,
 			leaves,
 			salaryAmount,
+			salaryTemplate,
 		);
 		if (attendanceResult) {
 			salary += attendanceResult.salaryAttendance;
@@ -152,10 +155,7 @@ export async function runEmployeePayroll(
 		}
 
 		if (isAdvancePayroll) {
-			const shift = await getShift(shiftId);
-			if (!shift) throw new Error("Shift not found");
 			let shiftCount = 0;
-
 			let iterDate = new Date(recentAttendanceDate);
 			iterDate.setDate(iterDate.getDate() + 1);
 			while (iterDate <= actualEndDate) {
@@ -200,105 +200,86 @@ export async function runEmployeePayroll(
 }
 
 async function resolveAdvancePayrollHandler(
+	advanceAttendanceRecord: IAttendanceRecord[],
+	amountPerShift: Record<string, number>,
 	emp: IEmployee,
-	pendingAdvancePayroll: IAdvancePayroll,
 	result: Record<string, number>,
 	leaves: Record<string, number>,
 	shiftId: string,
 	start: Date,
 	end: Date,
 	shiftSalary: number,
+	salaryTemplate: ISalaryTemplate | null,
 ): Promise<{ overTimeMinutes: number; overTimeWages: number } | null> {
 	try {
 		let overTimeMinutes = 0;
 		let overTimeWages = 0;
 
-		let advancePayrollAttendance = await getEmployeeAttendanceRecordDateWise(
-			emp._id.toString(),
-			pendingAdvancePayroll.start_date,
-			pendingAdvancePayroll.end_date,
-		);
-
-		let amountPerShift: Record<string, number> = {};
-		for (let key in result) {
-			amountPerShift[key] = await calculateShiftSalary(
-				shiftId,
-				start,
-				end,
-				result[key],
-			);
-		}
-
-		for (let att of advancePayrollAttendance) {
+		for (let att of advanceAttendanceRecord) {
 			if (shiftId !== att.shiftId.toString()) {
 				shiftId = att.shiftId.toString();
+				const workingShift = await calculateWorkingShift(shiftId, start, end);
 				for (let key in result) {
-					amountPerShift[key] = await calculateShiftSalary(
-						shiftId,
-						start,
-						end,
-						result[key],
-					);
+					amountPerShift[key] = result[key] / workingShift;
 				}
 			}
 
+			let totalPenalty = 0;
+			let penaltyList = [];
+
 			if (att.first_half === "absent") {
-				let penalty = 0;
 				for (let key in result) {
-					penalty += amountPerShift[key];
+					totalPenalty += amountPerShift[key];
 				}
-				await createPenalty(
-					emp._id.toString(),
-					penalty,
-					`advance deduction - ${dateToIST(att.attendance_date)} (first half).`,
-				);
+				penaltyList.push(`${dateToIST(att.attendance_date)} (first half)`);
 			} else if (leaves[att.first_half] !== undefined) {
 				let penalty = 0;
 				for (let key in result) {
 					penalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
-					await createPenalty(
-						emp._id.toString(),
-						penalty - leaves[att.first_half],
-						`advance leave deduction - ${dateToIST(att.attendance_date)} (first half).`,
-					);
+					totalPenalty += penalty - leaves[att.first_half];
+					penaltyList.push(`${dateToIST(att.attendance_date)} (first half)`);
 				}
 			}
 
 			if (att.second_half === "absent") {
-				let penalty = 0;
 				for (let key in result) {
-					penalty += amountPerShift[key];
+					totalPenalty += amountPerShift[key];
 				}
-				await createPenalty(
-					emp._id.toString(),
-					penalty,
-					`advance deduction - ${dateToIST(att.attendance_date)} (second half).`,
-				);
+				penaltyList.push(`${dateToIST(att.attendance_date)} (second half)`);
 			} else if (leaves[att.second_half] !== undefined) {
 				let penalty = 0;
 				for (let key in result) {
-					penalty += amountPerShift[key];
+					totalPenalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
-					await createPenalty(
-						emp._id.toString(),
-						penalty - leaves[att.second_half],
-						`advance leave deduction - ${dateToIST(att.attendance_date)} (first half).`,
-					);
+					totalPenalty = penalty - leaves[att.second_half];
+					penaltyList.push(`${dateToIST(att.attendance_date)} (first half)`);
 				}
 			}
 
-			overTimeMinutes += await calculateOvertimeMinutes(
-				att,
+			if (totalPenalty) {
+				await createPenalty(
+					emp._id.toString(),
+					totalPenalty,
+					`Advance deduction for ${penaltyList}`,
+				);
+			}
+
+			const fullAttendance = await getAttendanceByDate(
+				att.attendance_date,
 				emp._id.toString(),
 			);
-			overTimeWages += await calculateOvertimePay(
-				att,
-				emp._id.toString(),
-				shiftSalary,
-			);
+
+			if (fullAttendance && fullAttendance.clock_out) {
+				overTimeMinutes += await calculateOvertimeMinutes(fullAttendance);
+				overTimeWages += await calculateOvertimePay(
+					fullAttendance,
+					shiftSalary,
+					salaryTemplate,
+				);
+			}
 		}
 		if (overTimeMinutes || overTimeWages) {
 			return { overTimeMinutes, overTimeWages };
@@ -321,6 +302,7 @@ async function attendancePayrollHandler(
 	result: Record<string, number>,
 	leaves: Record<string, number>,
 	salaryAmount: Record<string, number>,
+	salaryTemplate: ISalaryTemplate | null,
 ): Promise<{
 	salaryAttendance: number;
 	paidLeaveAttendance: number;
@@ -340,19 +322,10 @@ async function attendancePayrollHandler(
 		for (let att of attendance) {
 			if (shiftId !== att.shiftId.toString()) {
 				shiftId = att.shiftId.toString();
-				shiftSalary = await calculateShiftSalary(
-					shiftId,
-					start,
-					end,
-					emp.salary,
-				);
+				let workingShift = await calculateWorkingShift(shiftId, start, end);
+				shiftSalary = emp.salary / workingShift;
 				for (let key in result) {
-					amountPerShift[key] = await calculateShiftSalary(
-						shiftId,
-						start,
-						end,
-						result[key],
-					);
+					amountPerShift[key] = result[key] / workingShift;
 				}
 			}
 
@@ -381,15 +354,19 @@ async function attendancePayrollHandler(
 			if (att.first_half === "absent") absentShift++;
 			if (att.second_half === "absent") absentShift++;
 
-			overtimeMinutes += await calculateOvertimeMinutes(
-				att,
+			const fullAttendance = await getAttendanceByDate(
+				att.attendance_date,
 				emp._id.toString(),
 			);
-			overTimeWages += await calculateOvertimePay(
-				att,
-				emp._id.toString(),
-				shiftSalary,
-			);
+
+			if (fullAttendance && fullAttendance.clock_out) {
+				overtimeMinutes += await calculateOvertimeMinutes(fullAttendance);
+				overTimeWages += await calculateOvertimePay(
+					fullAttendance,
+					shiftSalary,
+					salaryTemplate,
+				);
+			}
 		}
 		return {
 			salaryAttendance: salary,
