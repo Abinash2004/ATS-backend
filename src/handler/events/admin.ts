@@ -11,6 +11,8 @@ import { createAttendanceRecordHandler } from "./hr";
 import { errorEmission, messageEmission } from "../helper/reusable";
 import { getRecentAttendanceRecordDate } from "../mongoose/attendance_record";
 import { getStartAndEndDate, postPayrollHandler } from "../helper/payroll";
+import { getAttendanceByDateRange } from "../mongoose/attendance";
+import { IAttendance } from "../../interface/attendance";
 
 dotenv.config({ quiet: true });
 const redisURI = process.env.REDIS_QUEUE_URL || "redis://localhost:6379/0";
@@ -47,6 +49,8 @@ export async function runPayrollHandler(
 		let actualEndDate: Date = end;
 		const recentAttendanceDate: Date | null =
 			await getRecentAttendanceRecordDate();
+		let fullAttendanceStart = start;
+		let fullAttendanceEnd = end;
 
 		if (!recentAttendanceDate) {
 			messageEmission(socket, "failed", `attendance record is empty.`);
@@ -55,6 +59,7 @@ export async function runPayrollHandler(
 		if (recentAttendanceDate < end) {
 			isAdvancePayroll = true;
 			end = recentAttendanceDate;
+			fullAttendanceEnd = recentAttendanceDate;
 		}
 		if (recentAttendanceDate < start) {
 			messageEmission(socket, "failed", `attendance record do not exists.`);
@@ -75,8 +80,14 @@ export async function runPayrollHandler(
 				);
 				return;
 			}
+			fullAttendanceStart = pendingAdvancePayroll.start_date;
 			isPendingAdvancePayroll = true;
 		}
+
+		const fullAttendance: IAttendance[] = await getAttendanceByDateRange(
+			fullAttendanceStart,
+			fullAttendanceEnd,
+		);
 
 		// payroll run for each employee
 		const employees: IEmployee[] = await getAllEmployeesList();
@@ -90,6 +101,7 @@ export async function runPayrollHandler(
 				isAdvancePayroll,
 				recentAttendanceDate,
 				actualEndDate,
+				fullAttendance,
 			});
 		}
 

@@ -19,6 +19,7 @@ import {
 	getLastDayUtc,
 	stringToDate,
 } from "../../utils/date_time";
+import { IAdvancePayroll } from "../../interface/advance_payroll";
 
 export function errorEmission(socket: Socket, error: unknown): void {
 	socket.emit("server_response", {
@@ -304,4 +305,25 @@ export async function getSalaryTemplateLeaveData(
 		console.log(error);
 		return {};
 	}
+}
+
+export function normalizeAttendance(a: IAttendance): IAttendance {
+	return {
+		...a,
+		clock_in: new Date(a.clock_in),
+		clock_out: a.clock_out ? new Date(a.clock_out) : undefined,
+		breaks: a.breaks.map((b) => ({
+			...b,
+			break_in: new Date(b.break_in),
+			break_out: b.break_out ? new Date(b.break_out) : undefined,
+		})),
+	};
+}
+
+export function normalizeAdvancePayroll(raw: IAdvancePayroll): IAdvancePayroll {
+	return {
+		...raw,
+		start_date: new Date(raw.start_date),
+		end_date: new Date(raw.end_date),
+	};
 }

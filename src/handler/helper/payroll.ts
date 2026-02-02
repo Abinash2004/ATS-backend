@@ -1,19 +1,27 @@
 import dotenv from "dotenv";
 import type { Socket } from "socket.io";
 import type { IEmployee } from "../../interface/employee";
+import type { IAttendance } from "../../interface/attendance";
 import type { IAdvancePayroll } from "../../interface/advance_payroll";
+import type { ISalaryTemplate } from "../../interface/salary_template";
 import type { IAttendanceRecord } from "../../interface/attendance_record";
+import type {
+	ISalary,
+	ISalaryAttendance,
+	ISalaryTemplateAmount,
+} from "../../interface/salary_slip";
+
 import { getShift } from "../mongoose/shift";
 import { generatePDF } from "../../utils/pdf_generation";
 import { getDepartment } from "../mongoose/department";
 import { getBonusByDate } from "../mongoose/bonus";
 import { createSalarySlip } from "../mongoose/salary_slip";
+import { createPenalty, getPenaltyByDate } from "../mongoose/penalty";
+import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
 	getComponentName,
 	readSalaryTemplate,
 } from "../mongoose/salary_template";
-import { createPenalty, getPenaltyByDate } from "../mongoose/penalty";
-import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
 import {
 	createAdvancePayroll,
 	resolveAdvancePayroll,
@@ -22,11 +30,6 @@ import {
 	createPayrollRecord,
 	getLastPayrollDate,
 } from "../mongoose/payroll_record";
-import {
-	ISalary,
-	ISalaryAttendance,
-	ISalaryTemplateAmount,
-} from "../../interface/salary_slip";
 import {
 	countDays,
 	dateToIST,
@@ -45,9 +48,9 @@ import {
 	getSalaryTemplateEarningData,
 	getSalaryTemplateLeaveData,
 	messageEmission,
+	normalizeAdvancePayroll,
+	normalizeAttendance,
 } from "./reusable";
-import { getAttendanceByDate } from "../mongoose/attendance";
-import { ISalaryTemplate } from "../../interface/salary_template";
 
 dotenv.config({ quiet: true });
 
@@ -56,10 +59,11 @@ export async function runEmployeePayroll(
 	start: Date,
 	end: Date,
 	isPendingAdvancePayroll: boolean,
-	pendingAdvancePayroll: IAdvancePayroll | null,
+	tempPendingAdvancePayroll: IAdvancePayroll | null,
 	isAdvancePayroll: boolean,
 	recentAttendanceDate: Date,
 	actualEndDate: Date,
+	fullAttendance: IAttendance[],
 ): Promise<void> {
 	try {
 		let salary = 0;
@@ -69,6 +73,21 @@ export async function runEmployeePayroll(
 		let advanceSalary = 0;
 		let overTimeWages = 0;
 		let overtimeMinutes = 0;
+
+		const attendanceMap: Record<string, IAttendance> = {};
+		let pendingAdvancePayroll: IAdvancePayroll | null = null;
+		if (tempPendingAdvancePayroll) {
+			pendingAdvancePayroll = normalizeAdvancePayroll(
+				tempPendingAdvancePayroll,
+			);
+		}
+
+		for (const raw of fullAttendance) {
+			const attendance = normalizeAttendance(raw);
+			const dateId = new Date(attendance.clock_in);
+			dateId.setUTCHours(0, 0, 0, 0);
+			attendanceMap[dateId.toUTCString() + attendance.employeeId] = attendance;
+		}
 
 		const [
 			totalBonus,
@@ -84,8 +103,8 @@ export async function runEmployeePayroll(
 			pendingAdvancePayroll
 				? getEmployeeAttendanceRecordDateWise(
 						emp._id.toString(),
-						pendingAdvancePayroll.start_date,
-						pendingAdvancePayroll.end_date,
+						new Date(pendingAdvancePayroll.start_date),
+						new Date(pendingAdvancePayroll.end_date),
 					)
 				: [],
 		]);
@@ -124,6 +143,7 @@ export async function runEmployeePayroll(
 				end,
 				shiftSalary,
 				salaryTemplate,
+				attendanceMap,
 			);
 			if (overtimeValues) {
 				overTimeWages += overtimeValues.overTimeWages;
@@ -144,6 +164,7 @@ export async function runEmployeePayroll(
 			leaves,
 			salaryAmount,
 			salaryTemplate,
+			attendanceMap,
 		);
 		if (attendanceResult) {
 			salary += attendanceResult.salaryAttendance;
@@ -210,6 +231,7 @@ async function resolveAdvancePayrollHandler(
 	end: Date,
 	shiftSalary: number,
 	salaryTemplate: ISalaryTemplate | null,
+	attendanceMap: Record<string, IAttendance>,
 ): Promise<{ overTimeMinutes: number; overTimeWages: number } | null> {
 	try {
 		let overTimeMinutes = 0;
@@ -267,12 +289,12 @@ async function resolveAdvancePayrollHandler(
 				);
 			}
 
-			const fullAttendance = await getAttendanceByDate(
-				att.attendance_date,
-				emp._id.toString(),
-			);
+			let dateId = new Date(att.attendance_date);
+			dateId.setUTCHours(0, 0, 0, 0);
+			const fullAttendance =
+				attendanceMap[dateId.toUTCString() + emp._id.toString()];
 
-			if (fullAttendance && fullAttendance.clock_out) {
+			if (fullAttendance && fullAttendance?.clock_out) {
 				overTimeMinutes += await calculateOvertimeMinutes(fullAttendance);
 				overTimeWages += await calculateOvertimePay(
 					fullAttendance,
@@ -303,6 +325,7 @@ async function attendancePayrollHandler(
 	leaves: Record<string, number>,
 	salaryAmount: Record<string, number>,
 	salaryTemplate: ISalaryTemplate | null,
+	attendanceMap: Record<string, IAttendance>,
 ): Promise<{
 	salaryAttendance: number;
 	paidLeaveAttendance: number;
@@ -354,12 +377,12 @@ async function attendancePayrollHandler(
 			if (att.first_half === "absent") absentShift++;
 			if (att.second_half === "absent") absentShift++;
 
-			const fullAttendance = await getAttendanceByDate(
-				att.attendance_date,
-				emp._id.toString(),
-			);
+			let dateId = new Date(att.attendance_date);
+			dateId.setUTCHours(0, 0, 0, 0);
+			const fullAttendance =
+				attendanceMap[dateId.toUTCString() + emp._id.toString()];
 
-			if (fullAttendance && fullAttendance.clock_out) {
+			if (fullAttendance && fullAttendance?.clock_out) {
 				overtimeMinutes += await calculateOvertimeMinutes(fullAttendance);
 				overTimeWages += await calculateOvertimePay(
 					fullAttendance,
@@ -534,15 +557,15 @@ export async function getStartAndEndDate(
 			end = parseDateDMY(endDate);
 		}
 
-		// const days = countDays(start, end);
-		// if (days < 29 || days > 31) {
-		// 	messageEmission(
-		// 		socket,
-		// 		"failed",
-		// 		"number of payroll days must be between 29 and 31.",
-		// 	);
-		// 	return null;
-		// }
+		const days = countDays(start, end);
+		if (days < 29 || days > 31) {
+			messageEmission(
+				socket,
+				"failed",
+				"number of payroll days must be between 29 and 31.",
+			);
+			return null;
+		}
 
 		return { start, end };
 	} catch (error) {

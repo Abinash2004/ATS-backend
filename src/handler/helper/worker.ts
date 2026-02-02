@@ -26,6 +26,7 @@ export function startPayrollWorker() {
 					data.isAdvancePayroll,
 					recentAttendanceDate,
 					actualEndDate,
+					data.fullAttendance,
 				);
 			console.log(`Payroll completed for employee ${data.employeeId}`);
 		},

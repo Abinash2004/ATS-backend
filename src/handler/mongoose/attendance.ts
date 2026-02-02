@@ -6,11 +6,7 @@ import type { IShift } from "../../interface/shift";
 import type { IAttendance, IBreak } from "../../interface/attendance";
 import { getShift } from "./shift";
 import { createPenalty } from "./penalty";
-import {
-	getBreakLimitPenalty,
-	getEarlyOutPenalty,
-	getLateInPenalty,
-} from "./policy";
+import { getBreakLimitPenalty, getEarlyOutPenalty } from "./policy";
 import {
 	getShiftData,
 	messageEmission,
@@ -471,5 +467,21 @@ export async function getEarlyOutCountPerMonth(
 	} catch (error) {
 		console.error(error);
 		return 0;
+	}
+}
+
+export async function getAttendanceByDateRange(
+	start: Date,
+	end: Date,
+): Promise<IAttendance[]> {
+	try {
+		start.setHours(0, 0, 0, 0);
+		end.setHours(23, 59, 59, 999);
+		return await Attendance.find({
+			clock_in: { $gte: start, $lte: end },
+		});
+	} catch (error) {
+		console.log(error);
+		return [];
 	}
 }
