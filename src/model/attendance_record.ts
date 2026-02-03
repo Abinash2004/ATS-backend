@@ -14,6 +14,14 @@ const attendanceRecordSchema = new mongoose.Schema<IAttendanceRecord>({
 		type: String,
 		required: true,
 	},
+	first_half_fraction: {
+		type: Number,
+		default: 1,
+	},
+	second_half_fraction: {
+		type: Number,
+		default: 1,
+	},
 	employeeId: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: "Employee",

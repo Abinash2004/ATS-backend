@@ -118,6 +118,7 @@ export function startSocketServer() {
 				category: string,
 				day_status: DayStatus,
 				reason: string,
+				fraction: string,
 			) =>
 				leaveRequestHandler(
 					socket,
@@ -127,6 +128,7 @@ export function startSocketServer() {
 					category,
 					day_status,
 					reason,
+					fraction,
 				),
 		);
 

@@ -9,4 +9,5 @@ export interface ILeave {
 	reason: string;
 	employeeId: Types.ObjectId;
 	shiftId: Types.ObjectId;
+	fraction: number;
 }

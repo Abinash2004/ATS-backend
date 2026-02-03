@@ -3,7 +3,9 @@ import type { Socket } from "socket.io";
 import type { ILeave } from "../../interface/leave";
 import type { DayStatus } from "../../type/day_status";
 import type { leave_response } from "../../type/leave_response";
+import { isNumber } from "../../utils/validations";
 import { messageEmission } from "../helper/reusable";
+import { readSalaryTemplate } from "./salary_template";
 import {
 	getCurrentSixMonthQuarterRange,
 	getFirstAndLastDateOfCurrentYear,
@@ -13,7 +15,6 @@ import {
 	getLastDateOfCurrentWeek,
 	parseDateDMY,
 } from "../../utils/date_time";
-import { readSalaryTemplate } from "./salary_template";
 
 export async function createLeave(
 	socket: Socket,
@@ -23,6 +24,7 @@ export async function createLeave(
 	reason: string,
 	employeeId: string,
 	shiftId: string,
+	fraction: number,
 ): Promise<void> {
 	try {
 		const leaveDate: Date = parseDateDMY(leave_date);
@@ -40,6 +42,7 @@ export async function createLeave(
 			shiftId,
 			leave_status: "pending",
 			reason,
+			fraction,
 		});
 		messageEmission(socket, "success", "leave request sent successfully.");
 	} catch (error) {
@@ -183,4 +186,11 @@ export async function isLeaveAvailable(
 		console.log(error);
 		return false;
 	}
+}
+
+export function isValidFraction(fraction: string): boolean {
+	if (!isNumber(fraction)) return false;
+	const value = Number(fraction);
+	if (value < 0 || value > 1) return false;
+	return true;
 }

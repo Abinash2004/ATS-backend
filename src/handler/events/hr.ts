@@ -190,15 +190,17 @@ export async function generateAttendanceSheetHandler(
 					second_half_pay += shiftSalary;
 				}
 
-				const overtimeMinutes = await calculateOvertimeMinutes(
-					att,
-					emp._id.toString(),
-				);
-				const overTimeWages = await calculateOvertimePay(
-					att,
-					emp._id.toString(),
-					shiftSalary,
-				);
+				const overtimeMinutes = 0;
+				// await calculateOvertimeMinutes(
+				// 	att,
+				// 	emp._id.toString(),
+				// );
+				const overTimeWages = 0;
+				// await calculateOvertimePay(
+				// 	att,
+				// 	emp._id.toString(),
+				// 	shiftSalary,
+				// );
 
 				sheetData = {
 					Date: dateToIST(att.attendance_date).split(",")[0],

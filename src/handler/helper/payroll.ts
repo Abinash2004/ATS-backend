@@ -15,6 +15,7 @@ import { getShift } from "../mongoose/shift";
 import { generatePDF } from "../../utils/pdf_generation";
 import { getDepartment } from "../mongoose/department";
 import { getBonusByDate } from "../mongoose/bonus";
+import { getApprovedLeave } from "../mongoose/leave";
 import { createSalarySlip } from "../mongoose/salary_slip";
 import { createPenalty, getPenaltyByDate } from "../mongoose/penalty";
 import { getEmployeeAttendanceRecordDateWise } from "../mongoose/attendance_record";
@@ -353,24 +354,34 @@ async function attendancePayrollHandler(
 			}
 
 			if (att.first_half === "present") {
-				salary += shiftSalary;
+				salary += shiftSalary * att.first_half_fraction;
 				for (let key in result) {
-					salaryAmount[key] += amountPerShift[key];
+					salaryAmount[key] += amountPerShift[key] * att.first_half_fraction;
 				}
 				presentShift++;
 			} else if (leaves[att.first_half] !== undefined) {
-				salary += leaves[att.first_half];
+				const leave = await getApprovedLeave(
+					att.attendance_date,
+					emp._id.toString(),
+				);
+				let fraction = leave ? leave.fraction : 0;
+				salary += leaves[att.first_half] * fraction;
 				paidLeave++;
 			}
 
 			if (att.second_half === "present") {
-				salary += shiftSalary;
+				salary += shiftSalary * att.second_half_fraction;
 				for (let key in result) {
-					salaryAmount[key] += amountPerShift[key];
+					salaryAmount[key] += amountPerShift[key] * att.first_half_fraction;
 				}
 				presentShift++;
 			} else if (leaves[att.second_half] !== undefined) {
-				salary += leaves[att.second_half];
+				const leave = await getApprovedLeave(
+					att.attendance_date,
+					emp._id.toString(),
+				);
+				let fraction = leave ? leave.fraction : 0;
+				salary += leaves[att.second_half] * fraction;
 				paidLeave++;
 			}
 

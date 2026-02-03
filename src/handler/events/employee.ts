@@ -4,25 +4,26 @@ import type { IPenalty } from "../../interface/penalty";
 import type { DayStatus } from "../../type/day_status";
 import type { IEmployee } from "../../interface/employee";
 import type { IAttendance } from "../../interface/attendance";
-import {
-	createLeave,
-	isLeaveAvailable,
-	isValidCategory,
-} from "../mongoose/leave";
 import { getEmployeeBonus } from "../mongoose/bonus";
 import { isValidMonthYear } from "../../utils/validations";
 import { getEmployeePenalty } from "../mongoose/penalty";
 import { getEmployeeAttendanceRecord } from "../mongoose/attendance_record";
 import { dateToIST, formatHoursMinutes } from "../../utils/date_time";
 import {
+	getMonthlyEmployeeSalarySlip,
+	getTotalEPFAmount,
+} from "../mongoose/salary_slip";
+import {
 	getShiftData,
 	errorEmission,
 	messageEmission,
 } from "../helper/reusable";
 import {
-	getMonthlyEmployeeSalarySlip,
-	getTotalEPFAmount,
-} from "../mongoose/salary_slip";
+	createLeave,
+	isLeaveAvailable,
+	isValidCategory,
+	isValidFraction,
+} from "../mongoose/leave";
 import {
 	addNewAttendance,
 	addNewBreak,
@@ -209,13 +210,17 @@ export async function leaveRequestHandler(
 	category: string,
 	day_status: DayStatus,
 	reason: string,
+	fraction: string,
 ): Promise<void> {
 	try {
-		if (!leave_date || !category || !day_status || !reason) {
+		if (!leave_date || !category || !day_status || !reason || !fraction) {
 			messageEmission(socket, "failed", "incomplete / invalid credentials.");
 			return;
 		}
-
+		if (!isValidFraction(fraction)) {
+			messageEmission(socket, "failed", "invalid fraction value.");
+			return;
+		}
 		if (!(await isValidCategory(employeeId, category))) {
 			messageEmission(socket, "failed", "invalid leave category.");
 			return;
@@ -233,6 +238,7 @@ export async function leaveRequestHandler(
 			reason,
 			employeeId,
 			shiftId,
+			Math.floor(Number(fraction) * 100) / 100,
 		);
 	} catch (error) {
 		errorEmission(socket, error);

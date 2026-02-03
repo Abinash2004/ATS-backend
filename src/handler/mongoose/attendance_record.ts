@@ -19,6 +19,8 @@ export async function setAttendanceRecord(
 	attendance_date: Date,
 	first_half: string,
 	second_half: string,
+	first_half_fraction: number,
+	second_half_fraction: number,
 	employeeId: string,
 	shiftId: string,
 ): Promise<void> {
@@ -28,6 +30,8 @@ export async function setAttendanceRecord(
 			employeeId: employeeId,
 			first_half: first_half,
 			second_half: second_half,
+			first_half_fraction: first_half_fraction,
+			second_half_fraction: second_half_fraction,
 			shiftId: shiftId,
 		});
 	} catch (error) {

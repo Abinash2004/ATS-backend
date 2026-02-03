@@ -34,6 +34,10 @@ const leaveSchema = new Schema<ILeave>({
 		ref: "Shift",
 		required: true,
 	},
+	fraction: {
+		type: Number,
+		default: 1,
+	},
 });
 
 leaveSchema.index({ date: 1, employeeId: 1, leave_status: 1 });
