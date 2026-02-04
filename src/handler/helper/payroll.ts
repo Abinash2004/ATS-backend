@@ -282,7 +282,7 @@ async function resolveAdvancePayrollHandler(
 				for (let key in result) {
 					totalPenalty += amountPerShift[key];
 				}
-				if (penalty - leaves[att.first_half] > 0) {
+				if (penalty - leaves[att.second_half] > 0) {
 					const leave = await getApprovedLeave(
 						att.attendance_date,
 						emp._id.toString(),
@@ -384,7 +384,7 @@ async function attendancePayrollHandler(
 			if (att.second_half === "present") {
 				salary += shiftSalary * att.second_half_fraction;
 				for (let key in result) {
-					salaryAmount[key] += amountPerShift[key] * att.first_half_fraction;
+					salaryAmount[key] += amountPerShift[key] * att.second_half_fraction;
 				}
 				presentShift++;
 			} else if (leaves[att.second_half] !== undefined) {
@@ -578,6 +578,11 @@ export async function getStartAndEndDate(
 			}
 			start = parseDateDMY(startDate);
 			end = parseDateDMY(endDate);
+		}
+
+		if (end < start) {
+			messageEmission(socket, "failed", "end date is less than start date");
+			return null;
 		}
 
 		const days = countDays(start, end);
