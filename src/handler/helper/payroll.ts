@@ -261,7 +261,13 @@ async function resolveAdvancePayrollHandler(
 					penalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
-					totalPenalty += penalty - leaves[att.first_half];
+					const leave = await getApprovedLeave(
+						att.attendance_date,
+						emp._id.toString(),
+					);
+					let fraction = 0;
+					if (leave) fraction = leave.fraction;
+					totalPenalty += penalty - leaves[att.first_half] * fraction;
 					penaltyList.push(`${dateToIST(att.attendance_date)} (first half)`);
 				}
 			}
@@ -277,7 +283,13 @@ async function resolveAdvancePayrollHandler(
 					totalPenalty += amountPerShift[key];
 				}
 				if (penalty - leaves[att.first_half] > 0) {
-					totalPenalty = penalty - leaves[att.second_half];
+					const leave = await getApprovedLeave(
+						att.attendance_date,
+						emp._id.toString(),
+					);
+					let fraction = 0;
+					if (leave) fraction = leave.fraction;
+					totalPenalty = penalty - leaves[att.second_half] * fraction;
 					penaltyList.push(`${dateToIST(att.attendance_date)} (first half)`);
 				}
 			}
