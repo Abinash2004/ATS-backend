@@ -41,23 +41,20 @@ export async function getEmployeeById(id: string): Promise<IEmployee | null> {
 
 export async function updateEmployee(
 	employeeId: string,
-	employee: IEmployee,
+	employee: Partial<IEmployee>,
 ): Promise<void> {
 	try {
-		await Employee.updateOne(
-			{ _id: employeeId },
-			{
-				$set: {
-					name: employee.name,
-					email: employee.email,
-					password: employee.password,
-					salary: employee.salary,
-					locationId: employee.locationId,
-					departmentId: employee.departmentId,
-					shiftId: employee.shiftId,
-				},
-			},
-		);
+		const updateData: any = {};
+		if (employee.name) updateData.name = employee.name;
+		if (employee.email) updateData.email = employee.email;
+		if (employee.password) updateData.password = employee.password;
+		if (employee.salary) updateData.salary = employee.salary;
+		if (employee.locationId) updateData.locationId = employee.locationId;
+		if (employee.departmentId) updateData.departmentId = employee.departmentId;
+		if (employee.shiftId) updateData.shiftId = employee.shiftId;
+		if (employee.role) updateData.role = employee.role;
+
+		await Employee.updateOne({ _id: employeeId }, { $set: updateData });
 	} catch (error) {
 		console.log(error);
 	}

@@ -28,6 +28,7 @@ export async function authSignUp(socket: Socket, employee: IEmployee) {
 		});
 	}
 	employee.password = await bcrypt.hash(employee.password, 10);
+	employee.role = "employee"; // Enforce default role to prevent role escalation
 	await addNewEmployee(employee);
 	const token = signToken({ email });
 	return socket.emit("sign_up_response", {
@@ -81,10 +82,12 @@ export async function authVerification(
 		const employee: IEmployee | null = await getEmployeeDataByEmail(email);
 		if (!employee) return next(new Error("Employee not found."));
 
-		if (employee.role === "admin" && adminPassword) {
-			if (adminPassword === process.env.ADMIN_PASSWORD)
+		if (employee.role === "admin") {
+			if (adminPassword === process.env.ADMIN_PASSWORD) {
 				socket.data.role = "admin";
-			else return next(new Error("invalid admin password."));
+			} else {
+				socket.data.role = "employee"; // Admin without sudo password is treated as employee
+			}
 		} else {
 			const department: IDepartment | null = await getDepartment(
 				employee.departmentId.toString(),

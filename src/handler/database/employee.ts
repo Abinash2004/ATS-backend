@@ -1,4 +1,5 @@
 import type { Socket } from "socket.io";
+import bcrypt from "bcrypt";
 import type { IEmployee } from "../../interface/employee";
 import { errorEmission, messageEmission } from "../helper/reusable";
 import {
@@ -27,6 +28,7 @@ export async function createEmployeeHandler(
 			messageEmission(socket, "failed", "employee already exists");
 			return;
 		}
+		employee.password = await bcrypt.hash(employee.password, 10);
 		await addNewEmployee(employee);
 		messageEmission(socket, "success", "employee created successfully.");
 	} catch (error) {
@@ -75,6 +77,9 @@ export async function updateEmployeeHandler(
 		if (!employee) {
 			messageEmission(socket, "failed", "employee data are needed");
 			return;
+		}
+		if (employee.password) {
+			employee.password = await bcrypt.hash(employee.password, 10);
 		}
 		await updateEmployee(employeeId, employee);
 		messageEmission(socket, "success", "employee data updated successfully.");
