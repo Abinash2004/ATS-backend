@@ -282,6 +282,7 @@ export async function getSalaryTemplateEarningData(
 	try {
 		const salaryTemplate = await readSalaryTemplate(employeeId);
 		if (!salaryTemplate) return {};
+		if (salaryTemplate.is_prorate) return { "Prorated Earning": salary };
 		return evaluateSalaryTemplate(salary, salaryTemplate.earnings);
 	} catch (error) {
 		console.log(error);
@@ -296,6 +297,7 @@ export async function getSalaryTemplateLeaveData(
 	try {
 		const salaryTemplate = await readSalaryTemplate(employeeId);
 		if (!salaryTemplate) return {};
+		if (salaryTemplate.is_prorate) return {};
 		const perShiftComponents: ISalaryTemplateComponent[] = [
 			...salaryTemplate.earnings,
 			...salaryTemplate.leaves,

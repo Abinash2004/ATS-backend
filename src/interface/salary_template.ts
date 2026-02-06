@@ -18,6 +18,7 @@ export interface ISalaryTemplateLeave {
 
 export interface ISalaryTemplate {
 	name: string;
+	is_prorate: boolean;
 	earnings: ISalaryTemplateComponent[];
 	leaves: ISalaryTemplateLeave[];
 	overtime: ISalaryTemplateComponent;

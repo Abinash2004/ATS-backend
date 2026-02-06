@@ -65,6 +65,10 @@ const salaryTemplateSchema = new Schema<ISalaryTemplate>({
 		type: String,
 		required: true,
 	},
+	is_prorate: {
+		type: Boolean,
+		default: false,
+	},
 	earnings: {
 		type: [salaryTemplateComponentSchema],
 		default: [],

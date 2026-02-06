@@ -371,6 +371,18 @@ async function attendancePayrollHandler(
 					salaryAmount[key] += amountPerShift[key] * att.first_half_fraction;
 				}
 				presentShift++;
+			} else if (salaryTemplate && salaryTemplate.is_prorate) {
+				const leave = await getApprovedLeave(
+					att.attendance_date,
+					emp._id.toString(),
+				);
+				if (leave && leave.leave_status === "approved") {
+					salary += shiftSalary * leave.fraction;
+					for (let key in result) {
+						salaryAmount[key] += amountPerShift[key] * leave.fraction;
+					}
+					paidLeave++;
+				}
 			} else if (leaves[att.first_half] !== undefined) {
 				const leave = await getApprovedLeave(
 					att.attendance_date,
@@ -387,6 +399,18 @@ async function attendancePayrollHandler(
 					salaryAmount[key] += amountPerShift[key] * att.second_half_fraction;
 				}
 				presentShift++;
+			} else if (salaryTemplate && salaryTemplate.is_prorate) {
+				const leave = await getApprovedLeave(
+					att.attendance_date,
+					emp._id.toString(),
+				);
+				if (leave && leave.leave_status === "approved") {
+					salary += shiftSalary * leave.fraction;
+					for (let key in result) {
+						salaryAmount[key] += amountPerShift[key] * leave.fraction;
+					}
+					paidLeave++;
+				}
 			} else if (leaves[att.second_half] !== undefined) {
 				const leave = await getApprovedLeave(
 					att.attendance_date,
