@@ -157,6 +157,7 @@ export function evaluateSalaryTemplate(
 			returnValues[component.code] = values[code];
 		}
 	}
+	console.log(returnValues);
 	return returnValues;
 }
 
