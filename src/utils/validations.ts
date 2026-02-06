@@ -194,9 +194,8 @@ export async function isValidSalaryTemplate(
 			);
 
 			for (const component of salaryTemplate.earnings) {
-				summation += earnings[component.name];
+				summation += earnings[component.code];
 			}
-
 			if (summation > employee.salary) {
 				messageEmission(
 					socket,
