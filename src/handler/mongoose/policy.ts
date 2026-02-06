@@ -45,28 +45,6 @@ export async function getBreakLimitPenalty(): Promise<number> {
 	}
 }
 
-export async function getEPFPercentage(): Promise<number> {
-	try {
-		const policy = await Policy.findOne({});
-		if (!policy) return 0;
-		return policy.epf_percentage;
-	} catch (error) {
-		console.log(error);
-		return 0;
-	}
-}
-
-export async function getEPFCap(): Promise<number> {
-	try {
-		const policy = await Policy.findOne({});
-		if (!policy) return 0;
-		return policy.epf_cap;
-	} catch (error) {
-		console.log(error);
-		return 0;
-	}
-}
-
 export async function createPolicy(policy: IPolicy): Promise<void> {
 	try {
 		await Policy.create(policy);
